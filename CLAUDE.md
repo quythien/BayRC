@@ -190,3 +190,116 @@ Focus on whether the overall approach is sound, complete, and defensible.
 **Evidence:** paste relevant code or note its absence
 **Fix:** what should be added or changed
 **Impact:** affects results / affects interpretation / affects credibility only
+
+---
+
+## Agent: package-consistency-reviewer
+
+```
+---
+name: package-consistency-reviewer
+description: >
+  Audit BayRC for package-level consistency: missing exported functions,
+  function signature mismatches between R/ and inst/analysis/ scripts,
+  duplicate definitions, and NAMESPACE/DESCRIPTION completeness.
+  Always read project memory first. Output: REVIEW_CODE.md
+---
+```
+
+**Always start by reading project memory:**
+```r
+# 1. Read /home/qtp1/.claude/projects/-home-qtp1-Projects-Circadian-Kyle-Circadian-analysis-main-R-v1-R/memory/MEMORY.md
+# 2. Read any linked memory files relevant to current package state
+# 3. Read CLAUDE.md for architecture and risk tiers
+```
+
+You are a senior R package developer. Focus on whether the package API is complete, consistent, and correctly wired.
+
+### Checks to perform
+
+1. **Missing functions**: grep every function call in `inst/analysis/` — does it exist in `R/`?
+   - Priority targets: `compute_adjusted_jaccard_analytical_pvalue`, `compute_concordance_minimal`,
+     `compute_iteration_jaccard`, `plot_pathway_integrated`, `transition_classify_conditional`
+2. **Typo / call errors**: `fPRC.path()` in BHM_PRC.R — is this a typo for `file.path()`?
+3. **Signature mismatches**: for `CB_MCMC_single_rj_slice`, `transition_classify`, `phase_infer`,
+   `pathSelect`, `multi_conservation` — do argument names in analysis scripts match `R/` definitions?
+4. **Duplicate definitions**: any function defined >1 time across `R/` files?
+5. **NAMESPACE/DESCRIPTION**: packages used in `R/` but missing from `Imports:`?
+
+### Output
+
+Write findings to `BayRC_ROOT/REVIEW_CODE.md`. Include a priority fix table at the end.
+Do NOT modify any source files — report only.
+
+---
+
+## Agent: vignette-writer
+
+```
+---
+name: vignette-writer
+description: >
+  Write and maintain the BayRC workflow vignette (vignettes/BayRC_workflow.md).
+  Always read project memory and README.md first. Use references.bib from paper/
+  for citations. Think from both biological and statistical perspectives.
+  Output: vignettes/BayRC_workflow.md
+---
+```
+
+**Always start by reading:**
+1. Project memory (`MEMORY.md` and linked files)
+2. `README.md` — vignette must go deeper than README, not duplicate it
+3. `paper/references.bib` — use for any citations (BayRC paper, RJMCMC, circular stats, BFDR)
+4. `paper/BayRC.tex` abstract + methods — biological framing must match paper exactly
+5. `inst/analysis/Baboon_SUN_PUT.R` — realistic end-to-end workflow reference
+
+**Vignette requirements:**
+- Audience: biologist who understands RNA-seq but not Bayesian statistics
+- Cover all 5 steps: MCMC → Posterior summaries (BF + HDI) → Transition classification →
+  Phase concordance → Pathway enrichment (both stages) + Genome-wide concordance
+- Walk through the 5-panel heatmap design (Rhythmicity Status | Phase Status |
+  P(ρ=1|data) A&B | Phase posterior A | Phase posterior B)
+- Use `> **Interpretation:**` blockquotes after key code blocks
+- End with a biological checklist for result interpretation
+- Include a References section using keys from `references.bib`
+- Length: ~1500–2000 words narrative + code blocks
+- Do NOT use the word "simply"
+
+**Output:** `vignettes/BayRC_workflow.md`
+
+---
+
+## Agent: function-tester
+
+```
+---
+name: function-tester
+description: >
+  Test BayRC R functions by actually running them. Always read project memory first.
+  Covers: package load, utility functions, MCMC pipeline, posterior summaries,
+  transition classification, phase inference, pathway enrichment, concordance.
+  Output: TEST_REPORT.md
+---
+```
+
+**Always start by reading project memory:**
+```r
+# 1. Read /home/qtp1/.claude/projects/-home-qtp1-Projects-Circadian-Kyle-Circadian-analysis-main-R-v1-R/memory/MEMORY.md
+# 2. Read any linked memory files
+# 3. Read CLAUDE.md for architecture and current known issues
+```
+
+**Test sequence:**
+
+1. **Package load**: `Rscript -e "devtools::load_all('.'); cat('LOAD OK\n')"`
+   — if fails, diagnose: missing dependency / C++ compile error / syntax error / NAMESPACE
+2. **Utility smoke tests**: `adjust.to.2pi`, `bfdr_from_posterior`, `summarize_bay`, `Cosinor_fit`
+3. **MCMC pipeline** (50 iterations, 5 genes): `CB_init_single` → `CB_MCMC_single_rj_slice` → `CB_getAllEst`
+4. **Classification layer**: `transition_classify`, `transition_classify_marginal`, `phase_infer`
+5. **Pathway + concordance** (mock data, 100 permutations): `pathSelect(ranking.method="union")`,
+   `multi_conservation`
+
+For each test: check return type, field names, value ranges. Capture all warnings.
+
+**Output:** Write full results to `BayRC_ROOT/TEST_REPORT.md` with a pass/fail table,
+warnings list, and recommended fixes for any failures.

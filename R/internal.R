@@ -914,36 +914,6 @@ TextMine <- function(hashtb, pathways, pathway, result, scatter.index=NULL,permu
 } # End of Text Mining
 
 
-writeTextOut <- function(tm_filtered,k,pathway.summary) {
-  cat("Cluster 1\n", file = paste("Clustering_Summary_K",k,".csv",sep=""),append=T)
-  cat("Key words,", file = paste("Clustering_Summary_K",k,".csv",sep=""),append=T)
-  write.table(t(rownames(tm_filtered[[1]])[1:15]), paste("Clustering_Summary_K",k,".csv",sep=""), sep=',',quote=F,
-              append = T, row.names=F,col.names=F,na="")
-  cat("q_value,", file = paste("Clustering_Summary_K",k,".csv",sep=""),append=T)
-  write.table(t(tm_filtered[[1]][1:15,4]), paste("Clustering_Summary_K",k,".csv",sep=""), sep=',',quote=F,
-              append = T, row.names=F,col.names=F,na="")
-  cat("count,", file = paste("Clustering_Summary_K",k,".csv",sep=""),append=T)
-  write.table(t(tm_filtered[[1]][1:15,1]), paste("Clustering_Summary_K",k,".csv",sep=""), sep=',',quote=F,
-              append = T, row.names=F,col.names=F,na="")
-  write.table(pathway.summary[[1]], paste("Clustering_Summary_K",k,".csv",sep=""), sep=",",quote=T,
-              append = T, row.names=F,col.names=F)
-  for (i in 2:k){
-    cat(paste("\nCluster ", i, "\n", sep = ""), file = paste("Clustering_Summary_K",k,".csv",sep=""), append = T)
-    cat("Key words,", file = paste("Clustering_Summary_K",k,".csv",sep=""),append=T)
-    write.table(t(rownames(tm_filtered[[i]])[1:15]), paste("Clustering_Summary_K",k,".csv",sep=""), sep=',',quote=F,
-                append = T, row.names=F,col.names=F,na="")
-    cat("q_value,", file = paste("Clustering_Summary_K",k,".csv",sep=""),append=T)
-    write.table(t(tm_filtered[[i]][1:15,4]), paste("Clustering_Summary_K",k,".csv",sep=""), sep=',',quote=F,
-                append = T, row.names=F,col.names=F,na="")
-    cat("count,", file = paste("Clustering_Summary_K",k,".csv",sep=""),append=T)
-    write.table(t(tm_filtered[[i]][1:15,1]), paste("Clustering_Summary_K",k,".csv",sep=""), sep=',',quote=F,
-                append = T, row.names=F,col.names=F,na="")
-    write.table(pathway.summary[[i]], paste("Clustering_Summary_K",k,".csv",sep=""), sep=",",quote=T,
-                append = T, row.names=F,col.names=F)
-    
-  }
-}
-
 writeTextOut <- function(tm_filtered,k,pathway.summary,scatter.index=NULL) {
   if(is.null(dim(tm_filtered[[1]]))==TRUE|dim(tm_filtered[[1]])[1] == 0){
     print(paste("No phrase pass q-value threshold in cluster 1"))
@@ -1420,33 +1390,29 @@ match_symbols <- function(input_df, BF, p_rhythmic = 0.5, ensemble = NULL) {
     }
   })
   
-  # Update attributes for the filtered rho matrix.
-  attr(input_df_filtered$rho, "symbols") <- symbols[data_filtered]
-  attr(input_df_filtered$rho, "RHYindex") <- summary_df$Rhythmicity[data_filtered]
-  if (!already_symbols) {
-    attr(input_df_filtered$rho, "ensembl_gene_ids") <- gene_ids[data_filtered]
-  }
-  
-  # If a phi matrix exists, update its attributes similarly.
-  if (!is.null(input_df_filtered$phi)) {
-    attr(input_df_filtered$phi, "symbols") <- symbols[data_filtered]
-    attr(input_df_filtered$phi, "RHYindex") <- summary_df$Rhythmicity[data_filtered]
-    if (!already_symbols) {
-      attr(input_df_filtered$phi, "ensembl_gene_ids") <- gene_ids[data_filtered]
+  final_symbols  <- symbols[data_filtered]
+  final_RHYindex <- summary_df$Rhythmicity[data_filtered]
+  final_ens_ids  <- if (!already_symbols) gene_ids[data_filtered] else NULL
+  G_final        <- length(final_symbols)
+
+  # Propagate symbols, RHYindex (and Ensembl IDs if applicable) to ALL G×K matrices.
+  # This ensures rownames and attributes survive downstream subsetting operations.
+  for (mat_name in names(input_df_filtered)) {
+    el <- input_df_filtered[[mat_name]]
+    if (is.matrix(el) && nrow(el) == G_final) {
+      rownames(el)              <- final_symbols
+      attr(el, "symbols")      <- final_symbols
+      attr(el, "RHYindex")     <- final_RHYindex
+      if (!is.null(final_ens_ids))
+        attr(el, "ensembl_gene_ids") <- final_ens_ids
+      input_df_filtered[[mat_name]] <- el
     }
-    rownames(input_df_filtered$phi) <- symbols[data_filtered]
   }
-  
-  # Set the row names of the filtered rho matrix to the filtered gene symbols.
+
+  # Legacy duplicate-check kept for user transparency
   tryCatch({
-    # Check if all filtered symbols are unique.
-    if(length(unique(symbols[data_filtered])) == length(symbols[data_filtered])) {
-      rownames(input_df_filtered$rho) <- symbols[data_filtered]
-    } else {
-      warning("Duplicate gene symbols found. Row names not updated.")
-    }
-  }, error = function(e) {
-    warning("Error encountered while setting row names: ", e)
+    if (length(unique(final_symbols)) < G_final)
+      warning("Duplicate gene symbols found after deduplication — check BF threshold.")
   })
   
   return(input_df_filtered)
@@ -1589,16 +1555,23 @@ match_homologs <- function(input_dfs, species_from ,ref = "human") {
       element
     })
     
-    # Update attributes: store stable reference IDs and corresponding (canonical) symbols.
-    attr(df_filtered$rho, "ensembl_gene_ids") <- new_ids[row_idx]
-    attr(df_filtered$phi, "ensembl_gene_ids") <- new_ids[row_idx]
-    attr(df_filtered$rho, "symbols") <- new_symbols[row_idx]
-    attr(df_filtered$phi, "symbols") <- new_symbols[row_idx]
-    
-    # Set rownames as the stable reference Ensembl IDs
-    rownames(df_filtered$rho) <- new_ids[row_idx]
-    rownames(df_filtered$phi) <- new_ids[row_idx]
-    
+    final_symbols  <- new_symbols[row_idx]
+    final_ens_ids  <- new_ids[row_idx]
+
+    # Propagate gene symbols as rownames and set attributes on ALL G×K matrices.
+    # Downstream functions (pathSelect, detect_rhy, phase_infer) all use rownames
+    # for gene-level matching; symbols must be consistent across rho, phi, A, M, etc.
+    G_final <- length(final_symbols)
+    for (mat_name in names(df_filtered)) {
+      el <- df_filtered[[mat_name]]
+      if (is.matrix(el) && nrow(el) == G_final) {
+        rownames(el) <- final_symbols
+        attr(el, "symbols")          <- final_symbols
+        attr(el, "ensembl_gene_ids") <- final_ens_ids
+        df_filtered[[mat_name]] <- el
+      }
+    }
+
     df_filtered
   })
   

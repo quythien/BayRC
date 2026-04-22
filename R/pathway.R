@@ -1,5 +1,3 @@
-require(openxlsx)
-require(parallel) 
 
 # Observed pathway conservation scores with pathway metadata
 conservation_pathway_circadian <- function(dat1, dat2, select.pathway.list,

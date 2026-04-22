@@ -1,5 +1,3 @@
-require(openxlsx)
-require(parallel)
 
 # Global permutation function with rounds support
 perm_conservation_global <- function(dat1, dat2, delta = 3, units = "hours", B = 1000,
@@ -514,4 +512,14 @@ multi_conservation_global <- function(mcmc.merge.list, dataset.names,
     parallel_used = parallel,
     output_file = excel_filename
   ))
+}
+# Minimal concordance summary from posterior ρ matrices
+# Wraps compute_iteration_jaccard to return scalar summaries per condition pair.
+compute_concordance_minimal <- function(rho_A, rho_B) {
+  res <- compute_iteration_jaccard(rho_A, rho_B)
+  list(
+    jaccard_obs  = mean(res$jaccard_obs,  na.rm = TRUE),
+    jaccard_adj  = mean(res$jaccard_adj,  na.rm = TRUE),
+    jaccard_null = mean(res$jaccard_exp,  na.rm = TRUE)
+  )
 }

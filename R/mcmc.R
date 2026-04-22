@@ -1,6 +1,10 @@
 CB_MCMC_single_rj_slice = function(Data.list, Init.value, P = 24,
                                 iteration = 3000, thin = 20, n.burn=1000,
-                                seed = 15213, 
+                                seed = 15213,
+                                # p_rhythmic: prior Pr(rho=1) per gene (length G).
+                                # Used in the RJMCMC log prior odds: log(p/(1-p)).
+                                # Uniform prior: rep(0.2, G) means 20% prior rhythmicity.
+                                # Gene-specific priors (e.g. from cosinor p-values) are supported.
                                 p_rhythmic=rep(0.2, 100), rj.p.stay = 0.5,
                                 A_prior= "Jeffreys_OLS_condi",
                                 #options: "trunc_Normal",
@@ -287,14 +291,22 @@ CB_MCMC_single_rj_slice = function(Data.list, Init.value, P = 24,
     save = list(rho = rho.store,
                 M = M.store,
                 AcosPhi = AcosPhi.store,
-                AsinPhi = AsinPhi.store, 
-                A = A.store, 
+                AsinPhi = AsinPhi.store,
+                A = A.store,
                 phi = phi.store,
                 sigma = sigma.store,
                 log.r1 = log.r1.store,
                 log.r3_A = log.r3_A.store,
                 log.r3_phi = log.r3_phi.store,
                 if.accept.rj = if.accept.rj)
+  }
+  gname <- Data.list[[3]]
+  if (!is.null(gname) && length(gname) == G) {
+    for (mat_name in names(save)) {
+      if (is.matrix(save[[mat_name]]) && nrow(save[[mat_name]]) == G) {
+        rownames(save[[mat_name]]) <- gname
+      }
+    }
   }
   return(save)
 }

@@ -10,7 +10,6 @@
 #' @examples
 #' 
 
-library(circular)
 
 
 CB_getAllEst <- function(res, burn=100, CI=TRUE, credMass=0.95, P=24, rhythmic=FALSE) {
