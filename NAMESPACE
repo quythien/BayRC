@@ -1,0 +1,2 @@
+useDynLib(BayRC, .registration = TRUE)
+importFrom(Rcpp, evalCpp)
