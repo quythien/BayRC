@@ -89,8 +89,8 @@
 ##' ortholog.db = hm_orth, reference=1,uniqG=T)
 ##' }
 
-merge <- function(mcmc.list,species,ortholog.db = NULL,
-                  reference=1,uniqG=T){
+merge_mcmc <- function(mcmc.list,species,ortholog.db = NULL,
+                       reference=1,uniqG=T){
   if(is.null(ortholog.db) | length(unique(species)) == 1){
     print("Only one species, merge datasets without ortholog match")
     M <- length(mcmc.list)

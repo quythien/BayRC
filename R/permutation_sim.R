@@ -730,3 +730,48 @@ multi_conservation <- function(mcmc.merge.list, dataset.names,
   
   return(final_df)
 }
+# Compute per-iteration Jaccard concordance with hypergeometric analytical p-value.
+# For each MCMC iteration, treats the binary ρ vectors as a 2×2 contingency table
+# and computes the exact one-sided hypergeometric p-value (more overlap than chance).
+# Returns a posterior distribution of Jaccard values and confusion-matrix elements.
+compute_adjusted_jaccard_analytical_pvalue <- function(rho_A, rho_B) {
+  n_iter <- ncol(rho_A)
+  G      <- nrow(rho_A)
+
+  jaccard_obs_mean <- numeric(n_iter)
+  pvalues          <- numeric(n_iter)
+  confusion        <- matrix(NA_real_, nrow = n_iter, ncol = 4,
+                             dimnames = list(NULL, c("a_both","b_loss","c_gain","d_neither")))
+
+  for (i in seq_len(n_iter)) {
+    A <- rho_A[, i]
+    B <- rho_B[, i]
+
+    a <- sum(A == 1L & B == 1L)
+    b <- sum(A == 1L & B == 0L)
+    c <- sum(A == 0L & B == 1L)
+    d <- sum(A == 0L & B == 0L)
+
+    confusion[i, ] <- c(a, b, c, d)
+
+    union_size <- a + b + c
+    if (union_size == 0L) {
+      jaccard_obs_mean[i] <- NA_real_
+      pvalues[i]          <- NA_real_
+    } else {
+      jaccard_obs_mean[i] <- a / union_size
+      # Hypergeometric p-value: P(X >= a) under independence
+      n_A <- a + b
+      n_B <- a + c
+      pvalues[i] <- phyper(a - 1L, n_A, G - n_A, n_B, lower.tail = FALSE)
+    }
+  }
+
+  list(
+    jaccard_obs_mean = jaccard_obs_mean,
+    confusion        = confusion,
+    pvalue_per_iter  = pvalues,
+    mean_jaccard     = mean(jaccard_obs_mean, na.rm = TRUE),
+    mean_pvalue      = mean(pvalues,          na.rm = TRUE)
+  )
+}

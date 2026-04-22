@@ -1,2 +1,10 @@
 useDynLib(BayRC, .registration = TRUE)
 importFrom(Rcpp, evalCpp)
+importFrom(circular, circular, median.circular, mean.circular, sd.circular)
+importFrom(ggplot2, ggplot, aes, geom_point, geom_line, geom_bar, geom_histogram,
+           facet_wrap, facet_grid, theme, theme_bw, theme_minimal,
+           scale_fill_manual, scale_color_manual, scale_fill_gradient,
+           labs, xlab, ylab, ggtitle, coord_polar, element_text,
+           element_blank, unit, margin, ggsave)
+importFrom(dplyr, filter, mutate, select, arrange, group_by, summarise,
+           left_join, inner_join, bind_rows, bind_cols, rename, pull, n)

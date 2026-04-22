@@ -978,45 +978,6 @@ ggsave(file.path(save_dir, "Baboon_Human_LIV_circular_phase_plot.png"), p, width
 # TEST: Iteration-Level Jaccard Index
 ################################################################################
 
-compute_iteration_jaccard <- function(rho_A, rho_B) {
-  # rho_A, rho_B: matrices (genes × iterations) with binary values {0, 1}
-  # Returns: vector of Jaccard indices (one per iteration)
-  
-  n_iter <- ncol(rho_A)
-  jaccard_values <- numeric(n_iter)
-  
-  # Also track confusion matrix elements for diagnostics
-  confusion_matrices <- matrix(NA, nrow = n_iter, ncol = 4)
-  colnames(confusion_matrices) <- c("a_both", "b_loss", "c_gain", "d_neither")
-  
-  for (i in 1:n_iter) {
-    # Binary vectors for this iteration
-    A <- rho_A[, i]
-    B <- rho_B[, i]
-    
-    # Confusion matrix elements
-    a <- sum(A == 1 & B == 1)  # both rhythmic (intersection)
-    b <- sum(A == 1 & B == 0)  # rhythmic in A only (loss)
-    c <- sum(A == 0 & B == 1)  # rhythmic in B only (gain)
-    d <- sum(A == 0 & B == 0)  # neither rhythmic
-    
-    confusion_matrices[i, ] <- c(a, b, c, d)
-    
-    # Jaccard index: intersection / union
-    union_size <- a + b + c
-    if (union_size == 0) {
-      jaccard_values[i] <- NA_real_  # edge case: no rhythmic genes
-    } else {
-      jaccard_values[i] <- a / union_size
-    }
-  }
-  
-  return(list(
-    jaccard = jaccard_values,
-    confusion = confusion_matrices
-  ))
-}
-
 # Compute Jaccard for each iteration
 result <- compute_adjusted_jaccard_analytical_pvalue(
   rho_A = baboon_LIV$rho,
@@ -1057,41 +1018,6 @@ cat(sprintf("  95%% CI: [%.4f, %.4f]\n",
 ################################################################################
 
 # Core function for concordance (minimal output)
-compute_concordance_minimal <- function(rho_A, rho_B) {
-  n_iter <- ncol(rho_A)
-  n_genes <- nrow(rho_A)
-  
-  # Observed Jaccard per iteration
-  obs_result <- compute_iteration_jaccard(rho_A, rho_B)
-  jaccard_obs <- obs_result$jaccard
-  
-  # Expected Jaccard per iteration
-  jaccard_exp <- numeric(n_iter)
-  for (i in 1:n_iter) {
-    p_A <- sum(rho_A[, i]) / n_genes
-    p_B <- sum(rho_B[, i]) / n_genes
-    denom <- p_A + p_B - p_A * p_B
-    jaccard_exp[i] <- if (denom > 0) (p_A * p_B) / denom else 0
-  }
-  
-  jaccard_null_mean <- mean(jaccard_exp, na.rm = TRUE)
-  
-  # Adjusted Jaccard per iteration
-  jaccard_adj <- numeric(n_iter)
-  for (i in 1:n_iter) {
-    if (!is.na(jaccard_obs[i]) && !is.na(jaccard_exp[i]) && jaccard_exp[i] < 1) {
-      jaccard_adj[i] <- (jaccard_obs[i] - jaccard_exp[i]) / (1 - jaccard_exp[i])
-    } else {
-      jaccard_adj[i] <- NA_real_
-    }
-  }
-  
-  return(list(
-    jaccard_obs = mean(jaccard_obs, na.rm = TRUE),
-    jaccard_adj = mean(jaccard_adj, na.rm = TRUE),
-    jaccard_null = jaccard_null_mean
-  ))
-}
 
 ################################################################################
 # 1. WITHIN-HUMAN PAIRWISE
@@ -1242,4 +1168,3 @@ table(ribosome_status)
 
 
 
-transition_classify_conditional

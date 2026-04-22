@@ -132,37 +132,48 @@ data_phi <- list(
 
 
 # Pathway enrichment for a pair
-select.pathway.kegg_GSEA <- pathSelect(
-  data_rho, 
-  pathway.list = kegg.pathway.list_hsa, 
-  method = "GSEA",
+# Stage 1: union test — which pathways contain rhythmically active genes?
+select.pathway.kegg_union <- pathSelect(
+  mcmc.merge.list      = list(younger = younger_symbol, older = older_symbol),
+  pathway.list         = kegg.pathway.list_hsa,
+  dataset.names        = c("younger", "older"),
+  ranking.method       = "union",
+  score_type           = "pos",
   pathwaysize.lower.cut = 5,
   pathwaysize.upper.cut = 200,
-  overlapsize.cut = 3, 
-  med.rhy.cut = 3, 
-  qfisher.cut = 0., 
-  topPath.indStudy.num = 20, 
-  minRecurrence = 1, 
-  awFisher = FALSE,
-  parallel = TRUE, 
-  ncores = 2
+  qvalue.cut           = 0.20,
+  nperm                = 1000
 )
 
+# Active pathways (p < 0.05 at Stage 1)
+active_pathway_idx   <- select.pathway.kegg_union$results$pval < 0.05
+active_pathway_list  <- kegg.pathway.list_hsa[
+  select.pathway.kegg_union$results$pathway[active_pathway_idx]
+]
 
-select.pathway.kegg_Fisher <- pathSelect(
-  data_rho, 
-  pathway.list = kegg.pathway.list_hsa, 
-  method = "Fisher",
+# Stage 2: gain/loss enrichment within active pathways
+select.pathway.kegg_gain <- pathSelect(
+  mcmc.merge.list      = list(younger = younger_symbol, older = older_symbol),
+  pathway.list         = active_pathway_list,
+  dataset.names        = c("younger", "older"),
+  ranking.method       = "gain",
+  score_type           = "pos",
   pathwaysize.lower.cut = 5,
   pathwaysize.upper.cut = 200,
-  overlapsize.cut = 3, 
-  med.rhy.cut = 3, 
-  qfisher.cut = 0.20, 
-  topPath.indStudy.num = 20, 
-  minRecurrence = 1, 
-  awFisher = FALSE,
-  parallel = TRUE, 
-  ncores = 2
+  qvalue.cut           = 0.20,
+  nperm                = 1000
+)
+
+select.pathway.kegg_loss <- pathSelect(
+  mcmc.merge.list      = list(younger = younger_symbol, older = older_symbol),
+  pathway.list         = active_pathway_list,
+  dataset.names        = c("younger", "older"),
+  ranking.method       = "loss",
+  score_type           = "pos",
+  pathwaysize.lower.cut = 5,
+  pathwaysize.upper.cut = 200,
+  qvalue.cut           = 0.20,
+  nperm                = 1000
 )
 
 
@@ -176,7 +187,7 @@ pairwise_names <- combn(names(data_rho), 2, simplify = FALSE)
 
 # Pathway names from KEGG
 #all_pathway_names <- names(kegg.pathway.list_hsa)
-all_pathway_names <- select.pathway.kegg_Fisher$Pathway 
+all_pathway_names <- select.pathway.kegg_union$results$pathway 
 
 # Output list to store ACS results
 all_acs_results <- list()

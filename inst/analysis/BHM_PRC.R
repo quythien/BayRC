@@ -406,11 +406,11 @@ p
 #───────────────────────────────────────────────────────────────
 # Save
 #───────────────────────────────────────────────────────────────
-save_dir <- fPRC.path(output.dir, "figure/baboon_human_PRC")
+save_dir <- file.path(output.dir, "figure/baboon_human_PRC")
 dir.create(save_dir, recursive = TRUE, showWarnings = FALSE)
 
 ggsave(
-  fPRC.path(save_dir, "Baboon_Human_PRC_Peak_Concordance_0.15.pdf"),
+  file.path(save_dir, "Baboon_Human_PRC_Peak_Concordance_0.15.pdf"),
   plot = p, width = 9, height = 8
 )
 
@@ -624,7 +624,7 @@ result_multiconservation <- multi_conservation(
   select.pathway.list = filtered_pathway_list,
   n_perm = 1000,
   n_boot = 1000,
-  output.dir = fPRC.path(output.dir, "multiconservation_filtered_PRC"),
+  output.dir = file.path(output.dir, "multiconservation_filtered_PRC"),
   use_cpp = TRUE
 )
 
@@ -653,7 +653,7 @@ result_multiconservation_filtered <- result_multiconservation_filtered %>%
 # SET UP OUTPUT DIRECTORY
 ###############################################
 
-base_path <- fPRC.path(output.dir, "heatmap_baboon_human_PRC")
+base_path <- file.path(output.dir, "heatmap_baboon_human_PRC")
 dir.create(base_path, showWarnings = FALSE, recursive = TRUE)
 
 ###############################################################
@@ -711,7 +711,7 @@ for (pathway in pathways_to_plot) {
   
   # -------- Create output folder for this pathway --------
   safe_name <- gsub("[^A-Za-z0-9_]", "_", pathway)
-  out_dir <- fPRC.path(base_path, safe_name)
+  out_dir <- file.path(base_path, safe_name)
   dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
   
   # -------- Plotting --------
@@ -974,55 +974,16 @@ p <- ggplot(plot_data) +
     shape = guide_legend(order = 2, override.aes = list(size = 4, stroke = 1.5, fill = "gray50", color = "white", alpha = 1)),
     linetype = "none"
   )
-save_dir <- fPRC.path(output.dir, "figure/baboon_human_PRC")
+save_dir <- file.path(output.dir, "figure/baboon_human_PRC")
 dir.create(save_dir, recursive = TRUE, showWarnings = FALSE)
-ggsave(fPRC.path(save_dir, "Baboon_Human_PRC_circular_phase_plot.pdf"), p, width = 12, height = 10, dpi = 800)
-ggsave(fPRC.path(save_dir, "Baboon_Human_PRC_circular_phase_plot.png"), p, width = 12, height = 10, dpi = 800)
+ggsave(file.path(save_dir, "Baboon_Human_PRC_circular_phase_plot.pdf"), p, width = 12, height = 10, dpi = 800)
+ggsave(file.path(save_dir, "Baboon_Human_PRC_circular_phase_plot.png"), p, width = 12, height = 10, dpi = 800)
 
 ##### Test new function
 
 ################################################################################
 # TEST: Iteration-Level Jaccard Index
 ################################################################################
-
-compute_iteration_jaccard <- function(rho_A, rho_B) {
-  # rho_A, rho_B: matrices (genes × iterations) with binary values {0, 1}
-  # Returns: vector of Jaccard indices (one per iteration)
-  
-  n_iter <- ncol(rho_A)
-  jaccard_values <- numeric(n_iter)
-  
-  # Also track confusion matrix elements for diagnostics
-  confusion_matrices <- matrix(NA, nrow = n_iter, ncol = 4)
-  colnames(confusion_matrices) <- c("a_both", "b_loss", "c_gain", "d_neither")
-  
-  for (i in 1:n_iter) {
-    # Binary vectors for this iteration
-    A <- rho_A[, i]
-    B <- rho_B[, i]
-    
-    # Confusion matrix elements
-    a <- sum(A == 1 & B == 1)  # both rhythmic (intersection)
-    b <- sum(A == 1 & B == 0)  # rhythmic in A only (loss)
-    c <- sum(A == 0 & B == 1)  # rhythmic in B only (gain)
-    d <- sum(A == 0 & B == 0)  # neither rhythmic
-    
-    confusion_matrices[i, ] <- c(a, b, c, d)
-    
-    # Jaccard index: intersection / union
-    union_size <- a + b + c
-    if (union_size == 0) {
-      jaccard_values[i] <- NA_real_  # edge case: no rhythmic genes
-    } else {
-      jaccard_values[i] <- a / union_size
-    }
-  }
-  
-  return(list(
-    jaccard = jaccard_values,
-    confusion = confusion_matrices
-  ))
-}
 
 # Compute Jaccard for each iteration
 result <- compute_adjusted_jaccard_analytical_pvalue(
@@ -1064,41 +1025,6 @@ cat(sprintf("  95%% CI: [%.4f, %.4f]\n",
 ################################################################################
 
 # Core function for concordance (minimal output)
-compute_concordance_minimal <- function(rho_A, rho_B) {
-  n_iter <- ncol(rho_A)
-  n_genes <- nrow(rho_A)
-  
-  # Observed Jaccard per iteration
-  obs_result <- compute_iteration_jaccard(rho_A, rho_B)
-  jaccard_obs <- obs_result$jaccard
-  
-  # Expected Jaccard per iteration
-  jaccard_exp <- numeric(n_iter)
-  for (i in 1:n_iter) {
-    p_A <- sum(rho_A[, i]) / n_genes
-    p_B <- sum(rho_B[, i]) / n_genes
-    denom <- p_A + p_B - p_A * p_B
-    jaccard_exp[i] <- if (denom > 0) (p_A * p_B) / denom else 0
-  }
-  
-  jaccard_null_mean <- mean(jaccard_exp, na.rm = TRUE)
-  
-  # Adjusted Jaccard per iteration
-  jaccard_adj <- numeric(n_iter)
-  for (i in 1:n_iter) {
-    if (!is.na(jaccard_obs[i]) && !is.na(jaccard_exp[i]) && jaccard_exp[i] < 1) {
-      jaccard_adj[i] <- (jaccard_obs[i] - jaccard_exp[i]) / (1 - jaccard_exp[i])
-    } else {
-      jaccard_adj[i] <- NA_real_
-    }
-  }
-  
-  return(list(
-    jaccard_obs = mean(jaccard_obs, na.rm = TRUE),
-    jaccard_adj = mean(jaccard_adj, na.rm = TRUE),
-    jaccard_null = jaccard_null_mean
-  ))
-}
 
 ################################################################################
 # 1. WITHIN-HUMAN PAIRWISE
@@ -1214,15 +1140,15 @@ close(pb)
 ################################################################################
 
 write.csv(results_within_human, 
-          fPRC.path(output.dir, "concordance_within_human.csv"), 
+          file.path(output.dir, "concordance_within_human.csv"), 
           row.names = FALSE)
 
 write.csv(results_within_baboon, 
-          fPRC.path(output.dir, "concordance_within_baboon.csv"), 
+          file.path(output.dir, "concordance_within_baboon.csv"), 
           row.names = FALSE)
 
 write.csv(results_cross_species, 
-          fPRC.path(output.dir, "concordance_cross_species.csv"), 
+          file.path(output.dir, "concordance_cross_species.csv"), 
           row.names = FALSE)
 
 cat("\n\nDone! Results saved.\n")
@@ -1249,4 +1175,3 @@ table(ribosome_status)
 
 
 
-transition_classify_conditional

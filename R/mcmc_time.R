@@ -459,6 +459,14 @@ CBt_MCMC_single = function(Data.list, Init.value, P = 24,
                 alpha1= alpha1.store,
                 alpha2= alpha2.store)
   }
+  gname <- Data.list[[3]]
+  if (!is.null(gname) && length(gname) == G) {
+    for (mat_name in names(save)) {
+      if (is.matrix(save[[mat_name]]) && nrow(save[[mat_name]]) == G) {
+        rownames(save[[mat_name]]) <- gname
+      }
+    }
+  }
   return(save)
 }
 

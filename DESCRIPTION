@@ -19,7 +19,8 @@ Imports:
     Rcpp,
     circular,
     ggplot2,
-    dplyr
+    dplyr,
+    openxlsx
 LinkingTo: Rcpp
 Suggests:
     testthat (>= 3.0.0),
@@ -29,6 +30,10 @@ Suggests:
     biomaRt,
     edgeR,
     DESeq2,
-    parallel
+    parallel,
+    fgsea,
+    tibble,
+    purrr,
+    RColorBrewer
 VignetteBuilder: knitr
 RoxygenNote: 7.3.1
