@@ -1,3 +1,44 @@
+#' Initialize MCMC chain for a single circadian dataset
+#'
+#' @title Initialize single-species BayRC MCMC chain
+#'
+#' @description
+#' Produces starting values for the BayRC MCMC sampler by fitting an
+#' ordinary least-squares cosinor model to every gene.  OLS-derived
+#' MESOR, amplitude, phase, and residual variance are used as initial
+#' values; rhythmicity is initialised from an F-test at alpha = 0.05.
+#' When \code{FitCosinor = FALSE}, parameters are drawn from their priors.
+#'
+#' @param Data.list A named list with three elements: \code{data} (G x N
+#'   data.frame of expression values), \code{time} (length-N numeric
+#'   Zeitgeber time vector in hours), and \code{gname} (length-G character
+#'   vector of gene identifiers).
+#' @param P Numeric; circadian period in hours (default 24).
+#' @param FitCosinor Logical; if \code{TRUE} (default) use OLS cosinor
+#'   estimates; if \code{FALSE} draw from priors.
+#' @param mu_M Numeric; prior mean for MESOR (default 0).
+#' @param sigma_M Numeric; prior standard deviation for MESOR (default 10).
+#' @param mu_A Numeric; prior mean for amplitude (default 1).
+#' @param sigma_A Numeric; prior standard deviation for amplitude
+#'   (default 10).
+#' @param seed Integer; random seed (default 15213).
+#'
+#' @return A named list with elements \code{rho} (length-G logical),
+#'   \code{M} (length-G MESOR), \code{A} (length-G amplitude),
+#'   \code{phi} (length-G acrophase in hours), and \code{sigma}
+#'   (length-G residual variance).  Suitable for passing directly to
+#'   \code{CB_MCMC_single_rj_slice} as \code{Init.value}.
+#'
+#' @export
+#'
+#' @examples
+#' \dontrun{
+#' sim  <- CBt_sim_data()
+#' dat  <- list(data  = as.data.frame(sim$data[[1]]$dat),
+#'              time  = sim$data[[1]]$x$time,
+#'              gname = paste0("G", seq_len(nrow(sim$data[[1]]$dat))))
+#' init <- CB_init_single(dat)
+#' }
 CB_init_single = function(Data.list = list(data = as.data.frame(a.sim.dat$data[[1]]$dat),
                                            time = a.sim.dat$data[[1]]$x$time,
                                            gname = paste0("G", seq_len(nrow(a.sim.dat$data[[1]]$dat)))),

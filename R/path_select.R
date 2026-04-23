@@ -1,4 +1,59 @@
-pathSelect <- function(mcmc.merge.list, 
+#' Select circadian-enriched pathways using FGSEA
+#'
+#' @title FGSEA-based pathway selection for circadian transitions
+#'
+#' @description
+#' Applies fast gene-set enrichment analysis (FGSEA) to a posterior
+#' gene-ranking metric derived from two BayRC MCMC outputs.  Genes are
+#' ranked by their log-odds-ratio of gain vs loss, or by conservation,
+#' gain, loss, or union probability; pathways are tested for enrichment
+#' toward either end of this ranking.  Pathway-level effect sizes and
+#' probabilistic gain/loss/conservation indices are added to the output.
+#'
+#' @param mcmc.merge.list Named list of exactly 2 MCMC output lists; the
+#'   first is condition A (reference) and the second is condition B.
+#'   Each must have \code{attr(rho, "symbols")} set.
+#' @param pathway.list Named list of character vectors; pathway gene sets.
+#' @param dataset.names Character vector of length 2 or \code{NULL};
+#'   labels for conditions A and B (default auto-detected from list names).
+#' @param ranking.method Character; gene-ranking metric: one of
+#'   \code{"log_odds_ratio"} (default), \code{"union"}, \code{"conserved"},
+#'   \code{"gain"}, or \code{"loss"}.
+#' @param score_type Character; fgsea score type: \code{"std"} (two-sided),
+#'   \code{"pos"} (gain only), or \code{"neg"} (loss only, inverts ranking).
+#' @param pathwaysize.lower.cut Integer; minimum pathway size (default 10).
+#' @param pathwaysize.upper.cut Integer; maximum pathway size (default 200).
+#' @param qvalue.cut Numeric; adjusted p-value significance cutoff
+#'   (default 0.05).
+#' @param epsilon Numeric; small constant added to probabilities to avoid
+#'   log(0) (default 0.001).
+#' @param n_top_genes Integer; number of top genes to report per category
+#'   per pathway (default 5).
+#' @param nperm Integer; fgsea permutations (default 10000).
+#' @param nproc Integer; fgsea parallel processes (default 1).
+#' @param seed Integer; random seed (default 12345).
+#'
+#' @return A list with elements:
+#'   \describe{
+#'     \item{results}{Data.frame of fgsea results (one row per pathway)
+#'       augmented with \code{Gain_Index}, \code{Loss_Index},
+#'       \code{Conserved_Index}, \code{Gain_Loss_Ratio_Arithmetic},
+#'       expected counts, and top gene columns.}
+#'     \item{gene_rankings}{Data.frame of per-gene ranking metrics and
+#'       posterior probabilities.}
+#'     \item{parameters}{List of analysis settings.}
+#'   }
+#'
+#' @export
+#'
+#' @examples
+#' \dontrun{
+#' res <- pathSelect(list(human = human_res, mouse = mouse_res),
+#'                   pathway.list = msig_pathways,
+#'                   ranking.method = "log_odds_ratio")
+#' head(res$results)
+#' }
+pathSelect <- function(mcmc.merge.list,
                        pathway.list,
                        dataset.names = NULL,
                        ranking.method = c("log_odds_ratio", "union", "conserved", "gain", "loss"),

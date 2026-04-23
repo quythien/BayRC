@@ -1,3 +1,30 @@
+#' Consensus clustering on MCMC rhythmicity indicator samples
+#'
+#' @title BayRC consensus clustering
+#'
+#' @description
+#' Applies \code{ConsensusClusterPlus} to the posterior rhythmicity
+#' indicator matrix (\code{MCMC$l}) to identify groups of genes with
+#' similar circadian behaviour.  A custom dissimilarity based on the
+#' proportion of MCMC samples where two genes share the same indicator
+#' value is used (\code{mydist}).
+#'
+#' @param MCMC Named list; MCMC output containing an element \code{l}
+#'   (G x K binary matrix of rhythmicity indicator samples).
+#' @param k Integer; maximum number of clusters to evaluate.
+#' @param main Character; title for the consensus clustering plot
+#'   (default \code{"Rhythmicity clusters"}).
+#'
+#' @return The output of \code{ConsensusClusterPlus::ConsensusClusterPlus},
+#'   a list of consensus matrices and cluster assignments for each k from
+#'   2 to \code{k}.
+#'
+#' @export
+#'
+#' @examples
+#' \dontrun{
+#' clust <- CB_clustering(mcmc_out, k = 5)
+#' }
 CB_clustering = function(MCMC, k, main = "Rhythmicity clusters"){
   
   cluster.top = MCMC$l
@@ -19,12 +46,37 @@ CB_clustering = function(MCMC, k, main = "Rhythmicity clusters"){
   
 }
 
+#' Copy upper triangle to lower triangle of a matrix
+#'
+#' @description
+#' Fills the lower triangle of matrix \code{m} with the transpose of the
+#' upper triangle, making the matrix symmetric.
+#'
+#' @param m Square numeric matrix with upper triangle filled.
+#'
+#' @return Symmetric numeric matrix.
+#'
+#' @keywords internal
 copy.upper.lower <- function(m)
 {
   m[lower.tri(m)] <- t(m)[lower.tri(m)]
   m
 }
 
+#' Compute MCMC-based dissimilarity matrix for gene clustering
+#'
+#' @description
+#' Computes a G x G dissimilarity matrix where entry (i, j) is one minus
+#' the proportion of MCMC iterations in which genes i and j share the same
+#' rhythmicity indicator value.  Used as the distance function inside
+#' \code{CB_clustering}.
+#'
+#' @param y G x K binary matrix; posterior rhythmicity indicator samples.
+#'
+#' @return G x G dissimilarity matrix (values in \[0, 1\]) with row and
+#'   column names from \code{rownames(y)}.
+#'
+#' @keywords internal
 mydist <- function(y) {
   diss.mat <- matrix(,nrow=nrow(y),ncol=nrow(y))
   rownames(diss.mat) <- colnames(diss.mat) <- rownames(y)

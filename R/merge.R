@@ -1,94 +1,44 @@
-##' The \code{merge} is function to merge multiple MCMCout matrices by
-##' matching genes/orthologs.
-##' @title Merge multiple MCMCout matrices by orthologs
-##' @param mcmc.list: a list of MCMC output matrices.
-##' @param species: a vector specie names of same length as mcmc.list indicating
-##' the species of each study.
-##' @param ortholog.db: a data.frame/matrix match orthologs between species.
-##' Column names should be consistent with the species input. If not provided,
-##' datasets will be merges without orthologs matching.
-##' @param reference: the index of the reference MCMC matrix. Merged
-##' list will be named using the rownames of this matrix.
-##' @param uniqG: TRUE: only keep the gene with greatest posterior DE signal
-##' when multiple matches provided in the orhthologs file. FALSE: keep duplicated
-##' genes when multiple matches exist. default is TRUE.
-
-##' @return an merged list of multiple MCMCout datasets (with same number of
-##' rows and rownames)
-##' @export
-##' @examples
-##' \dontrun{
-##' data(hb)
-##' summaryDE = indDE(data=data,group=as.factor(group),data.type="microarray",
-##'                   case.label="2", ctrl.label="1")
-##' hb_pData = summaryDE[,c(3,1)]
-##' hb_MCMCout = bayes(hb_pData, seed=12345)
-##' data(hs)
-##' summaryDE = indDE(data=data,group=as.factor(group),data.type="microarray",
-##'                   case.label="2", ctrl.label="1")
-##' hs_pData = summaryDE[,c(3,1)]
-##' hs_MCMCout = bayes(hs_pData, seed=12345)
-##' data(ht)
-##' summaryDE <- indDE(data=data,group=as.factor(group),data.type="microarray",
-##'                   case.label="2", ctrl.label="1")
-##' ht_pData <- summaryDE[,c(3,1)]
-##' ht_MCMCout <- bayes(ht_pData, seed=12345)
-##' data(ha)
-##' summaryDE = indDE(data=data,group=as.factor(group),data.type="microarray",
-##'                   case.label="2", ctrl.label="1")
-##' ha_pData = summaryDE[,c(3,1)]
-##' ha_MCMCout = bayes(ha_pData, seed=12345)
-##' data(hi)
-##' summaryDE = indDE(data=data,group=as.factor(group),data.type="microarray",
-##'                   case.label="2", ctrl.label="1")
-##' hi_pData = summaryDE[,c(3,1)]
-##' hi_MCMCout = bayes(hi_pData, seed=12345)
-##' data(hl)
-##' summaryDE = indDE(data=data,group=as.factor(group),data.type="microarray",
-##'                   case.label="2", ctrl.label="1")
-##' hl_pData = summaryDE[,c(3,1)]
-##' hl_MCMCout = bayes(hl_pData, seed=12345)
-##' data(hb)
-##' summaryDE = indDE(data=data,group=as.factor(group),data.type="microarray",
-##'                   case.label="2", ctrl.label="1")
-##' mb_pData = summaryDE[,c(3,1)]
-##' mb_MCMCout = bayes(mb_pData, seed=12345)
-##' data(hs)
-##' summaryDE = indDE(data=data,group=as.factor(group),data.type="microarray",
-##'                   case.label="2", ctrl.label="1")
-##' ms_pData = summaryDE[,c(3,1)]
-##' ms_MCMCout = bayes(ms_pData, seed=12345)
-##' data(ht)
-##' summaryDE <- indDE(data=data,group=as.factor(group),data.type="microarray",
-##'                   case.label="2", ctrl.label="1")
-##' mt_pData <- summaryDE[,c(3,1)]
-##' mt_MCMCout <- bayes(mt_pData, seed=12345)
-##' data(ma)
-##' summaryDE = indDE(data=data,group=as.factor(group),data.type="microarray",
-##'                   case.label="2", ctrl.label="1")
-##' ma_pData = summaryDE[,c(3,1)]
-##' ma_MCMCout = bayes(ma_pData, seed=12345)
-##' data(hi)
-##' summaryDE = indDE(data=data,group=as.factor(group),data.type="microarray",
-##'                   case.label="2", ctrl.label="1")
-##' mi_pData = summaryDE[,c(3,1)]
-##' mi_MCMCout = bayes(mi_pData, seed=12345)
-##' data(ml)
-##' summaryDE = indDE(data=data,group=as.factor(group),data.type="microarray",
-##'                   case.label="2", ctrl.label="1")
-##' ml_pData = summaryDE[,c(3,1)]
-##' ml_MCMCout = bayes(ml_pData, seed=12345)
-##'
-##' mcmc.list <- list(hb_MCMCout,hs_MCMCout,ht_MCMCout,
-##' ha_MCMCout,hi_MCMCout,hl_MCMCout,
-##' mb_MCMCout,ms_MCMCout,mt_MCMCout,
-##' ma_MCMCout,mi_MCMCout,ml_MCMCout)
-##' data(hm_orth)
-##' species <- c(rep("human",6), rep("mouse",6))
-##' mcmc.merge.list <- merge(mcmc.list,species = species,
-##' ortholog.db = hm_orth, reference=1,uniqG=T)
-##' }
-
+#' Merge multiple MCMC outputs by matching orthologous genes
+#'
+#' @title Merge MCMC output lists by orthologs
+#'
+#' @description
+#' Intersects gene sets across a list of MCMC outputs from different
+#' species or conditions.  When \code{ortholog.db} is supplied and multiple
+#' species are present, the ortholog database maps each species' genes to a
+#' common reference gene space (defined by the \code{reference} dataset).
+#' When datasets share a single species (or no ortholog database is
+#' provided), the function simply takes the intersection of gene names.
+#' If \code{uniqG = TRUE}, duplicate ortholog matches are resolved by
+#' keeping the entry with the highest mean absolute posterior signal.
+#'
+#' @param mcmc.list A list of MCMC output matrices or lists, one per
+#'   condition or study.  Row names must be gene identifiers.
+#' @param species Character vector of the same length as \code{mcmc.list};
+#'   species label for each dataset.
+#' @param ortholog.db Data.frame or matrix with one column per species
+#'   (column names matching \code{species}); each row maps orthologous
+#'   genes across species.  If \code{NULL}, datasets are merged by gene
+#'   name intersection only (default \code{NULL}).
+#' @param reference Integer; index of the reference dataset whose gene
+#'   names define the merged row names (default 1).
+#' @param uniqG Logical; if \code{TRUE} (default), keep only the
+#'   highest-signal match when multiple orthologs map to the same reference
+#'   gene.
+#'
+#' @return A list of the same length as \code{mcmc.list}, each element
+#'   row-subsetted and reordered to the common gene set, with row names
+#'   from the reference dataset.
+#'
+#' @export
+#'
+#' @examples
+#' \dontrun{
+#' merged <- merge_mcmc(list(human_res, mouse_res),
+#'                      species      = c("human", "mouse"),
+#'                      ortholog.db  = hm_orth,
+#'                      reference    = 1)
+#' }
 merge_mcmc <- function(mcmc.list,species,ortholog.db = NULL,
                        reference=1,uniqG=T){
   if(is.null(ortholog.db) | length(unique(species)) == 1){
@@ -156,6 +106,25 @@ merge_mcmc <- function(mcmc.list,species,ortholog.db = NULL,
 }
 
 
+#' Match gene lists to a common ortholog set
+#'
+#' @description
+#' For each species in \code{gene.list}, finds the rows in
+#' \code{ortholog.db} that contain at least one gene from that species,
+#' then takes the intersection across all species to return a common set
+#' of orthologous genes.
+#'
+#' @param gene.list List of character vectors; one per species, each
+#'   containing gene identifiers present in that species' dataset.
+#' @param species Character vector; species label for each element of
+#'   \code{gene.list}.
+#' @param ortholog.db Data.frame; ortholog database (see \code{merge_mcmc}).
+#'
+#' @return A list of character vectors, one per species, giving the gene
+#'   identifiers (in the original species' namespace) that correspond to
+#'   the common ortholog set.
+#'
+#' @keywords internal
 orthMatch <- function(gene.list,species,ortholog.db){
   M <- length(gene.list)
   index.out <- gene.out <- vector("list",M)

@@ -1,3 +1,92 @@
+#' Run reversible-jump MCMC for a single circadian dataset
+#'
+#' @title CB MCMC single reversible-jump slice sampler
+#'
+#' @description
+#' Runs the BayRC RJMCMC sampler for a single-species/condition circadian
+#' expression dataset.  Within each iteration the sampler proposes
+#' model-space jumps (rho: 0/1 rhythmicity indicator) via an RJMCMC
+#' acceptance ratio and updates amplitude, phase, MESOR, and residual
+#' variance via Gibbs or slice steps.
+#'
+#' @param Data.list A named list with three elements: \code{data} (G x N
+#'   data.frame of expression values), \code{time} (length-N numeric
+#'   Zeitgeber time vector in hours), and \code{gname} (length-G character
+#'   vector of gene identifiers).
+#' @param Init.value List returned by \code{CB_init_single} containing
+#'   starting values for \code{rho}, \code{M}, \code{A}, \code{phi}, and
+#'   \code{sigma}.
+#' @param P Numeric; circadian period in hours (default 24).
+#' @param iteration Integer; total number of MCMC iterations including
+#'   burn-in (default 3000).
+#' @param thin Integer; thinning interval; every \code{thin}-th
+#'   post-burn-in sample is stored (default 20).
+#' @param n.burn Integer; number of burn-in iterations discarded before
+#'   storing samples (default 1000).
+#' @param seed Integer; random seed for reproducibility (default 15213).
+#' @param p_rhythmic Numeric vector of length G; prior probability
+#'   Pr(rho_g = 1) for each gene.  Enters the RJMCMC log-prior odds as
+#'   log(p / (1 - p)).  Default is \code{rep(0.2, 100)}.
+#' @param rj.p.stay Numeric in (0, 1); probability of skipping the
+#'   between-model move (staying in the current model) at each iteration
+#'   (default 0.5).
+#' @param A_prior Character; prior on amplitude.  One of
+#'   \code{"Jeffreys_OLS_condi"}, \code{"trunc_Normal"},
+#'   \code{"Jeffreys"}, \code{"Jeffreys_ridge"}, \code{"sq_expo"}, or
+#'   \code{"gamma"} (default \code{"Jeffreys_OLS_condi"}).
+#' @param mu_A Numeric; mean of the truncated-Normal amplitude prior when
+#'   \code{A_prior = "trunc_Normal"} (default 1).
+#' @param sigma_A Numeric; variance of the truncated-Normal amplitude prior
+#'   (default \code{10^2}).
+#' @param A.min Numeric; lower truncation bound for amplitude (default 0).
+#' @param A_wb_beta2 Numeric; beta parameter for the squared-exponential
+#'   amplitude prior \code{sq_expo} (default 2).
+#' @param A_gm_shape Numeric; shape parameter for the gamma amplitude prior;
+#'   values <= 2 give a flatter prior (default 1.99).
+#' @param A_gm_rate Numeric; rate parameter for the gamma amplitude prior;
+#'   smaller values give a flatter prior (default 0.5).
+#' @param rj.phi Logical; if \code{TRUE}, phase phi is jointly proposed in
+#'   the RJMCMC birth/death step (default \code{TRUE}).
+#' @param rj.A Logical; if \code{TRUE}, amplitude A is jointly proposed in
+#'   the RJMCMC birth/death step (default \code{TRUE}).
+#' @param mu_M Numeric; prior mean for MESOR (default 0).
+#' @param sigma_M Numeric; prior variance for MESOR (default \code{10^2}).
+#' @param sigma_prior_v Numeric; degrees-of-freedom hyperparameter of the
+#'   inverse-gamma prior on residual variance (default 4).
+#' @param sigma_prior_s Numeric; scale hyperparameter of the inverse-gamma
+#'   prior on residual variance (default 1).
+#' @param save.file Character; path for saving intermediate MCMC output
+#'   (default \code{"MCMC_save.rds"}).
+#' @param save.file2 Character; secondary save path used inside the RJMCMC
+#'   helper (default \code{"MCMC_save.rds"}).
+#'
+#' @return A named list of G x K matrices (K = floor(iteration / thin)):
+#'   \describe{
+#'     \item{rho}{Posterior samples of the rhythmicity indicator in \{0, 1\}.}
+#'     \item{phi}{Posterior samples of acrophase in hours (Zeitgeber scale).}
+#'     \item{A}{Posterior samples of amplitude.}
+#'     \item{M}{Posterior samples of MESOR.}
+#'     \item{sigma}{Posterior samples of residual variance.}
+#'     \item{log.r1, log.r1.SS, log.r3_A, log.r3_phi}{RJMCMC log-ratio
+#'       components (for diagnostics).}
+#'     \item{if.accept.rj}{Binary matrix indicating accepted RJMCMC moves.}
+#'   }
+#'   All matrices have \code{rownames} equal to \code{Data.list$gname}.
+#'   After calling \code{match_symbols()}, the attributes
+#'   \code{attr(rho, "symbols")} and \code{attr(rho, "RHYindex")} are set.
+#'
+#' @export
+#'
+#' @examples
+#' \dontrun{
+#' sim <- CBt_sim_data()
+#' dat <- list(data  = as.data.frame(sim$data[[1]]$dat),
+#'             time  = sim$data[[1]]$x$time,
+#'             gname = paste0("G", seq_len(nrow(sim$data[[1]]$dat))))
+#' init <- CB_init_single(dat)
+#' mcmc_out <- CB_MCMC_single_rj_slice(dat, init,
+#'               iteration = 200, thin = 10, n.burn = 100)
+#' }
 CB_MCMC_single_rj_slice = function(Data.list, Init.value, P = 24,
                                 iteration = 3000, thin = 20, n.burn=1000,
                                 seed = 15213,
@@ -314,6 +403,28 @@ CB_MCMC_single_rj_slice = function(Data.list, Init.value, P = 24,
 # Updating functions ------------------------------------------------------
 #Gibbs sampling
 
+#' Gibbs update for MESOR
+#'
+#' @description
+#' Samples the MESOR (M) vector from its Gaussian full conditional given the
+#' current amplitude, phase, residual variance, and rhythmicity indicators.
+#'
+#' @param Y G x N expression matrix.
+#' @param t.c Length-N vector of cos(omega * t).
+#' @param t.s Length-N vector of sin(omega * t).
+#' @param N Integer; number of samples.
+#' @param AcosPhi Length-G vector A * cos(omega * phi).
+#' @param AsinPhi Length-G vector A * sin(omega * phi).
+#' @param sigma Length-G residual variance vector.
+#' @param rho Length-G rhythmicity indicator vector in \{0, 1\}.
+#' @param sigma_M Numeric; prior variance on M.
+#' @param mu_M Numeric; prior mean on M.
+#' @param omega Numeric; angular frequency 2*pi/P.
+#' @param G Integer; number of genes.
+#'
+#' @return Length-G numeric vector of updated MESOR samples.
+#'
+#' @keywords internal
 #should update rho, A, and phi together with a reversible jump procedure
 update_M_single = function(Y, t.c, t.s, N,
                            #Y.list, t.c.list, t.s.list, N.vec, 
@@ -332,6 +443,28 @@ update_M_single = function(Y, t.c, t.s, N,
   a.M = stats::rnorm(G, a.mean, sqrt(a.var))
 }
 
+#' Gibbs update for residual variance
+#'
+#' @description
+#' Samples the gene-wise residual variance vector (sigma) from its
+#' inverse-gamma full conditional.
+#'
+#' @param Y G x N expression matrix.
+#' @param t.c Length-N vector of cos(omega * t).
+#' @param t.s Length-N vector of sin(omega * t).
+#' @param a.N Integer; number of samples.
+#' @param AcosPhi Length-G vector A * cos(omega * phi).
+#' @param AsinPhi Length-G vector A * sin(omega * phi).
+#' @param M.vec Length-G MESOR vector.
+#' @param rho Length-G rhythmicity indicator vector.
+#' @param sigma_prior_v Numeric; degrees-of-freedom hyperparameter.
+#' @param sigma_prior_s Numeric; scale hyperparameter.
+#' @param omega Numeric; angular frequency.
+#' @param G Integer; number of genes.
+#'
+#' @return Length-G numeric vector of updated residual variance samples.
+#'
+#' @keywords internal
 update_sigma_single = function(Y, t.c, t.s, a.N,
                                # Y.list, t.c.list, t.s.list, N.vec,
                                AcosPhi, AsinPhi, M.vec, rho, 
@@ -351,7 +484,37 @@ update_sigma_single = function(Y, t.c, t.s, a.N,
   return(a.sigma)
 }
 
-update_A_phi_slice = function(Y, X, XtX, beta_hat0, 
+#' Slice update for amplitude and phase
+#'
+#' @description
+#' Jointly updates amplitude (A) and acrophase (phi) for each gene using a
+#' slice sampler in the (A*cos(phi), A*sin(phi)) parameterisation.  The
+#' Jeffreys-OLS-conditional prior conditions on the OLS beta-hat to set a
+#' data-adaptive amplitude prior.
+#'
+#' @param Y G x N expression matrix.
+#' @param X N x 2 design matrix of cos and sin columns.
+#' @param XtX 2 x 2 matrix t(X) %*% X.
+#' @param beta_hat0 N x 2 OLS projection matrix.
+#' @param beta_cov0_11,beta_cov0_22,beta_cov0_rho,beta_mean0_1,beta_mean0_2
+#'   Pre-computed OLS covariance scalars used by the Jeffreys prior.
+#' @param M Length-G MESOR vector.
+#' @param sigma Length-G residual variance vector.
+#' @param omega Numeric; angular frequency.
+#' @param AcosPhi,AsinPhi Length-G current values of A*cos(phi) and
+#'   A*sin(phi).
+#' @param G Integer; number of genes.
+#' @param P Numeric; period.
+#' @param A_prior Character; amplitude prior name.
+#' @param mu_A,sigma_A Numeric; truncated-Normal prior parameters.
+#' @param A_wb_beta2 Numeric; squared-exponential prior parameter.
+#' @param A_gm_shape,A_gm_rate Numeric; gamma prior parameters.
+#'
+#' @return List with elements \code{AcosPhi} and \code{AsinPhi}
+#'   (updated length-G vectors).
+#'
+#' @keywords internal
+update_A_phi_slice = function(Y, X, XtX, beta_hat0,
                               beta_cov0_11, beta_cov0_22, beta_cov0_rho, 
                               beta_mean0_1, beta_mean0_2, 
                               M, sigma, omega, 
@@ -1080,7 +1243,37 @@ get_log_phi_post_full_single = function(a.Y.vec, a.t.c.vec, a.t.s.vec,
   return(out)
 }
 
-RJMCMC_single_slice = function(Y, t.c, t.s, N, 
+#' RJMCMC between-model move for rhythmicity indicator
+#'
+#' @description
+#' Proposes a model-space jump for rho (0->1 birth or 1->0 death) for each
+#' gene, computing the RJMCMC acceptance ratio that accounts for the prior
+#' odds (log.r1), the integrated likelihood ratio (log.r1.SS), and the
+#' proposal Jacobian for amplitude (log.r3_A) and phase (log.r3_phi) as
+#' described in the BayRC paper.
+#'
+#' @param Y G x N expression matrix.
+#' @param t.c,t.s Length-N cos/sin time vectors.
+#' @param N Integer; number of samples.
+#' @param t.c.sum,t.s.sum Numeric scalars; sum of t.c and t.s.
+#' @param c.t,s.t,cs.t Numeric scalars; sum of squares/cross-products.
+#' @param y.t.c.sum.num,y.t.s.sum.num Length-G inner products of Y with t.c/t.s.
+#' @param AcosPhi,AsinPhi,A,phi Current amplitude/phase vectors (length G).
+#' @param M,sigma,rho Current MESOR/variance/indicator vectors (length G).
+#' @param p.vec Length-G prior rhythmicity probability vector.
+#' @param rj.phi,rj.A Logical; whether to jointly propose phi/A in the jump.
+#' @param A_prior Character; amplitude prior name.
+#' @param mu_A,sigma_A,A.min Numeric; truncated-Normal amplitude prior params.
+#' @param A_wb_beta2,A_gm_shape,A_gm_rate Numeric; alternative prior params.
+#' @param omega,G,P Numeric; angular frequency, number of genes, period.
+#' @param save.file Character; path for emergency save on error.
+#'
+#' @return List with \code{rho} (updated indicator), \code{log.r1},
+#'   \code{log.r1.SS}, \code{log.r3_A}, \code{log.r3_phi} (diagnostic
+#'   log-ratio components).
+#'
+#' @keywords internal
+RJMCMC_single_slice = function(Y, t.c, t.s, N,
                                t.c.sum, t.s.sum, 
                                c.t, s.t, cs.t, 
                                y.t.c.sum.num, y.t.s.sum.num,
@@ -1353,6 +1546,21 @@ update_theta_kappa = function(rho.mat, phi.mat, theta.vec, kappa.vec, VM_w.vec,
 
 
 # Other functions ---------------------------------------------------------
+
+#' Evaluate expression with fallback save on error
+#'
+#' @description
+#' Wraps an expression in a \code{try()} call.  If the expression throws an
+#' error, the current \code{out} object is serialised to \code{save.file}
+#' and the error is re-thrown, preserving progress on disk.
+#'
+#' @param expr Expression to evaluate.
+#' @param out Object to save on failure.
+#' @param save.file Character; file path for the emergency \code{saveRDS}.
+#'
+#' @return Result of \code{expr} on success.
+#'
+#' @keywords internal
 try_save = function(expr, out, save.file){
   a.res = try(expr)
   if("try-error" %in% class(a.res)){
@@ -1361,6 +1569,21 @@ try_save = function(expr, out, save.file){
     return(a.res)
   }
 }
+#' Sample from a truncated gamma distribution
+#'
+#' @description
+#' Draws \code{n} samples from a Gamma(shape, rate) distribution truncated
+#' to the interval (a, b) using the inverse-CDF method on the log scale.
+#'
+#' @param n Integer; number of samples.
+#' @param a Numeric; lower truncation bound (must be < b).
+#' @param b Numeric; upper truncation bound.
+#' @param shape Numeric; gamma shape parameter.
+#' @param rate Numeric; gamma rate parameter.
+#'
+#' @return Length-n numeric vector of truncated-gamma samples.
+#'
+#' @keywords internal
 rtruncgamma = function(n, a, b, shape, rate){
   if(a>=b){
     stop( "argument a is greater than or equal to b" )

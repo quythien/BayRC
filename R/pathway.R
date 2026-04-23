@@ -1,4 +1,34 @@
 
+#' Compute observed congruence scores for each pathway
+#'
+#' @title Pathway-level circadian conservation scores
+#'
+#' @description
+#' For each pathway in \code{select.pathway.list}, restricts the MCMC
+#' posterior rho matrices to genes in that pathway and computes the
+#' probabilistic congruence, gain, and loss indices using
+#' \code{congruence}.
+#'
+#' @param dat1 Named list; MCMC output for condition 1 with a \code{rho}
+#'   matrix and \code{attr(rho, "symbols")} set.
+#' @param dat2 Named list; MCMC output for condition 2.
+#' @param select.pathway.list Named list of character vectors; pathway
+#'   gene sets (e.g. from MSigDB or KEGG).
+#' @param delta Numeric; phase-shift threshold passed to \code{congruence}
+#'   (default 3).
+#' @param units Character; \code{"hours"} (default).
+#'
+#' @return A list with elements:
+#'   \describe{
+#'     \item{scores}{K x 4 matrix of observed pathway congruence,
+#'       gain, loss, and ratio scores.}
+#'     \item{pathway_sizes}{Named integer vector; number of data genes
+#'       in each pathway.}
+#'     \item{expected_unions}{Named numeric vector; expected union size for
+#'       each pathway.}
+#'   }
+#'
+#' @export
 # Observed pathway conservation scores with pathway metadata
 conservation_pathway_circadian <- function(dat1, dat2, select.pathway.list,
                                            delta = 3, units = "hours") {
@@ -72,6 +102,31 @@ conservation_pathway_circadian <- function(dat1, dat2, select.pathway.list,
   ))
 }
 
+#' Generate permutation null distribution for pathway conservation scores
+#'
+#' @description
+#' Runs gene-label permutations within each pathway to build a null
+#' distribution for the congruence, gain, and loss indices.  Calls
+#' \code{run_single_round} internally and supports parallel execution and
+#' multi-round splits to manage memory.
+#'
+#' @param dat1,dat2 Named MCMC output lists with \code{rho} matrices and
+#'   gene symbols set via \code{match_symbols}.
+#' @param select.pathway.list Named list of character vectors; pathway
+#'   gene sets.
+#' @param delta Numeric; phase threshold (default 3).
+#' @param units Character; \code{"hours"} (default).
+#' @param B Integer; number of permutations (default 1000).
+#' @param ncores Integer or \code{NULL}; parallel cores.
+#' @param parallel Logical or \code{"auto"}; parallelisation strategy.
+#' @param rounds Integer; rounds to split B permutations (default 1).
+#' @param save_intermediate Logical; save each round's output to disk.
+#' @param intermediate_dir Character; directory for intermediate saves.
+#'
+#' @return A named list of K arrays (one per pathway), each B x 4
+#'   containing permuted congruence, gain, loss, and ratio scores.
+#'
+#' @export
 # Permutation for pathway analysis with improved progress tracking and rounds support
 perm_pathway_circadian <- function(dat1, dat2, select.pathway.list,
                                    delta = 3, units = "hours", B = 1000,
@@ -175,8 +230,28 @@ perm_pathway_circadian <- function(dat1, dat2, select.pathway.list,
   return(out)
 }
 
+#' Run one round of pathway-level permutations
+#'
+#' @description
+#' Executes \code{B_round} gene-label permutations for all pathways in
+#' one round, returning a B_round x K x 4 array of permuted scores.
+#' Called by \code{perm_pathway_circadian}.
+#'
+#' @param dat1,dat2 MCMC output lists with \code{rho} matrices.
+#' @param pathway_indices_A,pathway_indices_B Lists of integer vectors;
+#'   row indices into the rho matrices for each pathway's genes.
+#' @param pathway_sizes Integer vector; number of genes per pathway.
+#' @param K Integer; number of pathways.
+#' @param metrics Character vector; metric names.
+#' @param delta,units Passed to \code{congruence}.
+#' @param B_round Integer; permutations in this round.
+#' @param parallel,ncores Parallelisation controls.
+#'
+#' @return B_round x K x length(metrics) numeric array.
+#'
+#' @keywords internal
 # Helper function to run a single round of permutations
-run_single_round <- function(dat1, dat2, pathway_indices_A, pathway_indices_B, 
+run_single_round <- function(dat1, dat2, pathway_indices_A, pathway_indices_B,
                              pathway_sizes, K, metrics, delta, units, B_round,
                              parallel, ncores) {
   
@@ -279,9 +354,25 @@ run_single_round <- function(dat1, dat2, pathway_indices_A, pathway_indices_B,
   return(round_out)
 }
 
+#' Compute permutation p-values for pathway conservation scores
+#'
+#' @description
+#' Derives right-tailed (congruence) and three-sided (gain/loss ratio)
+#' permutation p-values for each pathway by comparing observed scores from
+#' \code{conservation_pathway_circadian} against the null distribution from
+#' \code{perm_pathway_circadian}.
+#'
+#' @param observed_scores K x 4 matrix; observed pathway scores.
+#' @param perm_results Named list of K arrays (B x 4); permutation null
+#'   distributions.
+#'
+#' @return A data.frame with one row per pathway and columns for observed
+#'   scores, p-values, and q-values (BH-adjusted).
+#'
+#' @export
 # P-value calculation for pathway analysis
 # For congruence_index: right-sided test only
-# For gain_loss_ratio: 
+# For gain_loss_ratio:
 
 
 p_conservation_pathway <- function(observed_scores, perm_results) {
@@ -346,6 +437,35 @@ p_conservation_pathway <- function(observed_scores, perm_results) {
 }
 
 # Main pathway function with rounds support
+#' Pairwise pathway conservation analysis across multiple conditions
+#'
+#' @title Multi-condition pathway circadian conservation analysis
+#'
+#' @description
+#' Runs all pairwise pathway conservation comparisons among a list of MCMC
+#' outputs: computes observed pathway congruence scores, generates
+#' permutation null distributions, applies BH correction, and writes
+#' results to an Excel file.
+#'
+#' @param mcmc.merge.list Named list of MCMC output lists, one per condition.
+#' @param dataset.names Character vector; condition labels.
+#' @param select.pathway.list Named list of character vectors; pathway gene
+#'   sets.
+#' @param delta Numeric; phase threshold (default 3).
+#' @param units Character; \code{"hours"} (default).
+#' @param B Integer; permutations per pair (default 1000).
+#' @param ncores Integer or \code{NULL}; parallel cores.
+#' @param parallel Logical or \code{"auto"}.
+#' @param rounds Integer; rounds per pair.
+#' @param save_intermediate Logical; save intermediate results.
+#' @param intermediate_dir Character; directory for intermediate saves.
+#' @param output.dir Character; directory for Excel output
+#'   (default \code{"Conservation_Pathway"}).
+#'
+#' @return Named list of pairwise pathway result data.frames.  Also writes
+#'   an Excel file to \code{output.dir}.
+#'
+#' @export
 multi_conservation_pathway <- function(mcmc.merge.list, dataset.names,
                                        select.pathway.list,
                                        delta = 3, units = "hours", B = 1000,
