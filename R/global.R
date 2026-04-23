@@ -1,4 +1,38 @@
 
+#' Permutation null distribution for global congruence index
+#'
+#' @title Global permutation test for circadian congruence
+#'
+#' @description
+#' Generates a permutation null distribution for the congruence index and
+#' related metrics (gain, loss, gain/loss ratio) by randomly shuffling the
+#' row order of \code{dat2$rho} while keeping \code{dat1$rho} fixed.
+#' Supports parallelisation via \code{parallel::mclapply} (Unix only) and
+#' multi-round execution to reduce peak memory use.
+#'
+#' @param dat1 Named list; MCMC output for condition 1 with a \code{rho}
+#'   matrix (G x K binary).
+#' @param dat2 Named list; MCMC output for condition 2 with a \code{rho}
+#'   matrix.
+#' @param delta Numeric; passed to \code{congruence} (default 3; currently
+#'   unused in the probabilistic score).
+#' @param units Character; \code{"hours"} or \code{"radians"} (default
+#'   \code{"hours"}).
+#' @param B Integer; total number of permutations (default 1000).
+#' @param ncores Integer or \code{NULL}; number of cores for parallel runs;
+#'   \code{NULL} auto-detects (up to 4).
+#' @param parallel Logical or \code{"auto"}; whether to parallelise
+#'   (default \code{"auto"}: enabled on Unix when B >= 100).
+#' @param rounds Integer; split B permutations into this many rounds to
+#'   reduce memory use (default 1).
+#' @param save_intermediate Logical; save each round to \code{intermediate_dir}
+#'   (default \code{FALSE}).
+#' @param intermediate_dir Character; directory for intermediate saves.
+#'
+#' @return A B x 4 numeric matrix with columns \code{congruence_index},
+#'   \code{gain_index}, \code{loss_index}, \code{gain_loss_ratio}.
+#'
+#' @export
 # Global permutation function with rounds support
 perm_conservation_global <- function(dat1, dat2, delta = 3, units = "hours", B = 1000,
                                      ncores = NULL, parallel = "auto",
@@ -91,6 +125,24 @@ perm_conservation_global <- function(dat1, dat2, delta = 3, units = "hours", B =
   return(out)
 }
 
+#' Run one round of global permutations
+#'
+#' @description
+#' Executes \code{B_round} permutations of the congruence index and
+#' related metrics for a single round.  Called by
+#' \code{perm_conservation_global}.
+#'
+#' @param dat1,dat2 MCMC output lists with \code{rho} matrices.
+#' @param G Integer; number of genes.
+#' @param metrics Character vector; metric names to compute.
+#' @param delta,units Passed to \code{congruence}.
+#' @param B_round Integer; permutations in this round.
+#' @param parallel Logical; whether to use \code{mclapply}.
+#' @param ncores Integer; number of cores.
+#'
+#' @return B_round x length(metrics) numeric matrix.
+#'
+#' @keywords internal
 # Helper function to run a single round of global permutations
 run_single_round_global <- function(dat1, dat2, G, metrics, delta, units, B_round,
                                     parallel, ncores) {
@@ -167,6 +219,23 @@ run_single_round_global <- function(dat1, dat2, G, metrics, delta, units, B_roun
   return(round_out)
 }
 
+#' Compute permutation p-values for global congruence scores
+#'
+#' @description
+#' Derives one-sided (right-tailed for congruence; right/left/two-sided for
+#' the gain/loss ratio) permutation p-values by comparing observed scores
+#' against the null distribution from \code{perm_conservation_global}.
+#'
+#' @param observed_scores Named list; observed values of \code{congruence_index},
+#'   \code{gain_index}, \code{loss_index}, and \code{gain_loss_ratio} from
+#'   \code{congruence}.
+#' @param perm_results B x 4 matrix from \code{perm_conservation_global}.
+#'
+#' @return A list with elements \code{congruence} (right-tailed p-value),
+#'   \code{gain_index}, \code{loss_index} (observed values), and
+#'   \code{ratio} (list of right/left/two-sided p-values for the ratio).
+#'
+#' @export
 # Global p-value calculation
 # For congruence_index: right-sided test only
 # For gain_loss_ratio: right-sided, left-sided, and two-sided tests
@@ -226,6 +295,35 @@ p_conservation_global <- function(observed_scores, perm_results) {
   ))
 }
 
+#' Pairwise global conservation analysis across multiple conditions
+#'
+#' @title Multi-condition global circadian conservation analysis
+#'
+#' @description
+#' Runs all pairwise comparisons among a list of MCMC outputs: for each
+#' pair computes the observed congruence, gain, and loss indices; performs
+#' permutation tests via \code{perm_conservation_global}; applies BH
+#' multiple-testing correction; and writes an Excel summary with one sheet
+#' per metric.
+#'
+#' @param mcmc.merge.list Named list of MCMC output lists, one per condition.
+#' @param dataset.names Character vector; labels for each condition.
+#' @param delta Numeric; phase-shift threshold (default 3).
+#' @param units Character; \code{"hours"} (default).
+#' @param B Integer; permutations per pair (default 1000).
+#' @param ncores Integer or \code{NULL}; parallel cores.
+#' @param parallel Logical or \code{"auto"}; parallelisation strategy.
+#' @param rounds Integer; permutation rounds per pair.
+#' @param save_intermediate Logical; save intermediate permutation results.
+#' @param intermediate_dir Character; directory for intermediate saves.
+#' @param output.dir Character; directory for the Excel output file
+#'   (default \code{"Conservation_Global"}).
+#'
+#' @return Named list of square matrices (one per metric): congruence scores
+#'   and p-values, gain and loss indices, ratio scores and p-values.
+#'   Also writes an Excel file to \code{output.dir}.
+#'
+#' @export
 # Main global conservation function with rounds support and Excel output
 multi_conservation_global <- function(mcmc.merge.list, dataset.names,
                                       delta = 3, units = "hours", B = 1000,
@@ -513,6 +611,19 @@ multi_conservation_global <- function(mcmc.merge.list, dataset.names,
     output_file = excel_filename
   ))
 }
+#' Compute scalar Jaccard concordance summaries from posterior rho matrices
+#'
+#' @description
+#' Wraps \code{compute_iteration_jaccard} to return mean observed, adjusted,
+#' and null Jaccard values as a compact list for pairwise condition summaries.
+#'
+#' @param rho_A G x K binary matrix; posterior rho samples for condition A.
+#' @param rho_B G x K binary matrix; posterior rho samples for condition B.
+#'
+#' @return List with elements \code{jaccard_obs}, \code{jaccard_adj}, and
+#'   \code{jaccard_null} (all numeric scalars).
+#'
+#' @export
 # Minimal concordance summary from posterior ρ matrices
 # Wraps compute_iteration_jaccard to return scalar summaries per condition pair.
 compute_concordance_minimal <- function(rho_A, rho_B) {

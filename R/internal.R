@@ -1292,6 +1292,42 @@ avgSP = function(G.module, sp.mat){
   return(G.sp)
 }
 
+#' Annotate MCMC output with gene symbols and rhythmicity index
+#'
+#' @title Map Ensembl IDs to gene symbols and set rhythmicity attributes
+#'
+#' @description
+#' Takes the raw list output from \code{CB_MCMC_single_rj_slice} and
+#' (optionally) converts Ensembl row names to HGNC gene symbols via
+#' biomaRt.  If row names are already symbols they are used directly.
+#' Computes a Bayes Factor for each gene using \code{summarize_bay} and
+#' sets \code{attr(rho, "symbols")} and \code{attr(rho, "RHYindex")} so
+#' that downstream functions can access gene identifiers and rhythmicity
+#' classifications.  Duplicate symbols are resolved by keeping the row
+#' with the highest Bayes Factor.
+#'
+#' @param input_df Named list; raw MCMC output (e.g. from
+#'   \code{CB_MCMC_single_rj_slice}).  Must contain a \code{rho} matrix
+#'   with gene identifiers as row names.
+#' @param BF Numeric; Bayes Factor threshold above which a gene is called
+#'   rhythmic.
+#' @param p_rhythmic Numeric in (0, 1); prior probability of rhythmicity
+#'   used to compute the Bayes Factor (default 0.5).
+#' @param ensemble A biomaRt Mart object; required when row names are
+#'   Ensembl IDs (default \code{NULL}).
+#'
+#' @return The input list filtered to unique symbols, with all matrix
+#'   elements row-subsetted and \code{attr(*, "symbols")},
+#'   \code{attr(*, "RHYindex")}, and (if Ensembl IDs were present)
+#'   \code{attr(*, "ensembl_gene_ids")} set on each matrix.
+#'
+#' @export
+#'
+#' @examples
+#' \dontrun{
+#' res  <- CB_MCMC_single_rj_slice(dat, init)
+#' res2 <- match_symbols(res, BF = 3, p_rhythmic = 0.2)
+#' }
 match_symbols <- function(input_df, BF, p_rhythmic = 0.5, ensemble = NULL) {
   library(biomaRt)
   
@@ -1417,7 +1453,38 @@ match_symbols <- function(input_df, BF, p_rhythmic = 0.5, ensemble = NULL) {
   
   return(input_df_filtered)
 }
-# Matching homologs 
+#' Align multiple MCMC outputs to a common set of homologous genes
+#'
+#' @title Match homologs across species MCMC outputs
+#'
+#' @description
+#' Uses biomaRt to retrieve one-to-one orthologs between each non-reference
+#' species and the reference species (default human), then intersects the
+#' mapped gene sets across all datasets.  Each input list is row-filtered
+#' and reordered so that all datasets share the same genes in the same order,
+#' enabling direct cross-species comparisons.
+#'
+#' @param input_dfs A list of MCMC output lists (one per dataset), each
+#'   with matrices whose row names are Ensembl gene IDs and whose
+#'   \code{attr(rho, "ensembl_gene_ids")} attribute is set.
+#' @param species_from Character vector of the same length as
+#'   \code{input_dfs}; species label for each dataset (currently supports
+#'   \code{"human"} and \code{"mouse"}).
+#' @param ref Character; reference species for the common gene space
+#'   (default \code{"human"}).
+#'
+#' @return A list of the same length as \code{input_dfs}, each element
+#'   row-filtered to the intersection of homologous reference-space gene
+#'   IDs and reordered consistently.
+#'
+#' @export
+#'
+#' @examples
+#' \dontrun{
+#' aligned <- match_homologs(list(human_res, mouse_res),
+#'                           species_from = c("human", "mouse"))
+#' }
+# Matching homologs
 match_homologs <- function(input_dfs, species_from ,ref = "human") {
   if (length(input_dfs) != length(species_from)) {
     stop("The number of datasets must match the number of species provided.")
@@ -1578,6 +1645,36 @@ match_homologs <- function(input_dfs, species_from ,ref = "human") {
   return(input_dfs_filtered)
 }
 
+#' Compute pairwise rhythmicity concordance between two conditions
+#'
+#' @title Pairwise concordance (Jaccard and conditional) for two MCMC outputs
+#'
+#' @description
+#' Compares binary posterior rhythmicity classifications (\code{rho} rows
+#' thresholded at 0.5) between two conditions.  Returns the Jaccard index
+#' (intersection / union), conditional proportions (how many rhythmic genes
+#' in species 1 are also rhythmic in species 2, and vice versa), and raw
+#' proportion counts.
+#'
+#' @param matrix1 Named list with element \code{rho} (G x K binary matrix);
+#'   MCMC output for condition 1.
+#' @param matrix2 Named list with element \code{rho} (G x K binary matrix);
+#'   MCMC output for condition 2.
+#'
+#' @return A list with elements:
+#'   \describe{
+#'     \item{conditional_species1_to_species2}{Proportion of species-1
+#'       rhythmic genes also rhythmic in species 2.}
+#'     \item{conditional_species2_to_species1}{Proportion of species-2
+#'       rhythmic genes also rhythmic in species 1.}
+#'     \item{jaccard_concordance}{Jaccard index (intersection / union).}
+#'     \item{shared_rhythmic, species1_total_rhythmic,
+#'       species2_total_rhythmic}{Raw proportions.}
+#'     \item{interpretation}{Human-readable strings for the conditional
+#'       proportions.}
+#'   }
+#'
+#' @export
 concordance2 <- function(matrix1, matrix2) {
   rho1 <- matrix1$rho
   rho2 <- matrix2$rho
@@ -1661,6 +1758,21 @@ concordance2 <- function(matrix1, matrix2) {
 #   )
 # }
 
+#' Compute circular phase difference between two phase vectors
+#'
+#' @description
+#' Computes phi2 - phi1 and wraps the result to \[-P/2, P/2\] (for hours)
+#' or \[-pi, pi\] (for radians) to give the signed shortest-arc difference.
+#'
+#' @param phi1 Numeric vector; acrophase of condition 1 in hours (or
+#'   radians if \code{units = "radians"}).
+#' @param phi2 Numeric vector; acrophase of condition 2.
+#' @param units Character; \code{"hours"} (default) or \code{"radians"}.
+#'
+#' @return Numeric vector of signed circular phase differences, wrapped to
+#'   \[-12, 12\] hours or \[-pi, pi\] radians.
+#'
+#' @export
 # Helper function for phase differences
 phase_difference <- function(phi1, phi2, units = "hours") {
   if (units == "hours") {
@@ -1742,6 +1854,40 @@ phase_difference <- function(phi1, phi2, units = "hours") {
 #     Dp = conserved_discordant
 #   ))
 # }
+
+#' Compute probabilistic congruence (c-score) between two conditions
+#'
+#' @title Probabilistic congruence index
+#'
+#' @description
+#' Computes the expected Jaccard-based congruence index using posterior
+#' rhythmicity probabilities p_A = rowMeans(rho_A) and
+#' p_B = rowMeans(rho_B).  The c-score is defined as
+#' E[intersection] / E[union] where
+#' E[intersection] = sum(p_A * p_B) and
+#' E[union] = sum(p_A) + sum(p_B) - E[intersection].
+#' Gain and loss indices are the fractions of the expected union gained or
+#' lost relative to condition A.
+#'
+#' @param matrix1 Named list with element \code{rho} (G x K matrix);
+#'   MCMC posterior samples for condition 1 (reference / earlier time point).
+#' @param matrix2 Named list with element \code{rho} (G x K matrix);
+#'   MCMC posterior samples for condition 2.
+#' @param delta Numeric; phase-shift threshold in \code{units} (currently
+#'   unused in the probabilistic c-score; reserved for future use,
+#'   default 3).
+#' @param units Character; \code{"hours"} (default) or \code{"radians"}.
+#'
+#' @return A list with elements:
+#'   \describe{
+#'     \item{congruence_index}{Numeric; E[intersection] / E[union].}
+#'     \item{gain_index}{Numeric; expected gain / E[union].}
+#'     \item{loss_index}{Numeric; expected loss / E[union].}
+#'     \item{gain_loss_ratio}{Numeric; gain_index / loss_index.}
+#'     \item{n_genes}{Integer; number of genes.}
+#'   }
+#'
+#' @export
 congruence <- function(matrix1, matrix2, delta = 3, units = "hours") {
   # Convert MCMC matrices to posterior probabilities
   p_A <- rowMeans(matrix1$rho)  # Condition 1 (e.g., younger)
@@ -1792,6 +1938,23 @@ congruence <- function(matrix1, matrix2, delta = 3, units = "hours") {
   ))
 }
 
+#' Compute pairwise concordance matrix across multiple tissues
+#'
+#' @description
+#' For each pair of tissues in \code{human_data}, computes the Jaccard
+#' concordance index between their posterior rhythmicity classifications.
+#' Optionally restricts the comparison to the top \code{n_gene} genes
+#' ranked by mean posterior rhythmicity across all tissues.
+#'
+#' @param human_data Named list of MCMC output lists; each element must
+#'   have a \code{rho} matrix with matching gene row names.
+#' @param n_gene Integer or \code{NULL}; if specified, restrict to the
+#'   top \code{n_gene} genes by mean rhythmicity across tissues.
+#'
+#' @return Square symmetric numeric matrix of Jaccard concordance values,
+#'   with row and column names equal to \code{names(human_data)}.
+#'
+#' @export
 pairwise_concordance <- function(human_data, n_gene = NULL) {
   tissue_names <- names(human_data)
   
@@ -1863,6 +2026,23 @@ try_any_mirror <- function(biomart = "ENSEMBL_MART_ENSEMBL", dataset = "hsapiens
 }
 
 
+#' Summarise posterior rhythmicity and Bayes Factor per gene
+#'
+#' @description
+#' Computes the posterior mean rhythmicity (\code{RowAverage}), the number
+#' of zero samples (\code{Zeroes}), and the Bayes Factor for each gene.
+#' The Bayes Factor is computed as posterior odds / prior odds:
+#' BF = (rho_bar / (1 - rho_bar)) / (p_rhythmic / (1 - p_rhythmic)).
+#' Genes with BF > the threshold are called rhythmic (Rhythmicity = 1).
+#'
+#' @param input_df G x K binary matrix of posterior rho samples.
+#' @param BF Numeric; Bayes Factor threshold for calling a gene rhythmic.
+#' @param p_rhythmic Numeric; prior probability of rhythmicity (default 0.5).
+#'
+#' @return Data.frame with columns \code{Zeroes}, \code{RowAverage},
+#'   \code{Rhythmicity} (0/1), and \code{BayesF}.
+#'
+#' @export
 summarize_bay <- function(input_df, BF, p_rhythmic = 0.5) {
   # Calculate the counts of 0 in each row
   row_counts <- rowSums(input_df == 0)
@@ -1894,6 +2074,21 @@ summarize_bay <- function(input_df, BF, p_rhythmic = 0.5) {
 }
 
 
+#' Intersect phase matrices to common genes
+#'
+#' @description
+#' Finds the common gene symbols between two MCMC output lists using the
+#' \code{attr(rho, "symbols")} attribute and returns subsetted phase
+#' matrices aligned to that common gene set.
+#'
+#' @param X_summary Named list; MCMC output for condition X with
+#'   \code{attr(rho, "symbols")} set.
+#' @param Y_summary Named list; MCMC output for condition Y.
+#'
+#' @return List with elements \code{X_c} and \code{Y_c} (phase matrices
+#'   restricted to common genes, in matching row order).
+#'
+#' @export
 # Filter common genes between datasets
 phi_filter <- function(X_summary, Y_summary) {
   common_genes <- intersect(attr(X_summary$rho, "symbols"), attr(Y_summary$rho, "symbols"))
@@ -2102,7 +2297,28 @@ pathShiftEnrich <- function(phi1, phi2, pathway.list,
 
 ############### PLOTTING
 
-plotGenePosteriorPhase <- function(gene_aliases, 
+#' Plot posterior phase distributions for selected genes
+#'
+#' @description
+#' Produces a faceted density plot of posterior acrophase samples for a
+#' set of genes across two species/tissues.  One panel per gene x species
+#' combination; saves a PNG to \code{output_dir}.
+#'
+#' @param gene_aliases Character vector; gene names to plot (case-insensitive
+#'   match against row names of \code{phi_mat1} and \code{phi_mat2}).
+#' @param phi_mat1 G x K matrix; posterior phase samples for condition 1.
+#' @param phi_mat2 G x K matrix; posterior phase samples for condition 2.
+#' @param species_names Character vector of length 2; labels for conditions
+#'   (default \code{c("Species1", "Species2")}).
+#' @param tissue_names Character vector of length 2; tissue labels used in
+#'   the plot subtitle and filename.
+#' @param output_dir Character; directory in which to save the PNG file.
+#'
+#' @return Called for side effects; invisibly returns \code{NULL}.  Saves
+#'   a PNG named \code{<genes>_<tissue1>_<tissue2>_posterior_phase.png}.
+#'
+#' @export
+plotGenePosteriorPhase <- function(gene_aliases,
                                    phi_mat1, phi_mat2,
                                    species_names = c("Species1", "Species2"),
                                    tissue_names = c("Tissue1", "Tissue2"),
@@ -2204,6 +2420,21 @@ plotGenePosteriorPhase <- function(gene_aliases,
 
 ############### PLOTTING
 
+#' Plot core clock gene median phases on a polar axis
+#'
+#' @description
+#' Computes the circular median phase for each core clock gene and draws a
+#' polar bar chart using ggplot2, saving to \code{output_path}.
+#'
+#' @param phi_mat G x K matrix; posterior phase samples.
+#' @param gene_aliases Character vector; core clock gene names to plot.
+#' @param tissue_label Character; plot title / tissue label.
+#' @param output_path Character; file path for the saved PNG.
+#' @param P Numeric; period in hours (default 24).
+#'
+#' @return Called for side effects; saves a PNG and returns \code{NULL}.
+#'
+#' @export
 plotCoreClockMedians <- function(phi_mat, gene_aliases, tissue_label, output_path, P = 24) {
   library(ggplot2)
   library(tibble)
@@ -2258,6 +2489,23 @@ plotCoreClockMedians <- function(phi_mat, gene_aliases, tissue_label, output_pat
 }
 
 
+#' Plot circular HDI arcs for core clock genes on a polar plot
+#'
+#' @description
+#' Computes the circular highest-density interval for each core clock gene
+#' using \code{circular_HDI} and renders coloured arcs on a 24-hour polar
+#' axis, saving to \code{output_path}.
+#'
+#' @param phi_mat G x K matrix; posterior phase samples.
+#' @param gene_aliases Character vector; gene names to plot.
+#' @param tissue_label Character; plot title / tissue label.
+#' @param output_path Character; file path for the saved PNG.
+#' @param credMass Numeric; HDI coverage (default 0.95).
+#' @param P Numeric; period in hours (default 24).
+#'
+#' @return Called for side effects; saves a PNG and returns \code{NULL}.
+#'
+#' @export
 plotHDIClockPolar <- function(phi_mat, gene_aliases, tissue_label, output_path,
                               credMass = 0.95, P = 24) {
   library(ggplot2)
@@ -2310,6 +2558,31 @@ plotHDIClockPolar <- function(phi_mat, gene_aliases, tissue_label, output_path,
 # Bayesian False Discovery Rate (BFDR) threshold estimation
 # Implements Eq. (25): τ_c = max{ τ : BFDR(τ) ≤ α }
 ################################################################################
+#' Estimate the Bayesian False Discovery Rate threshold from posterior probabilities
+#'
+#' @title BFDR threshold from posterior rhythmicity probabilities
+#'
+#' @description
+#' Implements the BFDR rule described in the BayRC paper (Eq. 25):
+#' sort genes by decreasing posterior probability p_g, compute the running
+#' average of (1 - p_g), and return the largest threshold tau_c such that
+#' BFDR(tau_c) = mean(1 - p_g | p_g >= tau_c) <= alpha.
+#' This controls the expected proportion of false rhythmic calls at level alpha.
+#'
+#' @param posterior_probs Numeric vector; marginal posterior probability of
+#'   rhythmicity for each gene (values in \[0, 1\]).
+#' @param alpha Numeric; desired BFDR level (default 0.05).
+#'
+#' @return A list with elements:
+#'   \describe{
+#'     \item{threshold}{Numeric; the BFDR-optimal cutoff tau_c.}
+#'     \item{rhythmic_genes}{Logical vector; \code{TRUE} for called rhythmic.}
+#'     \item{n_rhythmic}{Integer; number of rhythmic calls.}
+#'     \item{bfdr_values}{Numeric vector; BFDR at each ranked position.}
+#'     \item{sorted_probs}{Sorted (descending) posterior probabilities.}
+#'   }
+#'
+#' @export
 bfdr_from_posterior <- function(posterior_probs, alpha = 0.05) {
   # Sort posterior probabilities in descending order
   ord <- order(posterior_probs, decreasing = TRUE)
@@ -2355,6 +2628,32 @@ bfdr_from_posterior <- function(posterior_probs, alpha = 0.05) {
 # Step 1: Bayesian rhythmic-gene detection with BFDR control
 ################################################################################
 
+#' Detect rhythmic genes in two conditions using BFDR control
+#'
+#' @description
+#' Applies \code{bfdr_from_posterior} separately to the marginal posterior
+#' rhythmicity probabilities of two conditions and returns the BFDR-optimal
+#' rhythmic gene sets for each, together with data.frames of annotated gene
+#' information.
+#'
+#' @param dat1 Named list; MCMC output for condition A with a \code{rho}
+#'   matrix.
+#' @param dat2 Named list; MCMC output for condition B with a \code{rho}
+#'   matrix.
+#' @param bfdr_alpha Numeric; BFDR level (default 0.05).
+#'
+#' @return A list with elements:
+#'   \describe{
+#'     \item{rhythmic_A_logical, rhythmic_B_logical}{Logical vectors for
+#'       conditions A and B.}
+#'     \item{rhythmic_A, rhythmic_B}{Data.frames of rhythmic genes with
+#'       posterior probability columns.}
+#'     \item{threshold_A, threshold_B}{BFDR thresholds for each condition.}
+#'     \item{n_rhythmic_A, n_rhythmic_B, n_total, bfdr_alpha}{Counts and
+#'       settings.}
+#'   }
+#'
+#' @export
 detect_rhy <- function(dat1, dat2, bfdr_alpha = 0.05) {
   # 1. Posterior rhythmicity probabilities
   p_A_all <- rowMeans(dat1$rho)  # p_g^(A)
@@ -2414,6 +2713,38 @@ detect_rhy <- function(dat1, dat2, bfdr_alpha = 0.05) {
 ################################################################################
 # Step 2: Bayesian transition classification (gain / loss / maintained)
 ################################################################################
+#' Classify rhythmicity transitions using joint BFDR on transition posteriors
+#'
+#' @title Bayesian transition classification (gain / loss / maintained)
+#'
+#' @description
+#' Computes joint transition posterior probabilities:
+#' p_gain = (1 - p_A) * p_B (gained rhythmicity),
+#' p_loss = p_A * (1 - p_B) (lost rhythmicity),
+#' p_cons = p_A * p_B (maintained rhythmicity),
+#' then applies \code{bfdr_from_posterior} to each to identify gain, loss,
+#' and conserved gene sets at the specified BFDR level.
+#'
+#' @param pA Numeric vector; marginal posterior rhythmicity probability for
+#'   condition A (reference; length G).
+#' @param pB Numeric vector; marginal posterior rhythmicity probability for
+#'   condition B (length G).
+#' @param bfdr_alpha Numeric; BFDR control level (default 0.05).
+#'
+#' @return A list with elements:
+#'   \describe{
+#'     \item{gain_loss_status}{Named character vector of length G with
+#'       values \code{"Gain"}, \code{"Loss"}, \code{"Maintained"}, or
+#'       \code{"Non-rhythmic"}.}
+#'     \item{gain_genes, loss_genes, cons_genes}{Integer indices of genes
+#'       in each class.}
+#'     \item{tau_gain, tau_loss, tau_cons}{BFDR thresholds for each
+#'       transition type.}
+#'     \item{n_gain, n_loss, n_cons}{Counts.}
+#'     \item{results}{Data.frame with per-gene classification details.}
+#'   }
+#'
+#' @export
 transition_classify <- function(pA, pB, bfdr_alpha = 0.05) {
   
   n_genes <- length(pA)
@@ -2489,6 +2820,27 @@ transition_classify <- function(pA, pB, bfdr_alpha = 0.05) {
 # rhythmicity probability (pA, pB), then classifies based on individual
 # thresholds. Contrast with transition_classify() which uses joint
 # transition probabilities (pA*pB, etc.).
+#' Classify rhythmicity transitions using marginal BFDR on each condition
+#'
+#' @description
+#' Applies \code{bfdr_from_posterior} separately to p_A and p_B (marginal
+#' rhythmicity probabilities) to define tau_A and tau_B, then classifies
+#' genes as Gain, Loss, Maintained, or Non-rhythmic based on whether each
+#' gene exceeds its condition's threshold.  Contrast with
+#' \code{transition_classify}, which uses joint transition probabilities.
+#'
+#' @param pA Numeric vector; marginal posterior rhythmicity probability for
+#'   condition A (length G).
+#' @param pB Numeric vector; marginal posterior rhythmicity probability for
+#'   condition B (length G).
+#' @param bfdr_alpha Numeric; BFDR control level (default 0.05).
+#'
+#' @return A list with the same structure as \code{transition_classify}
+#'   but with \code{tau_A} and \code{tau_B} instead of \code{tau_gain/
+#'   loss/cons}, and a \code{results} data.frame with columns
+#'   \code{rhythmic_A} and \code{rhythmic_B}.
+#'
+#' @export
 transition_classify_marginal <- function(pA, pB, bfdr_alpha = 0.05) {
 
   n_genes <- length(pA)
@@ -2687,7 +3039,48 @@ transition_classify_marginal <- function(pA, pB, bfdr_alpha = 0.05) {
 #     phase_summary      = phase
 #   )
 # }
-# 
+#
+
+#' Infer phase shifts and conservation among maintained rhythmic genes
+#'
+#' @title Bayesian phase inference with BFDR-controlled shift/conservation flags
+#'
+#' @description
+#' For genes classified as "Maintained" by \code{transition_classify} or
+#' \code{transition_classify_marginal}, computes the posterior distribution
+#' of the phase difference delta_phi = phi1 - phi2 (wrapped to [-P/2, P/2)),
+#' estimates the probability of a significant shift (|delta_phi| >= shift),
+#' and applies BFDR control to flag significantly shifted or conserved genes.
+#' Optionally computes the full circular HDI of delta_phi when
+#' \code{compute_hdi = TRUE}.
+#'
+#' @param phi_matrix1 G x K matrix; posterior phase samples for condition 1.
+#' @param phi_matrix2 G x K matrix; posterior phase samples for condition 2.
+#' @param gain_loss_status Named character vector of length G with values
+#'   \code{"Gain"}, \code{"Loss"}, \code{"Maintained"}, or
+#'   \code{"Non-rhythmic"} (from \code{transition_classify}).
+#' @param P Numeric; period in hours (default 24).
+#' @param credMass Numeric; HDI coverage (default 0.95); only used when
+#'   \code{compute_hdi = TRUE}.
+#' @param shift Numeric; phase-shift threshold in hours (default 4).
+#' @param a Numeric; left endpoint for circular normalisation (default
+#'   \code{-P/2}).
+#' @param bfdr_alpha Numeric; BFDR control level (default 0.05).
+#' @param compute_hdi Logical; if \code{TRUE}, compute the circular HDI
+#'   for each maintained gene (slower; default \code{FALSE}).
+#'
+#' @return A list with per-gene vectors:
+#'   \describe{
+#'     \item{peak1, peak2}{Circular median phases for each condition.}
+#'     \item{deltaPhi.Est, deltaPhi.Lower, deltaPhi.Upper}{Phase-difference
+#'       median and HDI (filled only when \code{compute_hdi = TRUE}).}
+#'     \item{prob_shift, prob_conserved}{Posterior probabilities of shift
+#'       and conservation.}
+#'     \item{flag_shift, flag_cons, flag_undetermined}{BFDR-significant flags.}
+#'     \item{BFDR_shift, BFDR_cons}{Running BFDR values.}
+#'   }
+#'
+#' @export
 phase_infer <- function(phi_matrix1, phi_matrix2, gain_loss_status,
                         P = 24, credMass = 0.95, shift = 4,
                         a = -P/2, bfdr_alpha = 0.05,
@@ -2823,6 +3216,34 @@ phase_infer <- function(phi_matrix1, phi_matrix2, gain_loss_status,
 
 
 
+#' Full BayRC phase analysis pipeline
+#'
+#' @title Integrated rhythmicity detection, transition classification, and phase inference
+#'
+#' @description
+#' Convenience wrapper that calls \code{detect_rhy}, \code{transition_classify},
+#' and \code{phase_infer} in sequence.  Returns a consolidated list covering
+#' rhythmic gene detection, gain/loss/maintained classification, and
+#' phase-shift / conservation flags.
+#'
+#' @param matrix1 Named list; MCMC output for condition 1 (with \code{rho}
+#'   and \code{phi} matrices).
+#' @param matrix2 Named list; MCMC output for condition 2.
+#' @param P Numeric; period in hours (default 24).
+#' @param credMass Numeric; HDI coverage (default 0.95).
+#' @param shift Numeric; phase-shift threshold in hours (default 4).
+#' @param a Numeric; left endpoint of the circular interval (default
+#'   \code{-P/2}).
+#' @param bfdr_alpha Numeric; BFDR control level (default 0.05).
+#' @param compute_hdi Logical; passed to \code{phase_infer} (default
+#'   \code{FALSE}).
+#'
+#' @return A list with elements \code{rhythmic_summary} (from
+#'   \code{detect_rhy}), \code{transition_summary} (from
+#'   \code{transition_classify}), and \code{phase_summary} (from
+#'   \code{phase_infer}).
+#'
+#' @export
 phase_analysis <- function(matrix1, matrix2,
                            P = 24, credMass = 0.95,
                            shift = 4, a = -P/2,

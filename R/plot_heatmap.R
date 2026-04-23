@@ -1,6 +1,39 @@
 # BayRC Pathway Heatmap Visualization
 # Requires: ComplexHeatmap (Bioconductor), circular
 
+#' Integrated pathway heatmap with rhythmicity and phase information
+#'
+#' @title Pathway-level expression heatmap
+#'
+#' @description
+#' Produces a \code{ComplexHeatmap} visualisation for a given pathway,
+#' showing posterior rhythmicity probabilities and phase information for
+#' both conditions side by side.  Genes can be coloured by gain/loss/
+#' maintained status from \code{transition_classify} output.  The plot
+#' can show all genes, only rhythmic genes, or both (two panels).
+#'
+#' @param data1 Named list; MCMC output for condition 1 with \code{rho}
+#'   and \code{phi} matrices.
+#' @param data2 Named list; MCMC output for condition 2.
+#' @param pathway_genes Character vector; gene names in the pathway.
+#' @param pathway_name Character; pathway label used in the plot title.
+#' @param phase_results Output from \code{phase_infer} or a similar list
+#'   with per-gene phase metrics.
+#' @param transition_results Output from \code{transition_classify} or
+#'   \code{NULL} (default \code{NULL}); used to colour genes by
+#'   gain/loss/maintained status.
+#' @param group_names Character vector of length 2; condition labels
+#'   (default \code{c("Group1", "Group2")}).
+#' @param save_path Character or \code{NULL}; file path for saving the
+#'   plot PNG; if \code{NULL} the plot is drawn but not saved.
+#' @param n_bins Integer; number of bins for the phase colour wheel
+#'   (default 24).
+#' @param versions Character; which version to produce: \code{"full"},
+#'   \code{"rhythmic_only"}, or \code{"both"} (default \code{"full"}).
+#'
+#' @return Called for side effects; invisibly returns the heatmap object.
+#'
+#' @export
 plot_pathway_integrated <- function(data1, data2,
                                     pathway_genes,
                                     pathway_name,

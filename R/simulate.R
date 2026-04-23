@@ -22,7 +22,62 @@
   # A new version of function to allow proportions of samples to have t_p and fixed t_p
   # phase of the data should be randomized across P
 
-CBt_sim_data = function(P = 24, 
+#' Simulate circadian expression data with Zeitgeber-time measurement error
+#'
+#' @title Simulate CBt circadian dataset
+#'
+#' @description
+#' Generates synthetic multi-group circadian expression data following the
+#' BayRC cosinor model, optionally with Zeitgeber-time measurement error
+#' (t_p) on a specified proportion of samples.  Each gene's true phase is
+#' drawn uniformly from \[0, P), and expression is generated as
+#' Y = M + A * cos(omega * (t + t_p) - phi) + epsilon.  Supports multiple
+#' rhythmicity/phase-shift scenarios defined by \code{TOJR.grid}.
+#'
+#' @param P Numeric; circadian period in hours (default 24).
+#' @param TOJR.grid Data.frame or matrix; G_scenario x n.group binary
+#'   rhythmicity indicator grid defining which groups are rhythmic for each
+#'   scenario.
+#' @param dParam Named list; group-level parameter offsets
+#'   (\code{dA}, \code{dPhase}, \code{dM}) relative to the reference
+#'   group, one element per non-reference group.
+#' @param G Integer vector of length n_scenario; number of genes per
+#'   scenario row.
+#' @param n Integer; number of samples (default 30).
+#' @param fixed_tp Logical; if \code{TRUE} (default), time errors are
+#'   fixed at +/- \code{sigma.t}; if \code{FALSE}, they are drawn from
+#'   N(0, sigma.t).
+#' @param sigma.t Numeric; magnitude of the Zeitgeber-time measurement
+#'   error (default 2).
+#' @param n.sigma.t Integer or \code{NULL}; number of samples with
+#'   non-zero t_p.  Exactly one of \code{n.sigma.t} and \code{p.sigma.t}
+#'   must be non-NULL.
+#' @param p.sigma.t Numeric or \code{NULL}; proportion of samples with
+#'   non-zero t_p.
+#' @param Params Named list; base cosinor parameters:
+#'   \code{A} (amplitude), \code{phi} (phase), \code{M} (MESOR),
+#'   \code{sigma} (residual SD).
+#' @param TimePoints Numeric vector or \code{NULL}; fixed observation
+#'   times; if \code{NULL}, times are drawn uniformly from \[0, P).
+#' @param PhaseClust Currently reserved (default \code{NULL}).
+#'
+#' @return A named list with elements:
+#'   \describe{
+#'     \item{data}{A list of length n.group; each element contains
+#'       \code{x} (sample-level covariates including \code{time},
+#'       \code{time.p}), \code{beta} (gene-level true parameters),
+#'       and \code{dat} (G x N expression matrix).}
+#'     \item{TOJR}{Data.frame; expanded rhythmicity grid concatenated
+#'       with parameter offsets for all genes.}
+#'   }
+#'
+#' @export
+#'
+#' @examples
+#' \dontrun{
+#' sim <- CBt_sim_data(n.sigma.t = 8)
+#' }
+CBt_sim_data = function(P = 24,
                         TOJR.grid = my.TOJR.grid[, 1:3],
                         dParam = list(g2 = my.TOJR.grid[, 4:6], 
                                       g3 = my.TOJR.grid[, 4:6]),

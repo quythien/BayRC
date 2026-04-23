@@ -1,3 +1,65 @@
+#' Run MCMC for a single circadian dataset with Zeitgeber-time uncertainty
+#'
+#' @title CBt MCMC single chain with time-error model
+#'
+#' @description
+#' Extends \code{CB_MCMC_single_rj_slice} to jointly infer the gene
+#' expression parameters and the latent Zeitgeber-time measurement error
+#' (t_p) for each sample.  The time-error t_p is modelled with a
+#' von Mises or spike-and-slab prior and updated via Metropolis-Hastings
+#' within each iteration.
+#'
+#' @param Data.list A named list with three elements: \code{data} (G x N
+#'   data.frame), \code{time} (length-N Zeitgeber time in hours), and
+#'   \code{gname} (length-G gene identifiers).
+#' @param Init.value List returned by \code{CBt_init_single} containing
+#'   starting values for \code{rho}, \code{M}, \code{A}, \code{phi},
+#'   \code{sigma}, and \code{t_p}.
+#' @param P Numeric; period in hours (default 24).
+#' @param iteration Integer; total iterations including burn-in (default 1000).
+#' @param thin Integer; thinning interval (default 20).
+#' @param n.burn Integer; burn-in iterations (default 1000).
+#' @param seed Integer; random seed (default 15213).
+#' @param p_rhythmic Numeric vector length G; prior Pr(rho = 1) per gene.
+#' @param rj.p.stay Numeric; probability of skipping between-model move.
+#' @param t_p_gene Character; which genes inform the t_p update: one of
+#'   \code{"rhythmic"}, \code{"fixed"}, or \code{"p_rhythmic"}.
+#' @param fix_rhythm Length-G binary vector used when
+#'   \code{t_p_gene = "fixed"}.
+#' @param p_rhythm_cut Numeric threshold for \code{t_p_gene = "p_rhythmic"}.
+#' @param t_p_prior Character; prior on t_p: \code{"VM"} (von Mises),
+#'   \code{"mass0_spike"}, \code{"cont_spike"}, or \code{"cnot0_spike"}.
+#' @param MH_kappa_t_p Numeric; Metropolis-Hastings step size for t_p.
+#' @param theta_t_p,kappa_t_p,kappa_t0_p,alpha_t1,alpha_t2 Numeric;
+#'   hyperparameters for the t_p prior.
+#' @param A_prior Character; amplitude prior name (see
+#'   \code{CB_MCMC_single_rj_slice}).
+#' @param mu_A,sigma_A,A.min Numeric; truncated-Normal amplitude prior.
+#' @param A_wb_beta2,A_gm_shape,A_gm_rate Numeric; alternative amplitude
+#'   prior parameters.
+#' @param rj.phi,rj.A Logical; jointly propose phi/A in RJMCMC jump.
+#' @param mu_M,sigma_M Numeric; MESOR prior mean and variance.
+#' @param sigma_prior_v,sigma_prior_s Numeric; inverse-gamma prior on
+#'   residual variance.
+#' @param save.file,save.file2 Character; paths for intermediate saves.
+#'
+#' @return Same structure as \code{CB_MCMC_single_rj_slice} plus a
+#'   \code{t_p} matrix (N x K) of posterior samples of time-error.
+#'
+#' @export
+#'
+#' @examples
+#' \dontrun{
+#' sim  <- CBt_sim_data()
+#' dat  <- list(data  = as.data.frame(sim$data[[1]]$dat),
+#'              time  = sim$data[[1]]$x$time,
+#'              gname = paste0("G", seq_len(nrow(sim$data[[1]]$dat))))
+#' init <- CBt_init_single(dat)
+#' mcmc_out <- CBt_MCMC_single(dat, init,
+#'               iteration = 200, thin = 10, n.burn = 100,
+#'               theta_t_p = 0, kappa_t_p = 0.5, kappa_t0_p = 0.1,
+#'               alpha_t1 = 1, alpha_t2 = 1)
+#' }
 CBt_MCMC_single = function(Data.list, Init.value, P = 24,
                    iteration = 1000, thin = 20, n.burn=1000, 
                    seed = 15213, 

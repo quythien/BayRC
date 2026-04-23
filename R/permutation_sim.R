@@ -44,6 +44,27 @@
 # }
 # 
 
+#' Compute per-MCMC-iteration Jaccard concordance index
+#'
+#' @description
+#' For each MCMC iteration (column) of the binary rho matrices, computes
+#' the observed Jaccard index (intersection / union), the expected Jaccard
+#' under gene-label independence, and an adjusted Jaccard
+#' (obs - exp) / (1 - exp).
+#'
+#' @param rho_A G x K binary matrix; posterior rho samples for condition A.
+#' @param rho_B G x K binary matrix; posterior rho samples for condition B.
+#'
+#' @return A list with elements:
+#'   \describe{
+#'     \item{jaccard_obs}{Length-K numeric; observed Jaccard per iteration.}
+#'     \item{jaccard_exp}{Length-K numeric; expected Jaccard per iteration.}
+#'     \item{jaccard_adj}{Length-K numeric; adjusted Jaccard per iteration.}
+#'     \item{mean_jaccard_obs, mean_jaccard_adj}{Numeric scalars; means
+#'       across iterations (excluding NA).}
+#'   }
+#'
+#' @export
 # NEW: Compute iteration-level Jaccard index
 compute_iteration_jaccard <- function(rho_A, rho_B) {
   # rho_A, rho_B: binary matrices (genes × iterations)
@@ -142,6 +163,21 @@ compute_iteration_jaccard <- function(rho_A, rho_B) {
 #   ))
 # }
 
+#' Compute per-iteration gain, loss, and conservation indices
+#'
+#' @description
+#' For each MCMC iteration, computes the expected gain (rhythmic in B but
+#' not A), loss (rhythmic in A but not B), and conservation (rhythmic in
+#' both) under the probabilistic framework, as well as union size.
+#'
+#' @param rho_A G x K binary matrix; posterior rho samples for condition A.
+#' @param rho_B G x K binary matrix; posterior rho samples for condition B.
+#'
+#' @return A list of length-K numeric vectors: \code{exp_conserved},
+#'   \code{exp_gain}, \code{exp_loss}, and \code{exp_union}, each
+#'   containing iteration-level index values.
+#'
+#' @export
 # Compute gain/loss across iterations
 compute_gain_loss_iterations <- function(rho_A, rho_B) {
   # rho_A, rho_B: binary matrices (genes × iterations)
@@ -203,7 +239,35 @@ compute_gain_loss_iterations <- function(rho_A, rho_B) {
 ################################################################################
 # MAIN ANALYSIS FUNCTION FOR SINGLE PATHWAY
 ################################################################################
-analyze_pathway_concordance <- function(rho_A, rho_B, idx = NULL, 
+
+#' Analyse concordance for a single pathway with permutation test
+#'
+#' @description
+#' Computes the observed adjusted Jaccard concordance for a single pathway
+#' (optionally subsetting to pathway gene indices), then tests significance
+#' via gene-label permutation and optionally computes bootstrap confidence
+#' intervals.
+#'
+#' @param rho_A G x K binary matrix; posterior rho samples for condition A.
+#' @param rho_B G x K binary matrix; posterior rho samples for condition B.
+#' @param idx Integer vector or \code{NULL}; row indices of pathway genes;
+#'   if \code{NULL}, use all genes.
+#' @param n_perm Integer; permutations for the p-value (default 1000).
+#' @param n_boot Integer; bootstrap replicates for the CI (default 500).
+#' @param alpha Numeric; significance level (default 0.05).
+#' @param use_cpp Logical; use Rcpp implementation if available (default
+#'   \code{FALSE}).
+#' @param is_global Logical; skip pathway subsetting (default \code{FALSE}).
+#' @param compute_pvalue Logical; compute permutation p-value (default
+#'   \code{TRUE}).
+#' @param compute_ci Logical; compute bootstrap CI (default \code{TRUE}).
+#'
+#' @return A list with elements \code{mean_adj_jaccard} (observed),
+#'   \code{p_value}, \code{ci_lower}, \code{ci_upper}, and related
+#'   diagnostic fields.
+#'
+#' @export
+analyze_pathway_concordance <- function(rho_A, rho_B, idx = NULL,
                                         n_perm = 1000, n_boot = 500,
                                         alpha = 0.05, use_cpp = FALSE, is_global = FALSE,
                                         compute_pvalue = TRUE,
@@ -385,6 +449,27 @@ analyze_pathway_concordance <- function(rho_A, rho_B, idx = NULL,
 # WRAPPER FOR MULTIPLE PATHWAYS
 ################################################################################
 
+#' Bootstrap concordance analysis across multiple pathways (internal)
+#'
+#' @description
+#' Loops over a list of pathways, calls \code{analyze_pathway_concordance}
+#' for each, and collects results into a data.frame.  Supports optional
+#' parallelisation.
+#'
+#' @param dat1,dat2 MCMC output lists with \code{rho} matrices and gene
+#'   symbols set.
+#' @param pathway.list Named list of character vectors; pathway gene sets.
+#' @param n_perm Integer; permutations per pathway (default 1000).
+#' @param n_boot Integer; bootstrap replicates per pathway (default 500).
+#' @param alpha Numeric; significance level (default 0.05).
+#' @param use_cpp Logical; use Rcpp implementation (default \code{FALSE}).
+#' @param compute_pvalue,compute_ci Logical; whether to compute p-values
+#'   and CIs.
+#'
+#' @return Data.frame with one row per pathway and columns for observed
+#'   concordance, p-value, and CI bounds.
+#'
+#' @keywords internal
 bootstrap_conservation_pathway_within <- function(dat1, dat2, pathway.list,
                                                   n_perm = 1000, n_boot = 500,
                                                   alpha = 0.05, use_cpp = FALSE,
@@ -521,6 +606,29 @@ bootstrap_conservation_pathway_within <- function(dat1, dat2, pathway.list,
 # MULTI-DATASET COMPARISON
 ################################################################################
 
+#' Multi-dataset pairwise pathway concordance analysis
+#'
+#' @description
+#' Runs all pairwise pathway bootstrap concordance analyses across a list of
+#' MCMC outputs and compiles results into Excel output.  Wraps
+#' \code{bootstrap_conservation_pathway_within}.
+#'
+#' @param mcmc.merge.list Named list of MCMC output lists.
+#' @param dataset.names Character vector; condition labels.
+#' @param select.pathway.list Named list of pathway gene sets.
+#' @param n_perm Integer; permutations per pathway (default 1000).
+#' @param n_boot Integer; bootstrap replicates per pathway (default 500).
+#' @param alpha Numeric; significance level (default 0.05).
+#' @param min.p Integer; minimum number of pathway genes required to test
+#'   a pathway (default 5).
+#' @param qvalue_threshold Numeric or \code{NULL}; q-value significance
+#'   cutoff.
+#' @param output.dir Character; directory for Excel output.
+#'
+#' @return Named list of pairwise result data.frames.  Also writes an
+#'   Excel file to \code{output.dir}.
+#'
+#' @export
 multi_conservation <- function(mcmc.merge.list, dataset.names,
                                select.pathway.list,
                                n_perm = 1000, n_boot = 500,
@@ -731,6 +839,23 @@ multi_conservation <- function(mcmc.merge.list, dataset.names,
   return(final_df)
 }
 # Compute per-iteration Jaccard concordance with hypergeometric analytical p-value.
+#' Compute analytical p-value for Jaccard concordance via hypergeometric test
+#'
+#' @description
+#' For each MCMC iteration, treats the binary rho vectors as a 2x2
+#' contingency table and computes the exact one-sided hypergeometric
+#' p-value testing whether the observed overlap exceeds chance.  Returns
+#' a posterior distribution of Jaccard values and p-values.
+#'
+#' @param rho_A G x K binary matrix; posterior rho samples for condition A.
+#' @param rho_B G x K binary matrix; posterior rho samples for condition B.
+#'
+#' @return A list with elements \code{jaccard_obs_mean} (length-K
+#'   observed Jaccard per iteration), \code{pvalues} (length-K
+#'   hypergeometric p-values), \code{confusion} (K x 4 matrix of
+#'   contingency table proportions), and \code{mean_pvalue}.
+#'
+#' @export
 # For each MCMC iteration, treats the binary ρ vectors as a 2×2 contingency table
 # and computes the exact one-sided hypergeometric p-value (more overlap than chance).
 # Returns a posterior distribution of Jaccard values and confusion-matrix elements.
