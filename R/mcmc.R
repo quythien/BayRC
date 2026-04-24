@@ -89,7 +89,7 @@
 #' }
 CB_MCMC_single_rj_slice = function(Data.list, Init.value, P = 24,
                                 iteration = 3000, thin = 20, n.burn=1000,
-                                seed = 15213,
+                                seed = 15213, diagnostics = FALSE,
                                 # p_rhythmic: prior Pr(rho=1) per gene (length G).
                                 # Used in the RJMCMC log prior odds: log(p/(1-p)).
                                 # Uniform prior: rep(0.2, G) means 20% prior rhythmicity.
@@ -168,13 +168,14 @@ CB_MCMC_single_rj_slice = function(Data.list, Init.value, P = 24,
   M = Init.value$M;
   A = Init.value$A;
   phi = Init.value$phi;
-  sigma = Init.value$sigma; 
+  sigma = Init.value$sigma;
   AcosPhi = A*cos(omega*phi);
   AsinPhi = A*sin(omega*phi);
-  
+
+  set.seed(seed)
+
   for(iter in 1:n.burn){
-    
-    set.seed(seed+iter)
+
     print(paste0(A_prior, " Burn iter = ", iter))
     
     # update btw model --------------------------------------------------------
@@ -272,19 +273,21 @@ CB_MCMC_single_rj_slice = function(Data.list, Init.value, P = 24,
 
   # Start sampling ----------------------------------------------------------
   for(iter in 1:(iteration-n.burn)){
-    
+
     time0 = Sys.time()
-    # iter = iter+1
-    set.seed(seed+iter)
     print(paste0("iter = ", iter))
     
     # update btw model --------------------------------------------------------
     stay = stats::rbinom(1, 1, rj.p.stay)
     if(stay){
-      rho.store = cbind(rho.store, rho)
-      if.accept.rj = cbind(if.accept.rj, -1) 
-      log.r1.store = cbind(log.r1.store, -99)
-      log.r1.SS.store = cbind(log.r1.SS.store, -99) 
+      if (iter %% thin == 0) {
+        rho.store        = cbind(rho.store,        rho)
+        if.accept.rj     = cbind(if.accept.rj,     -1)
+        log.r1.store     = cbind(log.r1.store,     -99)
+        log.r1.SS.store  = cbind(log.r1.SS.store,  -99)
+        log.r3_A.store   = cbind(log.r3_A.store,   NA)
+        log.r3_phi.store = cbind(log.r3_phi.store, NA)
+      }
     }else{
       rho.res = try_save(RJMCMC_single_slice(Y, t.c, t.s, N,
                                              t.c.sum, t.s.sum,
@@ -299,43 +302,32 @@ CB_MCMC_single_rj_slice = function(Data.list, Init.value, P = 24,
                                              A_gm_shape, A_gm_rate,
                                              omega, G, P, save.file2),
                          save, save.file)
-      # rho.res=RJMCMC_single_slice(Y, t.c, t.s, N,
-      #                             t.c.sum, t.s.sum,
-      #                             c.t.phi, s.t.phi, cs.t.phi,
-      #                             y.t.c.sum, y.t.s.sum,
-      #                             AcosPhi, AsinPhi, A, phi,
-      #                             M, sigma, rep(p_rhythmic, G), rho,
-      #                             rj.phi, rj.A,
-      #                             A_prior,
-      #                             mu_A, sigma_A, A.min,
-      #                             A_wb_beta2,
-      #                             A_gm_shape, A_gm_rate,
-      #                             omega, G, P)
-      if.accept.rj = cbind(if.accept.rj, rho.res$rho!=rho) 
-      #if the new rho is not the same as the old rho, it is accepted
-      log.r1.store = cbind(log.r1.store, rho.res$log.r1)
-      log.r1.SS.store = cbind(log.r1.SS.store, rho.res$log.r1.SS) 
-      log.r3_A.store = cbind(log.r3_A.store, rho.res$log.r3_A)
-      log.r3_phi.store = cbind(log.r3_phi.store, rho.res$log.r3_phi)
+      accepted_rj = rho.res$rho != rho  # compute before overwriting rho
       rho = rho.res$rho
-      rho.store = cbind(rho.store, rho)
-    }    
+      if (iter %% thin == 0) {
+        if.accept.rj     = cbind(if.accept.rj,     accepted_rj)
+        log.r1.store     = cbind(log.r1.store,     rho.res$log.r1)
+        log.r1.SS.store  = cbind(log.r1.SS.store,  rho.res$log.r1.SS)
+        log.r3_A.store   = cbind(log.r3_A.store,   rho.res$log.r3_A)
+        log.r3_phi.store = cbind(log.r3_phi.store, rho.res$log.r3_phi)
+        rho.store        = cbind(rho.store,        rho)
+      }
+    }
     time1 = Sys.time()
     # samp.time$rho[iter]=time1-time0
-    
+
     # within model move -------------------------------------------------------
-    
-    #update M    
+
+    #update M
     M = try_save(update_M_single(Y, t.c, t.s, N,
                                  AcosPhi, AsinPhi, sigma, rho,
                                  sigma_M, mu_M, omega, G),
                  save, save.file)
-    M.store = cbind(M.store, M)
-    # print("Finished M")
+    if (iter %% thin == 0) M.store = cbind(M.store, M)
     time2 = Sys.time()
     # samp.time$M[iter]=time2-time1
-    
-    #udpate A
+
+    #update A
     csAphi = try_save(update_A_phi_slice(Y, X, XtX, beta_hat0,
                                          beta_cov0_11, beta_cov0_22, beta_cov0_rho,
                                          beta_mean0_1, beta_mean0_2,
@@ -345,35 +337,23 @@ CB_MCMC_single_rj_slice = function(Data.list, Init.value, P = 24,
                                          A_wb_beta2,
                                          A_gm_shape, A_gm_rate),
                       save, save.file)
-    # csAphi = update_A_phi_slice(Y, X, XtX, beta_hat0,
-    #                             beta_cov0_11, beta_cov0_22, beta_cov0_rho,
-    #                             beta_mean0_1, beta_mean0_2,
-    #                             M, sigma, omega,
-    #                             AcosPhi, AsinPhi, G, P, A_prior,
-    #                             mu_A, sigma_A,
-    #                             A_wb_beta2,
-    #                             A_gm_shape, A_gm_rate)
-    # stopifnot(sum(is.na(csAphi$AcosPhi))==0)
-    # stopifnot(sum(is.na(csAphi$AsinPhi))==0)
-    
     AcosPhi = csAphi$AcosPhi
     AsinPhi = csAphi$AsinPhi
     A = sqrt(AcosPhi^2+AsinPhi^2)
     phi = sapply(atan2(AsinPhi, AcosPhi), adjust.to.2pi)/omega
-    
-    AcosPhi.store = cbind(AcosPhi.store, AcosPhi); 
-    AsinPhi.store = cbind(AsinPhi.store, AsinPhi); 
-    A.store = cbind(A.store, A)
-    phi.store = cbind(phi.store, phi)
-    
+    if (iter %% thin == 0) {
+      AcosPhi.store = cbind(AcosPhi.store, AcosPhi)
+      AsinPhi.store = cbind(AsinPhi.store, AsinPhi)
+      A.store       = cbind(A.store,       A)
+      phi.store     = cbind(phi.store,     phi)
+    }
     time4 = Sys.time()
     # samp.time$phi[iter]=time4-time2
-    
+
     sigma = try_save(update_sigma_single(Y, t.c, t.s, N, AcosPhi, AsinPhi, M, rho,
                                          sigma_prior_v, sigma_prior_s, omega, G),
                      save, save.file)
-    sigma.store = cbind(sigma.store, sigma)
-    # print("Finished sigma")
+    if (iter %% thin == 0) sigma.store = cbind(sigma.store, sigma)
     time5 = Sys.time()
     # samp.time$sigma[iter]=time5-time4
     
@@ -397,6 +377,41 @@ CB_MCMC_single_rj_slice = function(Data.list, Init.value, P = 24,
       }
     }
   }
+  if (diagnostics) {
+    # Per-gene RJMCMC acceptance rate: proportion of proposed jumps accepted.
+    # if.accept.rj == -1 means stay was drawn (no jump proposed).
+    proposed <- save$if.accept.rj != -1
+    n_proposed <- rowSums(proposed)
+    n_accepted <- rowSums(save$if.accept.rj == 1, na.rm = TRUE)
+    accept_rate <- ifelse(n_proposed > 0, n_accepted / n_proposed, NA_real_)
+
+    # Per-gene ESS for rho using lag-1 autocorrelation (no external dependencies).
+    ess_rho <- apply(save$rho, 1, function(x) {
+      K <- length(x)
+      if (K < 4 || var(x) < 1e-10) return(NA_real_)
+      r1 <- tryCatch(cor(x[-K], x[-1]), error = function(e) NA_real_)
+      if (is.na(r1) || abs(r1) >= 1) return(as.numeric(K))
+      K * (1 - r1) / (1 + r1)
+    })
+
+    save$diagnostics <- list(
+      acceptance_rate      = accept_rate,
+      ess_rho              = ess_rho,
+      mean_acceptance_rate = mean(accept_rate, na.rm = TRUE),
+      mean_ess_rho         = mean(ess_rho, na.rm = TRUE),
+      n_samples            = ncol(save$rho),
+      p_rhythmic_posterior = rowMeans(save$rho)
+    )
+
+    cat("\n=== MCMC Diagnostics ===\n")
+    cat("Samples stored:        ", save$diagnostics$n_samples, "\n")
+    cat("Mean acceptance rate:  ", round(save$diagnostics$mean_acceptance_rate, 3), "\n")
+    cat("Mean ESS (rho):        ", round(save$diagnostics$mean_ess_rho, 1), "\n")
+    if (!is.na(save$diagnostics$mean_ess_rho) && save$diagnostics$mean_ess_rho < 100)
+      warning("Low mean ESS for rho (", round(save$diagnostics$mean_ess_rho, 1),
+              " < 100). Consider increasing `iteration` or decreasing `thin`.")
+  }
+
   return(save)
 }
 
@@ -1342,7 +1357,7 @@ RJMCMC_single_slice = function(Y, t.c, t.s, N,
     #   print(g)
     #   get_log_phi_post_full_single(Y[g, ], t.c, t.s, t.c.sum, t.s.sum, c.t, s.t, cs.t, y.t.c.sum.num[g], y.t.s.sum.num[g], sigma[g], A[g], M[g], phi[g], omega, P)
     # }
-    log.phi.prior = 1/P #the prior of phi is U(0, 1), so log(1)=0
+    log.phi.prior = log(1/P) # phi ~ U(0, P), log-density = -log(P)
   }else{
     log.phi.prior = 1; log.phi.post = 1
   }
@@ -1562,12 +1577,10 @@ update_theta_kappa = function(rho.mat, phi.mat, theta.vec, kappa.vec, VM_w.vec,
 #'
 #' @keywords internal
 try_save = function(expr, out, save.file){
-  a.res = try(expr)
-  if("try-error" %in% class(a.res)){
+  tryCatch(expr, error = function(e) {
     saveRDS(out, save.file)
-  }else{
-    return(a.res)
-  }
+    stop(e)
+  })
 }
 #' Sample from a truncated gamma distribution
 #'

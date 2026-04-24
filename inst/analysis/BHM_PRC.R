@@ -45,8 +45,8 @@ if (file.exists(file.path(thien_dir, "congruence.cpp"))) {
 }
 if (file.exists(file.path(thien_dir, "permutation_functions.cpp"))) {
   Rcpp::sourceCpp(file.path(thien_dir, "permutation_functions.cpp"))
-source(file.path(thien_dir, "plots/heatmap.R"))
 }
+source(file.path(thien_dir, "plots/heatmap.R"))
 
 
 load(file.path(current_wd, "Kyle/Circadian-analysis-main/R/pathway_data/hw_orth.RData"))
@@ -718,7 +718,7 @@ for (pathway in pathways_to_plot) {
   tryCatch({
     
     # Close any open graphics devices
-    whPRC (dev.cur() > 1) dev.off()
+    while (dev.cur() > 1) dev.off()
     
     plot_pathway_integrated(
       data1 = human_PRC,
@@ -995,7 +995,7 @@ result <- compute_adjusted_jaccard_analytical_pvalue(
 jaccard_dist <- result$jaccard_obs_mean
 jaccard_mean <- mean(jaccard_dist, na.rm = TRUE)
 jaccard_sd <- sd(jaccard_dist, na.rm = TRUE)
-jaccard_ci <- quantPRC(jaccard_dist, probs = c(0.025, 0.975), na.rm = TRUE)
+jaccard_ci <- quantile(jaccard_dist, probs = c(0.025, 0.975), na.rm = TRUE)
 
 cat("\nPosterior Distribution of Jaccard Index:\n")
 cat(sprintf("  Mean: %.4f\n", jaccard_mean))
@@ -1015,8 +1015,8 @@ gain_loss_ratio <- result$confusion[, "c_gain"] / result$confusion[, "b_loss"]
 cat("\nGain/Loss Ratio:\n")
 cat(sprintf("  Mean: %.4f\n", mean(gain_loss_ratio, na.rm = TRUE)))
 cat(sprintf("  95%% CI: [%.4f, %.4f]\n", 
-            quantPRC(gain_loss_ratio, 0.025, na.rm = TRUE),
-            quantPRC(gain_loss_ratio, 0.975, na.rm = TRUE)))
+            quantile(gain_loss_ratio, 0.025, na.rm = TRUE),
+            quantile(gain_loss_ratio, 0.975, na.rm = TRUE)))
 
 
 #####

@@ -1329,7 +1329,8 @@ avgSP = function(G.module, sp.mat){
 #' res2 <- match_symbols(res, BF = 3, p_rhythmic = 0.2)
 #' }
 match_symbols <- function(input_df, BF, p_rhythmic = 0.5, ensemble = NULL) {
-  library(biomaRt)
+  if (!requireNamespace("biomaRt", quietly = TRUE))
+    stop("Package 'biomaRt' is required. Install with: BiocManager::install('biomaRt')")
   
   # Extract the rho matrix from the input dataframe.
   summary_data <- input_df$rho
@@ -1889,6 +1890,11 @@ phase_difference <- function(phi1, phi2, units = "hours") {
 #'
 #' @export
 congruence <- function(matrix1, matrix2, delta = 3, units = "hours") {
+  if (!missing(delta) && delta != 3)
+    warning("`delta` is not used by the probabilistic c-score (paper Eq. 3); it is reserved for a future phase-threshold variant.")
+  if (!missing(units) && units != "hours")
+    warning("`units` is not used by the probabilistic c-score; it is reserved for a future phase-threshold variant.")
+
   # Convert MCMC matrices to posterior probabilities
   p_A <- rowMeans(matrix1$rho)  # Condition 1 (e.g., younger)
   p_B <- rowMeans(matrix2$rho)  # Condition 2 (e.g., older)
@@ -1918,12 +1924,13 @@ congruence <- function(matrix1, matrix2, delta = 3, units = "hours") {
   loss_index <- expected_loss * union_inv
   gain_index <- expected_gain * union_inv
   
-  # Gain/Loss ratio
+  # Gain/Loss ratio — paper Eq. 4: GLR = Gain / Loss.
+  # Inf when Loss=0 and Gain>0 is the mathematically correct value.
   gain_loss_ratio <- if (loss_index == 0) {
     if (gain_index == 0) {
-      NA_real_  # Both zero - undefined
+      NA_real_  # Both zero — ratio undefined
     } else {
-      1e10      # Gain only, no loss
+      Inf       # Loss=0, Gain>0 — paper Eq. 4 gives +Inf
     }
   } else {
     gain_index / loss_index
@@ -2043,14 +2050,18 @@ try_any_mirror <- function(biomart = "ENSEMBL_MART_ENSEMBL", dataset = "hsapiens
 #'   \code{Rhythmicity} (0/1), and \code{BayesF}.
 #'
 #' @export
-summarize_bay <- function(input_df, BF, p_rhythmic = 0.5) {
-  # Calculate the counts of 0 in each row
-  row_counts <- rowSums(input_df == 0)
-  
-  # Calculate the row average
+summarize_bay <- function(input_df, BF, p_rhythmic = 0.2) {
+  # Default 0.2 matches CB_MCMC_single_rj_slice default (paper §2.1).
+  # BF = posterior_odds / prior_odds; using a different p_rhythmic here than
+  # was passed to the MCMC will produce miscalibrated Bayes Factors.
+  if (!isTRUE(all.equal(p_rhythmic, 0.2)))
+    message("summarize_bay: p_rhythmic = ", p_rhythmic,
+            ". Ensure this matches the value used in CB_MCMC_single_rj_slice ",
+            "(default 0.2) or BF values will be miscalibrated.")
+
+  row_counts  <- rowSums(input_df == 0)
   row_average <- rowMeans(input_df)
-  
-  # Calculate the prior odds
+
   prior_odds <- p_rhythmic / (1 - p_rhythmic + 1e-20)
   
   # Calculate the posterior odds
@@ -2323,12 +2334,6 @@ plotGenePosteriorPhase <- function(gene_aliases,
                                    species_names = c("Species1", "Species2"),
                                    tissue_names = c("Tissue1", "Tissue2"),
                                    output_dir) {
-  # Load required libraries
-  library(ggplot2)
-  library(tibble)
-  library(dplyr)
-  library(RColorBrewer)
-  
   # Helper: match gene row index (case-insensitive)
   match_gene <- function(mat, gene) {
     idx <- which(tolower(rownames(mat)) == tolower(gene))
@@ -2436,11 +2441,6 @@ plotGenePosteriorPhase <- function(gene_aliases,
 #'
 #' @export
 plotCoreClockMedians <- function(phi_mat, gene_aliases, tissue_label, output_path, P = 24) {
-  library(ggplot2)
-  library(tibble)
-  library(dplyr)
-  library(circular)
-  
   # Step 1: Compute median phase for core clock genes
   get_median_phase <- function(phi_mat, gene) {
     i <- which(tolower(rownames(phi_mat)) == tolower(gene))
@@ -2508,11 +2508,6 @@ plotCoreClockMedians <- function(phi_mat, gene_aliases, tissue_label, output_pat
 #' @export
 plotHDIClockPolar <- function(phi_mat, gene_aliases, tissue_label, output_path,
                               credMass = 0.95, P = 24) {
-  library(ggplot2)
-  library(tibble)
-  library(dplyr)
-  library(purrr)
-  
   # Build HDI data frame using your own circular_HDI
   hdi_df <- purrr::map_dfr(gene_aliases, function(g) {
     i <- which(tolower(rownames(phi_mat)) == tolower(g))
@@ -2756,11 +2751,17 @@ transition_classify <- function(pA, pB, bfdr_alpha = 0.05) {
   p_loss <- pA * (1 - pB)   # lost rhythmicity
   p_cons <- pA * pB         # maintained rhythmicity
   
-  # 2. Apply BFDR to each transition type
+  # 2. Condition-specific BFDR thresholds (paper §2.2, τ_A and τ_B)
+  bfdr_A <- bfdr_from_posterior(pA, alpha = bfdr_alpha)
+  bfdr_B <- bfdr_from_posterior(pB, alpha = bfdr_alpha)
+  tau_rhythmic_A <- bfdr_A$threshold
+  tau_rhythmic_B <- bfdr_B$threshold
+
+  # 3. Apply BFDR to each transition type (paper §2.2, τ_gain, τ_loss, τ_cons)
   bfdr_gain <- bfdr_from_posterior(p_gain, alpha = bfdr_alpha)
   bfdr_loss <- bfdr_from_posterior(p_loss, alpha = bfdr_alpha)
   bfdr_cons <- bfdr_from_posterior(p_cons, alpha = bfdr_alpha)
-  
+
   tau_gain <- bfdr_gain$threshold
   tau_loss <- bfdr_loss$threshold
   tau_cons <- bfdr_cons$threshold
@@ -2802,9 +2803,17 @@ transition_classify <- function(pA, pB, bfdr_alpha = 0.05) {
   
   
   list(
+    # Condition-specific thresholds (paper §2.2 τ_A, τ_B)
+    tau_rhythmic_A = tau_rhythmic_A,
+    tau_rhythmic_B = tau_rhythmic_B,
+    # Transition thresholds (paper §2.2 τ_gain, τ_loss, τ_cons)
     tau_gain = tau_gain,
     tau_loss = tau_loss,
     tau_cons = tau_cons,
+    # Transition posterior vectors (paper §2.2 p_gain, p_loss, p_cons)
+    p_gain = p_gain,
+    p_loss = p_loss,
+    p_cons = p_cons,
     gain_genes = gain_genes,
     loss_genes = loss_genes,
     cons_genes = cons_genes,
@@ -3082,10 +3091,9 @@ transition_classify_marginal <- function(pA, pB, bfdr_alpha = 0.05) {
 #'
 #' @export
 phase_infer <- function(phi_matrix1, phi_matrix2, gain_loss_status,
-                        P = 24, credMass = 0.95, shift = 4,
+                        P = 24, credMass = 0.95, shift = 2,
                         a = -P/2, bfdr_alpha = 0.05,
-                        compute_hdi = FALSE) {  # NEW parameter
-  require(circular)
+                        compute_hdi = FALSE) {
   n_genes <- nrow(phi_matrix1)
   gene_names <- rownames(phi_matrix1)
   

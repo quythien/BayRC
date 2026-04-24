@@ -635,6 +635,7 @@ multi_conservation <- function(mcmc.merge.list, dataset.names,
                                alpha = 0.05, min.p = 5,
                                qvalue_threshold = NULL,
                                output.dir = "Conservation_Pathway_Bootstrap",
+                               save_output = TRUE,
                                use_cpp = FALSE,
                                compute_pvalue = TRUE,
                                compute_ci = TRUE) {
@@ -769,11 +770,12 @@ multi_conservation <- function(mcmc.merge.list, dataset.names,
   
   final_df <- as.data.frame(final_df_list)
   
-  # Save to Excel
+  # Save to Excel — gated by save_output so CI/test environments can suppress the write
+  if (save_output) {
   if (!dir.exists(output.dir)) {
     dir.create(output.dir, recursive = TRUE)
   }
-  
+
   wb <- openxlsx::createWorkbook()
   
   # Add results sheet
@@ -820,9 +822,9 @@ multi_conservation <- function(mcmc.merge.list, dataset.names,
   
   excel_filename <- file.path(output.dir, "Conservation_Results.xlsx")
   openxlsx::saveWorkbook(wb, excel_filename, overwrite = TRUE)
-  
   cat("\nResults saved to:", excel_filename, "\n")
-  
+  } # end save_output block
+
   # Filter results if threshold provided
   if (!is.null(qvalue_threshold) && !is_global && compute_pvalue) {
     qvalue_cols <- grep("_QValue$", colnames(final_df))
@@ -898,5 +900,59 @@ compute_adjusted_jaccard_analytical_pvalue <- function(rho_A, rho_B) {
     pvalue_per_iter  = pvalues,
     mean_jaccard     = mean(jaccard_obs_mean, na.rm = TRUE),
     mean_pvalue      = mean(pvalues,          na.rm = TRUE)
+  )
+}
+
+#' Pathway-level bootstrap concordance (compatibility wrapper)
+#'
+#' @description
+#' Thin wrapper around \code{\link{multi_conservation}} retained for
+#' backward compatibility with analysis scripts that call
+#' \code{multi_conservation_pathway_bootstrap}.  All computation is
+#' delegated to \code{multi_conservation}; the \code{delta} and
+#' \code{units} arguments are accepted but unused (the c-score is
+#' threshold-free by design; see paper Eq. 3).
+#'
+#' Note: output Excel sheets are named \code{"Results"} and
+#' \code{"Column_Definitions"}, not \code{"congruence_index"} as in
+#' the legacy Thien/ version.  Update downstream read.xlsx calls
+#' accordingly.
+#'
+#' @param mcmc.merge.list Named list of MCMC outputs.
+#' @param dataset.names Character vector of dataset labels.
+#' @param select.pathway.list Named list of pathway gene sets.
+#' @param delta Numeric; ignored (reserved for future phase-threshold
+#'   concordance variant).
+#' @param units Character; ignored.
+#' @param n_boot Integer; bootstrap replicates (default 500).
+#' @param n_perm Integer; permutation replicates (default 1000).
+#' @param output.dir Character; directory for Excel output.
+#' @param ... Additional arguments passed to \code{multi_conservation}.
+#'
+#' @return Same value as \code{multi_conservation}.
+#'
+#' @export
+multi_conservation_pathway_bootstrap <- function(mcmc.merge.list,
+                                                  dataset.names,
+                                                  select.pathway.list,
+                                                  delta = 3,
+                                                  units = "hours",
+                                                  n_boot = 500,
+                                                  n_perm = 1000,
+                                                  output.dir = "Conservation_Pathway_Bootstrap",
+                                                  ...) {
+  if (!missing(delta) && delta != 3)
+    warning("`delta` is not used by the probabilistic c-score (paper Eq. 3).")
+  if (!missing(units) && units != "hours")
+    warning("`units` is not used by the probabilistic c-score.")
+
+  multi_conservation(
+    mcmc.merge.list    = mcmc.merge.list,
+    dataset.names      = dataset.names,
+    select.pathway.list = select.pathway.list,
+    n_boot             = n_boot,
+    n_perm             = n_perm,
+    output.dir         = output.dir,
+    ...
   )
 }

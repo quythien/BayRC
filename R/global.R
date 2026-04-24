@@ -154,9 +154,7 @@ run_single_round_global <- function(dat1, dat2, G, metrics, delta, units, B_roun
   if (parallel && .Platform$OS.type != "windows") {
     
     # PARALLEL VERSION (Mac/Linux)
-    library(parallel)
-    
-    perm_results <- mclapply(1:B_round, function(b) {
+    perm_results <- parallel::mclapply(1:B_round, function(b) {
       perm_indices <- sample(1:G, G, replace = FALSE)
       
       # Only rho needed for congruence calculation

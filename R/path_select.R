@@ -274,7 +274,7 @@ pathSelect <- function(mcmc.merge.list,
       if (expected_gain == 0) {
         NA_real_
       } else {
-        1e10  # Gain only, no loss
+        Inf   # Loss=0, Gain>0 — paper Eq. 4 gives +Inf
       }
     } else {
       expected_gain / expected_loss

@@ -28,14 +28,13 @@ NumericVector compute_null_congruence_cpp(
   
   // Perform permutation loop
   for (int perm = 0; perm < n_perm; perm++) {
-    
-    // Shuffle rhythmic_B_shuffled using Fisher-Yates algorithm
-    for (int i = n_genes_total - 1; i > 0; i--) {
-      int j = rand() % (i + 1);  // Random index from 0 to i
-      // Swap elements
-      bool temp = rhythmic_B_shuffled[i];
-      rhythmic_B_shuffled[i] = rhythmic_B_shuffled[j];
-      rhythmic_B_shuffled[j] = temp;
+
+    // Shuffle using R's RNG so set.seed(seed) controls reproducibility.
+    // Replaces the original rand()-based Fisher-Yates which had modulo bias
+    // and was seeded independently of R's RNG state.
+    IntegerVector shuffle_order = Rcpp::sample(n_genes_total, n_genes_total, false) - 1;
+    for (int i = 0; i < n_genes_total; i++) {
+      rhythmic_B_shuffled[i] = rhythmic_B[shuffle_order[i]];
     }
     
     // Calculate congruence for this permutation

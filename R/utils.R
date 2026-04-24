@@ -18,13 +18,5 @@
 #' adjust.to.2pi(-pi/2)  # returns 3*pi/2
 #' adjust.to.2pi(5*pi)   # returns pi
 adjust.to.2pi = function(x){
-  d = x/(2*pi)
-  d.abs = floor(abs(d))
-  if(d>=0&d<1){
-    return(x)
-  }else if(d<0){
-    return(x+(d.abs+1)*2*pi)
-  }else if(d>1){
-    return(x-(d.abs)*2*pi)
-  }
+  ((x %% (2*pi)) + 2*pi) %% (2*pi)
 }
