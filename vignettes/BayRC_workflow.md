@@ -278,6 +278,7 @@ library(BayRC)
 # After running MCMC: annotate both conditions.
 # BF = 3 is the Bayes Factor threshold for the binary rhythmicity call stored
 # in attr(mcmc$rho, "RHYindex"). This does NOT filter genes — all G genes are kept.
+# p_rhythmic = 0.2 must match the prior used in CB_MCMC_single_rj_slice (default 0.2).
 mcmc_PUT <- match_symbols(mcmc_PUT, BF = 3)
 mcmc_SUN <- match_symbols(mcmc_SUN, BF = 3)
 
@@ -411,8 +412,10 @@ from the posterior samples of ρ and provides binary rhythmicity calls.
 ```r
 # BF = (posterior odds of rhythmicity) / (prior odds of rhythmicity)
 # p_rhythmic = 0.5 is a neutral prior: equal weight to rhythmic and flat models
-bf_PUT <- summarize_bay(mcmc_PUT$rho, BF = 3, p_rhythmic = 0.5)
-bf_SUN <- summarize_bay(mcmc_SUN$rho, BF = 3, p_rhythmic = 0.5)
+# p_rhythmic must match the prior used in CB_MCMC_single_rj_slice (default 0.2).
+# Using a different value here will produce miscalibrated Bayes Factors.
+bf_PUT <- summarize_bay(mcmc_PUT$rho, BF = 3, p_rhythmic = 0.2)
+bf_SUN <- summarize_bay(mcmc_SUN$rho, BF = 3, p_rhythmic = 0.2)
 
 # Output fields:
 # bf_PUT$BayesF      — per-gene Bayes Factor (numeric vector)
@@ -600,7 +603,7 @@ phase <- phase_infer(
   phi_matrix1      = mcmc_PUT$phi,            # G × K phase matrix, condition A
   phi_matrix2      = mcmc_SUN$phi,            # G × K phase matrix, condition B
   gain_loss_status = trans$gain_loss_status,  # from transition_classify()
-  shift            = 2,                       # δ = 2 hours
+  shift            = 2,                       # δ = 2 hours (paper primary threshold)
   P                = 24,
   bfdr_alpha       = 0.25,
   compute_hdi      = TRUE
