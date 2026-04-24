@@ -1,0 +1,364 @@
+---
+title: "BayRC Workflow: Comparative Circadian Genomics"
+author: "Thien Quy Pham"
+date: "`r Sys.Date()`"
+output:
+  rmarkdown::html_vignette:
+    toc: true
+    toc_depth: 3
+    number_sections: true
+vignette: >
+  %\VignetteIndexEntry{BayRC Workflow: Comparative Circadian Genomics}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment  = "#>",
+  eval     = FALSE   # all chunks set to eval=FALSE; run interactively with your data
+)
+```
+
+> **Audience:** Biologists with RNA-seq experience; no Bayesian statistics
+> background required. For the full mathematical derivations see
+> Pham *et al.* (2025) and the package supplementary materials (`supplementary.tex`).
+
+BayRC answers one question that standard differential expression tools cannot:
+**how has the circadian transcriptome been remodeled between two biological
+conditions?** Which genes switched from oscillating to flat? Which gained
+rhythmicity? For genes that kept oscillating, do they still peak at the same
+hour? BayRC propagates posterior uncertainty from the gene level through pathway
+enrichment and genome-wide concordance scoring, so that confidence in a single
+gene's rhythmicity directly feeds into all downstream analyses.
+
+# Data Requirements and Setup
+
+## Input format
+
+BayRC needs two objects per condition:
+
+- **Expression matrix** (`Y`): G genes × N samples, log-normalized (log-CPM,
+  VST, or similar). Row names must be gene symbols.
+- **Zeitgeber time vector** (`t`): length N, hours, matching column order of Y.
+
+```{r}
+dim(expr_PUT)    # [G, N], e.g., [15000, 48]
+length(time_PUT) # must equal ncol(expr_PUT)
+head(time_PUT)   # e.g., 0 2 4 6 8 10 ...
+```
+
+## Installation
+
+```{r}
+devtools::install("/path/to/BayRC")
+
+# Bioconductor dependencies
+if (!requireNamespace("BiocManager", quietly = TRUE))
+  install.packages("BiocManager")
+BiocManager::install("fgsea")
+```
+
+# Step 1: MCMC Inference
+
+For each gene, BayRC fits:
+$$Y_g(t) = M_g + A_g \cos\!\left(\tfrac{2\pi}{24}(t - \phi_g)\right) + \varepsilon_g$$
+
+where $M_g$ is the MESOR (midline), $A_g$ the amplitude, $\phi_g$ the acrophase
+(peak time), and $\rho_g \in \{0,1\}$ a rhythmicity indicator. Reversible Jump
+MCMC explores both the flat ($\rho_g = 0$) and rhythmic ($\rho_g = 1$) models
+in a single chain, using slice sampling for efficient amplitude-phase updates.
+
+## Running the sampler
+
+```{r}
+library(BayRC)
+
+# --- Condition A: Putamen ---
+data_list_PUT <- list(
+  data  = as.data.frame(expr_PUT),
+  time  = time_PUT,
+  gname = rownames(expr_PUT)
+)
+init_PUT  <- CB_init_single(Data.list = data_list_PUT, P = 24)
+mcmc_PUT  <- CB_MCMC_single_rj_slice(
+  Data.list  = data_list_PUT,
+  Init.value = init_PUT,
+  P          = 24,
+  iteration  = 3000,  # post-thinning stored iterations
+  n.burn     = 1000,  # warm-up discarded
+  thin       = 20,    # keep 1 of every 20 raw steps
+  p_rhythmic = rep(0.2, nrow(data_list_PUT$data))  # prior P(rhythmic)
+)
+
+# --- Condition B: Substantia Nigra ---
+data_list_SUN <- list(
+  data  = as.data.frame(expr_SUN),
+  time  = time_SUN,
+  gname = rownames(expr_SUN)
+)
+init_SUN  <- CB_init_single(Data.list = data_list_SUN, P = 24)
+mcmc_SUN  <- CB_MCMC_single_rj_slice(
+  Data.list  = data_list_SUN,
+  Init.value = init_SUN,
+  P = 24, iteration = 3000, n.burn = 1000, p_rhythmic = rep(0.2, nrow(data_list_SUN$data))
+)
+
+# Save immediately — MCMC is the most expensive step
+saveRDS(mcmc_PUT, "mcmc_PUT.rds")
+saveRDS(mcmc_SUN, "mcmc_SUN.rds")
+```
+
+> **Output:** Each `mcmc_*` object contains G × K matrices: `$rho` (rhythmicity
+> indicator), `$phi` (acrophase), `$A` (amplitude), `$M` (MESOR). K = stored
+> iterations after thinning.
+
+## Optional: convergence diagnostics
+
+```{r}
+mcmc_PUT <- CB_MCMC_single_rj_slice(
+  Data.list = data_list_PUT, Init.value = init_PUT,
+  P = 24, iteration = 3000, n.burn = 1000,
+  p_rhythmic = rep(0.2, nrow(data_list_PUT$data)),
+  diagnostics = TRUE   # prints ESS, acceptance rate; appends $diagnostics to output
+)
+# Console output:
+# === MCMC Diagnostics ===
+# Samples stored:          3000
+# Mean acceptance rate:    0.135
+# Mean ESS (rho):          842
+```
+
+> **Interpretation:** Acceptance rates of 10–20% indicate healthy RJMCMC mixing.
+> Mean ESS > 200 is satisfactory for BFDR-controlled downstream analysis.
+
+# Step 2: Annotate and Extract Summaries
+
+## Mandatory annotation with `match_symbols()`
+
+```{r}
+# Attaches gene symbols and RHYindex (BF > 3 binary call) to the MCMC object.
+# p_rhythmic must match the value used in CB_MCMC_single_rj_slice (default 0.2).
+mcmc_PUT <- match_symbols(mcmc_PUT, BF = 3)
+mcmc_SUN <- match_symbols(mcmc_SUN, BF = 3)
+```
+
+## Posterior rhythmicity probability
+
+```{r}
+pA <- rowMeans(mcmc_PUT$rho)   # P(rhythmic | data), condition A
+pB <- rowMeans(mcmc_SUN$rho)   # condition B
+
+hist(pA, breaks = 50, main = "P(rhythmic | data) — Putamen",
+     xlab = "Posterior probability", col = "steelblue")
+```
+
+> **Interpretation:** `pA = 0.92` means 92% of MCMC samples supported the
+> rhythmic model for that gene — a direct probability statement, not a p-value.
+
+## Bayes Factor
+
+```{r}
+# p_rhythmic must match the MCMC prior (0.2) or BF values will be miscalibrated.
+bf_PUT <- summarize_bay(mcmc_PUT$rho, BF = 3, p_rhythmic = 0.2)
+bf_SUN <- summarize_bay(mcmc_SUN$rho, BF = 3, p_rhythmic = 0.2)
+
+cat("PUT rhythmic genes (BF > 3):", sum(bf_PUT$Rhythmicity), "\n")
+```
+
+| BF | Evidence for rhythmicity |
+|---|---|
+| 1–3 | Weak |
+| 3–10 | Moderate |
+| 10–100 | Strong |
+| > 100 | Decisive |
+
+## Amplitude, phase, and credible intervals
+
+```{r}
+# CB_getAllEst extracts posterior medians and 95% circular HDIs for phi, A, M
+est_PUT <- CB_getAllEst(mcmc_PUT, burn = 100)
+
+# est_PUT[[1]] — phase: phi.Est, phi.Lower, phi.Upper
+# est_PUT[[2]] — amplitude: A.Est, A.Lower, A.Upper
+# est_PUT[[3]] — MESOR: M.Est, M.Lower, M.Upper
+head(est_PUT[[1]][order(bf_PUT$BayesF, decreasing = TRUE), ])
+```
+
+> **Interpretation:** The phase credible interval (cHDI) is the shortest arc on
+> the 24-hour circle containing 95% of posterior samples — correctly handling the
+> ZT 0/24 wrap-around. A narrow interval means tightly constrained peak timing.
+
+# Step 3: Transition Classification
+
+```{r}
+trans <- transition_classify(pA, pB, bfdr_alpha = 0.25)
+
+# Prints thresholds and counts:
+# τ_gain = 0.142 | n_gain = 312
+# τ_loss = 0.118 | n_loss = 523
+# τ_cons = 0.198 | n_cons = 677
+
+table(trans$gain_loss_status)
+# Non-rhythmic   Gain   Loss   Maintained
+#        11934    312    523          677
+```
+
+Joint transition posteriors used:
+- **P(gain)** = (1 − pA) × pB
+- **P(loss)** = pA × (1 − pB)
+- **P(maintained)** = pA × pB
+
+> **Interpretation:** `gain_loss_status` is the central annotation vector. Every
+> downstream step uses these labels. A Gain gene was flat in condition A and
+> oscillates in condition B — the clock acquired a new transcriptional target. A
+> Loss gene lost circadian regulation — a common signature of aging, disease, or
+> metabolic stress. A Maintained gene oscillates in both: the substrate for phase
+> analysis.
+
+# Step 4: Phase Concordance
+
+```{r}
+phase <- phase_infer(
+  phi_matrix1      = mcmc_PUT$phi,
+  phi_matrix2      = mcmc_SUN$phi,
+  gain_loss_status = trans$gain_loss_status,
+  shift            = 2,          # δ = 2 h tolerance (paper primary threshold)
+  P                = 24,
+  bfdr_alpha       = 0.25,
+  compute_hdi      = TRUE        # compute 95% circular HDI of Δφ
+)
+
+cat("Phase-conserved:", sum(phase$flag_cons,  na.rm = TRUE), "\n")
+cat("Phase-shifted:  ", sum(phase$flag_shift, na.rm = TRUE), "\n")
+```
+
+> **Interpretation:**
+>
+> - `flag_cons = TRUE`: the gene oscillates in both conditions and peaks within
+>   ±2 h of the same time. The circadian phase is biologically conserved.
+> - `flag_shift = TRUE`: the gene oscillates in both but has shifted its peak
+>   timing. Oscillation is maintained but the clock has been reset for this gene.
+> - `deltaPhi.Est`: the posterior median of Δφ = φ_A − φ_B in hours. Positive
+>   values mean condition A peaks earlier; negative values mean later.
+> - A circular HDI [3.1, 7.4] that does not contain zero provides clear evidence
+>   of a 3–7 hour advance in condition A relative to condition B.
+
+# Step 5A: Two-Stage Pathway Enrichment
+
+## Stage 1 — circadian-active pathways
+
+```{r}
+kegg <- readRDS("kegg_pathway_list_hsa.rds")
+
+result_union <- pathSelect(
+  mcmc.merge.list = list(A = mcmc_PUT, B = mcmc_SUN),
+  pathway.list    = kegg,
+  dataset.names   = c("PUT", "SUN"),
+  ranking.method  = "union",   # score = −2 log[(1−pA)(1−pB)]
+  score_type      = "pos",
+  qvalue.cut      = 0.20,
+  nperm           = 1000,
+  seed            = 42
+)
+
+active_names        <- result_union$results$pathway[result_union$results$padj < 0.20]
+active_pathway_list <- kegg[active_names]
+cat(length(active_names), "pathways active in Stage 1\n")
+```
+
+## Stage 2 — transition enrichment within active pathways
+
+```{r}
+result_gain <- pathSelect(mcmc.merge.list = list(A = mcmc_PUT, B = mcmc_SUN),
+  pathway.list = active_pathway_list, dataset.names = c("PUT", "SUN"),
+  ranking.method = "gain", score_type = "pos", qvalue.cut = 0.20, nperm = 1000)
+
+result_loss <- pathSelect(mcmc.merge.list = list(A = mcmc_PUT, B = mcmc_SUN),
+  pathway.list = active_pathway_list, dataset.names = c("PUT", "SUN"),
+  ranking.method = "loss", score_type = "pos", qvalue.cut = 0.20, nperm = 1000)
+
+result_cons <- pathSelect(mcmc.merge.list = list(A = mcmc_PUT, B = mcmc_SUN),
+  pathway.list = active_pathway_list, dataset.names = c("PUT", "SUN"),
+  ranking.method = "conserved", score_type = "pos", qvalue.cut = 0.20, nperm = 1000)
+
+nrow(result_gain$results[result_gain$results$padj < 0.20, ])
+```
+
+> **Gain-Loss Ratio (GLR):** `Gain_Loss_Ratio_Arithmetic` in the results table.
+> GLR > 1 = pathway gained more rhythmicity than it lost in condition B.
+> GLR < 1 = more loss than gain — pathway uncoupled from the clock.
+
+# Step 5B: Genome-Wide Concordance (c-score)
+
+```{r}
+global <- multi_conservation(
+  mcmc.merge.list     = list(A = mcmc_PUT, B = mcmc_SUN),
+  dataset.names       = c("PUT", "SUN"),
+  select.pathway.list = "global",
+  n_perm              = 1000,
+  n_boot              = 500,
+  output.dir          = "results/concordance",
+  use_cpp             = TRUE,
+  save_output         = TRUE   # set FALSE to suppress Excel write in non-interactive use
+)
+
+cat("Adjusted c-score:", round(global$Adjusted["Global", "PUT&SUN"], 3), "\n")
+cat("p-value:         ", round(global$PValue["Global", "PUT&SUN"],   4), "\n")
+cat("Genome-wide GLR: ", round(global$Gain_loss_ratio["Global", "PUT&SUN"], 3), "\n")
+```
+
+> **Interpretation:**
+>
+> - **c-score > 0.3, p < 0.01:** strong transcriptome-wide circadian conservation.
+> - **c-score ≈ 0.1–0.2, p < 0.05:** modest but significant conservation.
+> - **c-score ≈ 0, p > 0.1:** two largely independent circadian programs.
+>
+> The genome-wide GLR summarizes the net direction: is the circadian system gaining
+> or losing rhythmic output from condition A to condition B across the whole
+> transcriptome?
+
+# Biological Interpretation Checklist
+
+After completing the analysis, work through these questions:
+
+- [ ] **Rhythmicity landscape:** What fraction of genes is rhythmic in each
+  condition (`pA > 0.5`, `pB > 0.5`)? A large difference suggests broad circadian
+  dampening or activation.
+
+- [ ] **Dominant transition:** Compare `n_gain` vs. `n_loss`. Loss-dominant =
+  circadian uncoupling (common in aging, neurodegeneration). Gain-dominant =
+  circadian recruitment of new gene targets.
+
+- [ ] **Phase shifts:** Are shifts in `phase$deltaPhi.Est` systematic (all similar
+  magnitude/direction, implying a global clock advance or delay) or gene-specific
+  (implying altered transcription factor binding)?
+
+- [ ] **Pathway biology:** Which pathways are enriched for gain vs. loss? Check
+  `Top_Gain_Genes` and `Top_Loss_Genes` in pathway results to identify driver genes
+  for follow-up validation.
+
+- [ ] **Global concordance:** Is the c-score significant? Is the genome-wide GLR
+  above or below 1? Together these tell you whether the circadian transcriptomes are
+  related and in which direction.
+
+# Function Quick Reference
+
+| Step | Function | Key arguments |
+|---|---|---|
+| Initialize | `CB_init_single(Data.list, P=24)` | `Data.list = list(data, time, gname)` |
+| MCMC | `CB_MCMC_single_rj_slice(Data.list, Init.value, ...)` | `iteration`, `n.burn`, `thin`, `p_rhythmic`, `diagnostics` |
+| Annotate | `match_symbols(mcmc, BF=3)` | `BF` threshold for binary call |
+| P(rhythmic) | `rowMeans(mcmc$rho)` | — |
+| Bayes Factor | `summarize_bay(mcmc$rho, BF, p_rhythmic=0.2)` | `p_rhythmic` must match MCMC prior |
+| Estimates+HDI | `CB_getAllEst(mcmc, burn=100)` | `credMass=0.95` |
+| Transition | `transition_classify(pA, pB, bfdr_alpha=0.25)` | `bfdr_alpha` |
+| Phase | `phase_infer(phi1, phi2, gain_loss_status, shift=2, ...)` | `shift`, `compute_hdi` |
+| Pathway | `pathSelect(mcmc.merge.list, pathway.list, ranking.method, ...)` | `"union"`, `"gain"`, `"loss"`, `"conserved"` |
+| Concordance | `multi_conservation(..., select.pathway.list="global")` | `n_perm`, `n_boot`, `save_output` |
+
+# Citation
+
+Pham T, *et al.* BayesRC: a comparative Bayesian multilevel framework for
+evaluating circadian synchrony across conditions. *Manuscript in preparation*, 2025.
