@@ -43,3 +43,4 @@ cache/
 
 # Paper kept local only (not tracked in git)
 paper/
+!GIT_TUTORIAL.md
