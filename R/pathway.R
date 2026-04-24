@@ -262,10 +262,13 @@ run_single_round <- function(dat1, dat2, pathway_indices_A, pathway_indices_B,
   if (parallel && .Platform$OS.type != "windows") {
     
     # PARALLEL VERSION (Mac/Linux)
-    library(parallel)
-    
-    perm_results <- mclapply(1:B_round, function(b) {
-      
+    # Within-pathway permutation null: gene identities are randomly re-paired
+    # between conditions within each pathway, preserving within-pathway rhythmicity
+    # distributions. Tests gene-specific cross-condition concordance beyond what
+    # the pathway's own rhythmicity levels predict. More conservative than
+    # genome-wide permutation (which is used for the genome-wide c-score).
+    perm_results <- parallel::mclapply(1:B_round, function(b) {
+
       # Initialize results for this permutation
       perm_b_results <- array(NA, dim = c(1, K, length(metrics)),
                               dimnames = list(NULL, NULL, metrics))

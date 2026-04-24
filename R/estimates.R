@@ -145,9 +145,9 @@ get_other_CI_est = function(MCMC, credMass){
 #'
 #' @export
 circular_median <- function(samples, P = 24) {
-  samples_rad <- circular((samples / P) * (2 * pi), units="radians")
+  samples_rad <- circular((samples / P) * (2 * pi), units = "radians")
   median_rad <- median.circular(samples_rad, type = "median")
-  median_time <- (median_rad / (2 * pi)) * P
+  median_time <- as.numeric(median_rad) / (2 * pi) * P
   return(median_time %% P)
 }
 
@@ -214,13 +214,6 @@ recenter_samples <- function(samples, P = 24, a = 0) {
 #'
 #' @keywords internal
 get_t_phi_CI_est <- function(row_MCMC, P = 24, credMass = 0.95, burn = 1, rho = 1, t = TRUE, a = 0) {
-  
-  circular_median <- function(samples, P = 24) {
-    samples_rad <- circular((samples / P) * (2 * pi), units="radians")
-    median_rad <- median.circular(samples_rad, type = "median")
-    median_time <- (median_rad / (2 * pi)) * P
-    return(median_time %% P)
-  }
   
   if (length(row_MCMC) <= burn) {
     stop("row_MCMC has insufficient data after burn-in. Check input.")

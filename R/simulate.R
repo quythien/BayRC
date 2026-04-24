@@ -1,20 +1,20 @@
-# my.TOJR.grid = expand.grid(Rhy1 = c(0, 1),
-#                            Rhy2 = c(0, 1),
-#                            Rhy3 = c(0, 1),
-#                            dA2 = c(0), 
-#                            dPhase2 = c(0, 2), 
-#                            dM2 = c(0), 
-#                            dA3 = c(0), 
-#                            dPhase3 = c(0, 2), 
-#                            dM3 = 0)
-# my.TOJR.grid = my.TOJR.grid[c(1, 2, 4, 12, 24, 32), ]
-# #1(1): arrhy; 
-# #2(2): rhyI; 
-# #3(4): rhyI&II, same phase, 
-# #4(12): rhyI&II, different phase
-# #5(24): rhyI&II&III, phase 1 and 2 the same, phase 3 different
-# #6(32): rhyI&II&III, phase 1, 2, 3 all different. 
-# my.TOJR.grid$n = rep(1, 6)
+# Default scenario grid for CBt_sim_data.
+# Columns dA/dPhase/dM are the parameter offsets relative to group 1;
+# these names must match what the function body accesses via $.
+.tojr_default <- function() {
+  g <- expand.grid(
+    Rhy1   = c(0L, 1L),
+    Rhy2   = c(0L, 1L),
+    dA     = 0,
+    dPhase = c(0, 2),
+    dM     = 0
+  )
+  # Row selection: arrhythmic, rhythmic-only, conserved-same-phase, conserved-shifted
+  g <- g[c(1, 2, 3, 7), ]
+  g$n <- 1L
+  rownames(g) <- NULL
+  g
+}
 
 # history 
 # 2023-06-08: change the function to allow heterogeneous time measurement error, also make the samples have paired sigma.t. 
@@ -78,11 +78,10 @@
 #' sim <- CBt_sim_data(n.sigma.t = 8)
 #' }
 CBt_sim_data = function(P = 24,
-                        TOJR.grid = my.TOJR.grid[, 1:3],
-                        dParam = list(g2 = my.TOJR.grid[, 4:6], 
-                                      g3 = my.TOJR.grid[, 4:6]),
-                        G = my.TOJR.grid$n,
-                        n = 30, 
+                        TOJR.grid = NULL,
+                        dParam = NULL,
+                        G = NULL,
+                        n = 30,
                         fixed_tp = TRUE, #if TRUE then the sigma.t will be the exact tp, however the signs will be evenly distributed above and below 0. 
                         sigma.t = 2, 
                         n.sigma.t = 16,
@@ -101,10 +100,22 @@ CBt_sim_data = function(P = 24,
   #   sigma.t = 2;
   #   TimePoints = NULL; #used to specify time and evenly distribute sample
   #   PhaseClust = NULL
-  if(is.null(n.sigma.t)&is.null(p.sigma.t)){
-    stop("n.sigma.t and  p.sigma.t can not be both NULL. ")
-  }else if((!is.null(n.sigma.t))&(!is.null(p.sigma.t))){
-    stop("One of n.sigma.t and p.sigma.t must be NULL. ")
+  # Initialise default scenario grid when arguments are omitted.
+  # dParam columns must be named dA, dPhase, dM to match the body's $ accessors.
+  if (is.null(TOJR.grid)) {
+    .def <- .tojr_default()
+    TOJR.grid <- .def[, c("Rhy1", "Rhy2"), drop = FALSE]
+    if (is.null(dParam))  dParam <- list(g2 = .def[, c("dA", "dPhase", "dM"), drop = FALSE])
+    if (is.null(G))       G <- .def$n
+  } else {
+    if (is.null(dParam))  stop("`dParam` must be supplied when `TOJR.grid` is provided.")
+    if (is.null(G))       stop("`G` must be supplied when `TOJR.grid` is provided.")
+  }
+
+  if (is.null(n.sigma.t) & is.null(p.sigma.t)) {
+    stop("n.sigma.t and p.sigma.t cannot both be NULL.")
+  } else if ((!is.null(n.sigma.t)) & (!is.null(p.sigma.t))) {
+    stop("One of n.sigma.t and p.sigma.t must be NULL.")
   }
   
   n.group = ncol(TOJR.grid)
@@ -112,31 +123,32 @@ CBt_sim_data = function(P = 24,
   # stopifnot("The length of sample size vector n is not the same as the number of columns in TOJR.grid. " =
   #             length(n)==n.group)
   
-  TOJR.grid.long = do.call(rbind.data.frame, lapply(1:nrow(TOJR.grid), function(a){
-    matrix(replicate(G[a], TOJR.grid[a, ]), nrow =G[a], byrow = TRUE)
-  }))
-  colnames(TOJR.grid.long) = colnames(TOJR.grid)
+  row_idx_grid <- unlist(mapply(rep, seq_len(nrow(TOJR.grid)), G))
+  TOJR.grid.long <- TOJR.grid[row_idx_grid, , drop = FALSE]
+  TOJR.grid.long <- as.data.frame(lapply(TOJR.grid.long, as.integer))
+  rownames(TOJR.grid.long) <- NULL
   TOJR.dParam.long = lapply(seq_along(dParam), function(j){
-    a.TOJR.dParam.long = do.call(rbind.data.frame, 
-                                 lapply(1:nrow(dParam[[j]]), function(a){
-                                   matrix(replicate(G[a], dParam[[j]][a, ]), nrow =G[a], byrow = TRUE)
-                                 }))
-    colnames(a.TOJR.dParam.long) = colnames(dParam[[j]])
-    a.TOJR.dParam.long = apply(a.TOJR.dParam.long, c(1, 2), as.numeric)
-    a.TOJR.dParam.long = as.data.frame(a.TOJR.dParam.long)
+    # Repeat each scenario row G[a] times using index subsetting; avoids the
+    # matrix(replicate(G[a], df_row)) pattern which silently creates a list
+    # matrix instead of a numeric matrix when G[a] >= 1 and df_row is a
+    # data.frame.
+    row_indices <- unlist(mapply(rep, seq_len(nrow(dParam[[j]])), G))
+    a.TOJR.dParam.long <- dParam[[j]][row_indices, , drop = FALSE]
+    a.TOJR.dParam.long <- as.data.frame(lapply(a.TOJR.dParam.long, as.numeric))
+    rownames(a.TOJR.dParam.long) <- NULL
     return(a.TOJR.dParam.long)
   })
   g1 = as.data.frame(apply(TOJR.dParam.long[[1]], c(1, 2), function(x){0}))
   TOJR.dParam.long = append(TOJR.dParam.long, list(g1), after=0)
   
   sigma = lapply(1:n.group, function(j){
-    a.sigma = rep(Params["sigma"], n.genes)
+    a.sigma = rep(Params[["sigma"]], n.genes)
   })
   
   # phi1 = rep(Params["phi"], n.genes)
   phi1 = runif(n.genes, 0, P)
-  A1 = rep(Params["A"], n.genes)
-  M1 = rep(Params["M"], n.genes)
+  A1 = rep(Params[["A"]], n.genes)
+  M1 = rep(Params[["M"]], n.genes)
   
   A = lapply(1:n.group, function(j){
     a.A = A1+TOJR.dParam.long[[j]]$dA

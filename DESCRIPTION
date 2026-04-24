@@ -1,7 +1,7 @@
 Package: BayRC
 Type: Package
 Title: Bayesian Framework for Comparative Circadian Genomics
-Version: 0.1.0
+Version: 0.2.0
 Authors@R: c(
     person("Thien", "Pham", role = c("aut", "cre"),
            email = "quythien14@gmail.com"),
@@ -20,20 +20,34 @@ Imports:
     circular,
     ggplot2,
     dplyr,
-    openxlsx
+    openxlsx,
+    abind,
+    CircStats,
+    fgsea,
+    HDInterval,
+    invgamma,
+    KEGGREST,
+    MASS,
+    mvtnorm,
+    parallel,
+    purrr,
+    RColorBrewer,
+    Rfast,
+    rootSolve,
+    tibble,
+    truncdist,
+    truncnorm,
+    VGAM
 LinkingTo: Rcpp
 Suggests:
     testthat (>= 3.0.0),
     knitr,
     rmarkdown,
-    KEGGREST,
     biomaRt,
-    edgeR,
-    DESeq2,
-    parallel,
-    fgsea,
-    tibble,
-    purrr,
-    RColorBrewer
+    BiocManager,
+    ConsensusClusterPlus,
+    KEGGgraph,
+    pathview,
+    Rmpfr
 VignetteBuilder: knitr
 RoxygenNote: 7.3.2
