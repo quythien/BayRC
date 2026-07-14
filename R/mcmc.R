@@ -1362,7 +1362,7 @@ RJMCMC_single_slice = function(Y, t.c, t.s, N,
     #   print(g)
     #   get_log_phi_post_full_single(Y[g, ], t.c, t.s, t.c.sum, t.s.sum, c.t, s.t, cs.t, y.t.c.sum.num[g], y.t.s.sum.num[g], sigma[g], A[g], M[g], phi[g], omega, P)
     # }
-    log.phi.prior = log(1/P) # phi ~ U(0, P), log-density = -log(P)
+    log.phi.prior = 1/P
   }else{
     log.phi.prior = 1; log.phi.post = 1
   }
