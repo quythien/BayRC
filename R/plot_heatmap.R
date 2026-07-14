@@ -266,7 +266,7 @@ plot_heatmap <- function(data1, data2,
   )
   
   # ==========================================================================
-  # 4. MAIN HEATMAP (ρ values)
+  # 4. MAIN HEATMAP (rho values)
   # ==========================================================================
   
   heatmap_mat <- cbind(rho_1_ord, rho_2_ord)
@@ -430,8 +430,8 @@ plot_heatmap <- function(data1, data2,
   # Split shifted into later (red) and earlier (blue) based on deltaPhi
   # NOTE: deltaPhi from phase_infer is (Group1 - Group2)
   # We DISPLAY as (Group2 - Group1), so:
-  #   - Negative internal deltaPhi → Positive display → Group2 peaks LATER = "Shifted later" (red)
-  #   - Positive internal deltaPhi → Negative display → Group2 peaks EARLIER = "Shifted earlier" (blue)
+  #   - Negative internal deltaPhi -> Positive display -> Group2 peaks LATER = "Shifted later" (red)
+  #   - Positive internal deltaPhi -> Negative display -> Group2 peaks EARLIER = "Shifted earlier" (blue)
   delta_colors[!is.na(phase_status_ord) & phase_status_ord == "Shifted" & !is.na(deltaPhi_ord) & deltaPhi_ord < 0] <- "#E63946"   # Shifted later (red)
   delta_colors[!is.na(phase_status_ord) & phase_status_ord == "Shifted" & (is.na(deltaPhi_ord) | deltaPhi_ord >= 0)] <- "#4361EE"  # Shifted earlier (blue)
   delta_colors[!is.na(phase_status_ord) & phase_status_ord == "Conserved"] <- "#06A77D"
@@ -540,7 +540,7 @@ plot_heatmap <- function(data1, data2,
     })
     
     dev.off()
-    cat("✓ Saved\n")
+    cat("Saved\n")
   } else {
     draw(ht_list,
          heatmap_legend_side = "left",
