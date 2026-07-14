@@ -41,8 +41,8 @@ devtools::load_all("path/to/BayRC")
 
 BayRC ships a real dataset: baboon putamen (PUT) and substantia nigra (SUN)
 expression, 5,066 genes, 12 zeitgeber timepoints each, from the diurnal
-transcriptome atlas of Mure et al. (GEO accession
-[GSE98965](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE98965)),
+transcriptome atlas of [Mure et al. 2018](https://doi.org/10.1126/science.aao0318)
+(GEO accession [GSE98965](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE98965)),
 ortholog-matched to the same gene backbone used throughout the manuscript.
 It's the same PUT-vs-SUN comparison as the paper's Case Study 2, run fresh
 through the current package code, not simulated data.
@@ -279,46 +279,71 @@ comparison in the manuscript); skip for same-species comparisons.
 
 ## Glossary
 
-Plain-language definitions for readers who aren't Bayesian statisticians.
-
 **Posterior probability.** After seeing the data, how likely a claim is, on a
 scale from 0 to 1. In BayRC, P(rhythmic | data) is the posterior probability
 that a gene actually oscillates on a 24-hour cycle, combining the prior
-assumption with what the expression data actually show.
+assumption with what the expression data show (paper §2.1, spike-and-slab
+model).
 
 **Bayes factor.** How much more the data support "this gene is rhythmic"
-over "this gene is not," expressed as a ratio. A Bayes factor of 3 means the
-data are 3 times more consistent with rhythmicity than with no rhythm; higher
-is stronger evidence. `summarize_bay()` computes this per gene.
+over "this gene is not," expressed as a ratio: BF = posterior odds / prior
+odds. A Bayes factor of 3 means the data are 3 times more consistent with
+rhythmicity than with no rhythm; higher is stronger evidence. `summarize_bay()`
+computes this per gene.
 
 **Credible interval.** The Bayesian counterpart to a confidence interval: a
-range that has a stated probability (usually 95%) of containing the true
-value, given the data. For phase, this is computed on a circle rather than a
-line (see circular HDI below), since 23:00 and 01:00 are close together, not
-22 hours apart.
+range with a stated probability (usually 95%) of containing the true value,
+given the data. For phase, this is computed on a circle rather than a line
+(the circular highest density interval, or circular HDI; paper Supplementary
+Algorithm 1), since 23:00 and 01:00 are close together, not 22 hours apart.
 
 **Bayesian false discovery rate (BFDR).** The expected fraction of "rhythmic"
 or "gained/lost/conserved" calls that are actually false positives, computed
-directly from posterior probabilities rather than from p-values. BayRC picks
-a decision threshold so this expected fraction stays under a chosen level
-(0.25 in most examples here), then calls every gene that clears it.
+directly from posterior probabilities rather than from p-values (Newton et al.
+2004, *Biostatistics*; Müller, Parmigiani & Rice 2007, *Bayesian Statistics 8*;
+Scott & Berger 2010, *Annals of Statistics*; Stephens 2016, *Biostatistics*).
+BayRC picks a decision threshold so this expected fraction stays under a
+chosen level (0.25 in most examples here; paper §2.2, Eq. 2), then calls
+every gene that clears it.
 
 **Circular / phase concordance.** Whether two conditions peak at the same
 time of day. Because time of day wraps around every 24 hours, phase
 differences have to be measured on a circle: a gene peaking at 23:00 in one
-condition and 01:00 in the other is 2 hours off, not 22.
+condition and 01:00 in the other is 2 hours off, not 22 (paper §2.2, part 3).
 
 **Gain / loss / conservation.** The three ways a gene's rhythm can change
 between two conditions: it can start oscillating where it didn't before
 (gain), stop oscillating (loss), or keep oscillating in both (conserved).
-`transition_classify()` makes this call under BFDR control.
+`transition_classify()` makes this call under BFDR control (paper §2.2,
+part 2).
 
 **Genome-wide concordance (c-score).** A single number summarizing how
 similar two conditions' rhythmic programs are overall, built by averaging an
 adjusted Jaccard index across MCMC iterations so it propagates posterior
-uncertainty rather than relying on one fixed gene list. Centered at 0 (no
-more overlap than chance) with 1 meaning perfect agreement. `multi_conservation()`
-computes it along with a permutation p-value and bootstrap confidence interval.
+uncertainty rather than relying on one fixed gene list (paper §2.4, Eq. 5;
+related to the congruence framework of
+[Zong et al. 2023](https://doi.org/10.1073/pnas.2202584120)). Centered at 0
+(no more overlap than chance) with 1 meaning perfect agreement.
+`multi_conservation()` computes it along with a permutation p-value and
+bootstrap confidence interval.
+
+### References
+
+- Mure LS, Le HD, Benegiamo G, et al. Diurnal transcriptome atlas of a primate
+  across major neural and peripheral tissues. *Science*. 2018;359(6381):eaao0318.
+  [10.1126/science.aao0318](https://doi.org/10.1126/science.aao0318)
+- Newton MA, Noueiry A, Sarkar D, Ahlquist P. Detecting differential gene
+  expression with a semiparametric hierarchical mixture method.
+  *Biostatistics*. 2004;5(2):155-176.
+- Müller P, Parmigiani G, Rice K. FDR and Bayesian multiple comparisons rules.
+  *Bayesian Statistics 8*. 2007:349-370.
+- Scott JG, Berger JO. Bayes and empirical-Bayes multiplicity adjustment in
+  the variable-selection problem. *Annals of Statistics*. 2010;38(5):2587-2619.
+- Stephens M. False discovery rates: a new deal. *Biostatistics*.
+  2016;18(2):275-294.
+- Zong W, Rahman T, Zhu L, et al. Transcriptomic congruence analysis for
+  evaluating model organisms. *PNAS*. 2023;120(6):e2202584120.
+  [10.1073/pnas.2202584120](https://doi.org/10.1073/pnas.2202584120)
 
 ---
 
