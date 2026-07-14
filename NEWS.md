@@ -3,7 +3,7 @@
 Public-release preparation: a curated public API, real bundled example data,
 and documentation rewritten around it.
 
-## Exported API curated from 61 to 21 functions
+## Exported API curated from 61 to 22 functions
 
 Every export was checked against two questions: does it answer one of the six
 biological questions in the README, and does the paper's own methodology
@@ -12,16 +12,20 @@ single- and two-group biomarker detection with BFDR control, pathway
 enrichment, genome-wide concordance, and cross-species alignment. Un-exported
 (kept in `R/` as internal code, not deleted): `FoxWright`/`1`/`2`/`3`, an
 11-function variance-validation cluster in `simulate_parallel.R`,
-`CBt_MCMC_single`, `Cosinor_fit`, `congruence()` and `concordance2()` (legacy
-diagnostics predating the package's BFDR-based approach; `concordance2()` in
-particular is the hard-threshold Venn-diagram method the paper's own
-introduction argues against), `compute_adjusted_jaccard_analytical_pvalue()`
-(analytical shortcut, not in the paper), `transition_classify_marginal()`
-(duplicates `detect_rhy()`'s per-condition logic, not in the paper), and
-about a dozen more per-iteration/permutation helpers with no real callers
-outside the functions that already wrap them. `pairwise_concordance()`,
-initially cut for apparent lack of callers, was restored after confirming
-real usage in an untracked working script.
+`CBt_MCMC_single`, `congruence()` and `concordance2()` (legacy diagnostics
+predating the package's BFDR-based approach; `concordance2()` in particular
+is the hard-threshold Venn-diagram method the paper's own introduction
+argues against), `compute_adjusted_jaccard_analytical_pvalue()` (analytical
+shortcut, not in the paper), `transition_classify_marginal()` (duplicates
+`detect_rhy()`'s per-condition logic, not in the paper), and about a dozen
+more per-iteration/permutation helpers with no real callers outside the
+functions that already wrap them. `pairwise_concordance()`, initially cut
+for apparent lack of callers, was restored after confirming real usage in an
+untracked working script. `Cosinor_fit()`, initially cut, was restored: it
+is the classical (non-Bayesian) cosinor method the paper's own comparisons
+contrast BayRC's RJMCMC approach with, and its un-exported `@examples` was
+calling itself directly, which is a real `R CMD check` ERROR for anyone
+installing the package.
 
 ## Real bugs found and fixed
 
@@ -40,6 +44,34 @@ real usage in an untracked working script.
 - `R/BayRC-package.R` added with `@importFrom`/`@useDynLib` roxygen tags.
   Without them, `devtools::document()` silently stripped NAMESPACE's
   `useDynLib`/`importFrom` lines on every regeneration.
+- `pairwise_concordance()` called `concordance()`, a function that does not
+  exist anywhere in the package or its pre-refactor snapshot (only a
+  commented-out stub remained); it would have errored for any caller.
+  Inlined the Jaccard computation the stub described.
+- `transition_classify()` and `transition_classify_marginal()` silently
+  accepted a raw posterior sample matrix (`mcmc$rho`) in place of the
+  documented per-gene probability vector (`rowMeans(mcmc$rho)`). The
+  arithmetic still ran, but building the returned `results` data.frame
+  recycled the still-matrix `pA`/`pB` against a length-`G*K` vector,
+  observed to balloon memory past 100 GB on a real 5,066-gene,
+  2,001-iteration posterior before it was caught and killed. Both now
+  validate input shape and fail fast with an actionable error instead.
+- `match_homologs()` called `getHomologs()`, a function that has never
+  existed anywhere in this codebase's history (confirmed against the
+  pre-refactor `Thien/` snapshot); it would have errored for any caller
+  doing cross-species alignment. Replaced with a real `biomaRt::getLDS()`
+  ortholog query, reusing the existing `try_any_mirror()` mirror-fallback
+  helper.
+- `match_symbols()`, `try_any_mirror()`, and `match_homologs()` called
+  `getBM()`/`useEnsembl()`/`getLDS()` unqualified; since `biomaRt` is a
+  `Suggests` dependency loaded only via `requireNamespace()` (never
+  attached), these would error unless a caller happened to have `biomaRt`
+  separately attached. Now namespace-qualified (`biomaRt::getBM()`, etc.).
+- Non-ASCII characters (curly quotes, em dashes, Greek letters, section
+  signs) removed from `R/internal.R` and `R/plot_heatmap.R` source: ASCII
+  substitutes in comments, `\uXXXX` escapes in the few `cat()`/`warning()`
+  strings that print Greek letters to the user, so printed output is
+  unchanged.
 
 ## Real bundled example data
 
@@ -61,12 +93,31 @@ real usage in an untracked working script.
   References section.
 - `BayRC-manual.pdf` rebuilt with a proper title page and a categorized,
   hyperlinked function index grouped by the paper's own section numbers,
-  restricted to the 21 curated exports (not all ~74 documented topics).
+  restricted to the 22 curated exports (not all ~74 documented topics).
+  The index is further split into single-group vs two-group biomarker
+  detection (paper Sec. 2.2), matching the two distinct function
+  signatures. Its `\describe{\item{}}` structure rendered each category's
+  first bullet inline with the heading instead of on its own line; now
+  uses `\strong{}` + `\itemize{}`.
 - `LICENSE.md` and `CITATION.cff` added. `Authors@R` updated to match the
-  manuscript's current author list.
+  manuscript's current author list. Maintainer email updated to
+  `qtp1@pitt.edu`.
 - `.gitignore` fixed: `LICENSE.md`, `CITATION.cff`, and `BayRC-manual.pdf`
   were previously swallowed by the blanket ignore rule and would not have
-  appeared on the public GitHub repo.
+  appeared on the public GitHub repo. `.Rbuildignore` added (was missing
+  entirely), excluding dev-only files (`paper/`, `Thien/`, `REVIEW_*.md`)
+  from the built package.
+- `go.pathway.list_hsa.RData`, `kegg.pathway.list_cel_GeneNames.RData`, and
+  `kegg_pathway_list_hsa.rds` moved from `data/` to `inst/extdata/`: none
+  are referenced anywhere in `R/`, only by `inst/analysis/` scripts via
+  hardcoded external paths, so they were undocumented lazy-load "public"
+  data with no real caller, and the `.rds` file is not an allowed `data/`
+  directory type under `R CMD check`.
+- `vignettes/BayRC_workflow.Rmd` rewritten to be genuinely runnable (was
+  entirely `eval = FALSE` with placeholder objects that don't exist,
+  which is a real `R CMD check` ERROR since `knitr::purl()` extracts
+  chunk code regardless of the `eval` option).
+- Unused `Rfast`/`truncdist` removed from `DESCRIPTION` `Imports`.
 
 # BayRC 0.2.0 (2026-04-23)
 

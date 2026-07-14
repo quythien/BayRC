@@ -47,14 +47,21 @@ ortholog-matched to the same gene backbone used throughout the manuscript.
 It's the same PUT-vs-SUN comparison as the paper's Case Study 2, run fresh
 through the current package code, not simulated data.
 
-MCMC on the full 5,066 genes takes about 30 minutes per condition, so the
-block below is realistic to run but not something you'd casually re-run
-while reading. Every number in the comments is real output from that run,
-including the modest ones: at these settings (2,000 iterations, 500 burn-in)
-most genes carry weak evidence either way, and only 8 genes clear the BFDR
-threshold for conservation, with zero clearing gain or loss. That's an
-honest result at this chain length and sample size (12 samples per gene),
-not a bug; the paper's actual results use longer chains on the same data.
+MCMC on the full 5,066 genes takes about 30-40 minutes per condition, so
+the block below is realistic to run but not something you'd casually
+re-run while reading. Every number in the comments is real output from
+that run. The settings below (prior `A_prior = "trunc_Normal_OLS_condi"`,
+`thin = 1`, 2,500 iterations) reproduce the prior and chain shape used to
+generate the manuscript's own results, on the same real bundled data; the
+full script is saved at
+[`inst/analysis/quickstart_baboon_PUT_SUN.R`](inst/analysis/quickstart_baboon_PUT_SUN.R).
+At this chain length and sample size (12 samples per gene) the relative
+gain/loss balance already lines up closely with the manuscript (the
+genome-wide gain-loss ratio below is 0.51, versus the manuscript's
+published 0.53), but the absolute gene counts and pathway significance
+calls are still well short of the manuscript's much longer production
+chains; treat every number here as real and reproducible from this
+repository, not as a restatement of the paper's own published counts.
 
 ```r
 library(BayRC)
@@ -68,14 +75,21 @@ data_list_PUT <- list(data = as.data.frame(log2(baboon$expr_PUT + 1)),
 data_list_SUN <- list(data = as.data.frame(log2(baboon$expr_SUN + 1)),
                       time = baboon$zt, gname = baboon$gene_symbol)
 
-init_PUT <- CB_init_single(Data.list = data_list_PUT, P = 24)
-mcmc_PUT <- CB_MCMC_single_rj_slice(Data.list = data_list_PUT, Init.value = init_PUT,
-                                    P = 24, iteration = 2000, n.burn = 500,
-                                    p_rhythmic = rep(0.2, n_genes))
-init_SUN <- CB_init_single(Data.list = data_list_SUN, P = 24)
-mcmc_SUN <- CB_MCMC_single_rj_slice(Data.list = data_list_SUN, Init.value = init_SUN,
-                                    P = 24, iteration = 2000, n.burn = 500,
-                                    p_rhythmic = rep(0.2, n_genes))
+run_mcmc <- function(dat, seed) {
+  init <- CBt_init_single(Data.list = dat, P = 24, FitCosinor = TRUE,
+                          mu_M = 0, sigma_M = 10, mu_A = 1, sigma_A = 10, seed = seed)
+  CB_MCMC_single_rj_slice(
+    Data.list = dat, Init.value = init, P = 24,
+    iteration = 2500, thin = 1, n.burn = 500, seed = seed,
+    p_rhythmic = rep(0.2, n_genes), rj.p.stay = 0.5,
+    A_prior = "trunc_Normal_OLS_condi", mu_A = 1, sigma_A = 10^2, A.min = 0,
+    A_wb_beta2 = 2, A_gm_shape = 1.99, A_gm_rate = 0.5,
+    rj.phi = TRUE, rj.A = TRUE, mu_M = 0, sigma_M = 10^2,
+    sigma_prior_v = 2, sigma_prior_s = 0
+  )
+}
+mcmc_PUT <- run_mcmc(data_list_PUT, seed = 1)
+mcmc_SUN <- run_mcmc(data_list_SUN, seed = 1)
 # mcmc_PUT$rho — posterior samples of rhythmicity (0/1), one row per gene
 # mcmc_PUT$phi — posterior samples of phase (hours, ZT scale)
 
@@ -95,16 +109,16 @@ names(est_PUT) <- c("A", "phi", "M", "sigma")   # returned unnamed; name once fo
 
 bf_PUT <- summarize_bay(mcmc_PUT$rho, BF = 3, p_rhythmic = 0.2)
 head(bf_PUT[order(-bf_PUT$BayesF), c("RowAverage", "BayesF")], 5)
-#         RowAverage BayesF
-# LAMTOR4       0.93  56.80
-# NDUFA13       0.92  46.67
-# DPP7          0.89  34.00
-# NDUFB7        0.89  34.00
-# TMEM222       0.89  34.00
+#                     RowAverage    BayesF
+# ENSPANG00000024811       1.00  4.0e+20   # posterior support 1.0 in every retained sample
+# GMDS                      1.00  4.0e+20   # (BF is formally unbounded as posterior -> 1;
+# TRA2A                     1.00  4.0e+20   #  these three never left the rhythmic state)
+# CD46                      1.00  2664.0
+# SH3BGRL                   1.00  1997.0
 
 detected <- detect_rhy(mcmc_PUT, mcmc_SUN, bfdr_alpha = 0.25)
 # BFDR-controlled per-condition detection (independent thresholds per
-# condition, not a fixed BF cutoff): 58 rhythmic genes in PUT, 85 in SUN,
+# condition, not a fixed BF cutoff): 228 rhythmic genes in PUT, 82 in SUN,
 # of 5,066 tested.
 
 # ═══ PART 2: two-group comparison ═════════════════════════════════════════
@@ -115,26 +129,30 @@ pA <- rowMeans(mcmc_PUT$rho)   # Pr(rhythmic | data), PUT
 pB <- rowMeans(mcmc_SUN$rho)   # Pr(rhythmic | data), SUN
 
 trans <- transition_classify(pA, pB, bfdr_alpha = 0.25)
-# tau_gain = 1, n_gain = 0 | tau_loss = 1, n_loss = 0 | tau_cons = 0.68, n_cons = 8
-# "Conserved" is as much a finding here as gain or loss: these are the 8
-# genes confidently rhythmic in both tissues, not just the leftover category.
+# tau_gain = 0.59, n_gain = 43 | tau_loss = 0.60, n_loss = 150 | tau_cons = 0.73, n_cons = 2
+# Loss-dominant remodeling (150 loss vs. 43 gain, GLR = 0.29 at the gene
+# level) echoes the manuscript's own SUN-PUT finding, though at this chain
+# length only 2 genes clear the joint BFDR threshold for conservation.
 
 phase <- phase_infer(phi_matrix1 = mcmc_PUT$phi, phi_matrix2 = mcmc_SUN$phi,
                      gain_loss_status = trans$gain_loss_status,
                      shift = 2, P = 24, bfdr_alpha = 0.25, compute_hdi = TRUE)
-# of the 8 conserved genes: 0 phase-conserved, 8 phase-shifted
+# of the 2 conserved genes: 0 phase-conserved, 1 phase-shifted, 1 undetermined
 
 # ── STEP 3: Two-stage pathway enrichment ──────────────────────────────────
-kegg <- readRDS("data/kegg_pathway_list_hsa.rds")   # 354 KEGG pathways, real gene sets
+kegg <- readRDS(system.file("extdata", "kegg_pathway_list_hsa.rds", package = "BayRC"))
 
 result_union <- pathSelect(mcmc.merge.list = list(A = mcmc_PUT, B = mcmc_SUN),
                            pathway.list = kegg, dataset.names = c("A", "B"),
                            ranking.method = "union", score_type = "pos",
                            qvalue.cut = 0.20, nperm = 500)
 active <- dplyr::filter(result_union$results, pval < 0.05)$pathway
-# 11 of 220 testable pathways pass Stage 1 (pval < 0.05); top hit is KEGG
-# Oxidative phosphorylation (pval = 1.3e-4), which lines up with the paper's
-# own SUN-PUT finding that oxidative phosphorylation is enriched here
+# 27 of 220 testable pathways pass the Stage 1 pre-screen (pval < 0.05); top
+# hit is KEGG Cholesterol metabolism (pval = 0.001). None reach Stage 2
+# significance (padj/Q < 0.2) at this chain length; the manuscript's own
+# significant findings (Proteasome loss, Oxidative phosphorylation
+# conservation) come from its much longer production chains -- see the real
+# precomputed-posterior pathway heatmap below for that exact result.
 
 # ── STEP 4: Genome-wide concordance ───────────────────────────────────────
 global <- multi_conservation(mcmc.merge.list = list(A = mcmc_PUT, B = mcmc_SUN),
@@ -142,8 +160,9 @@ global <- multi_conservation(mcmc.merge.list = list(A = mcmc_PUT, B = mcmc_SUN),
                              select.pathway.list = "global",
                              n_perm = 200, n_boot = 200, use_cpp = TRUE,
                              save_output = FALSE)
-# AdjustedConcordance = 0.044 (95% CI 0.038-0.049), p = 0.005 -- significant,
-# though genuinely small given the short chain length above
+# AdjustedConcordance = 0.032 (95% CI 0.026-0.038), p = 0.005 -- significant
+# but small, as expected at this chain length; GainLossRatio = 0.51, close
+# to the manuscript's published 0.53 for the same PUT-vs-SUN comparison
 ```
 
 ## How BayRC Categorizes Every Gene
@@ -156,30 +175,38 @@ the run above (5,066 genes, BFDR α = 0.25):
 
 | Condition | Genes tested | Rhythmic (BFDR-controlled) |
 |---|---|---|
-| PUT | 5,066 | 58 |
-| SUN | 5,066 | 85 |
+| PUT | 5,066 | 228 |
+| SUN | 5,066 | 82 |
 
 **Part 2, two-group comparison** (PUT vs. SUN jointly):
 
 | Category | Genes | What it means |
 |---|---|---|
-| Conserved | 8 | Rhythmic in both tissues, confidently |
-| Gain in SUN | 0 | Rhythmic in SUN only |
-| Loss in SUN | 0 | Rhythmic in PUT only |
-| Non-rhythmic | 5,058 | Neither tissue clears the threshold |
+| Conserved | 2 | Rhythmic in both tissues, confidently |
+| Gain in SUN | 43 | Rhythmic in SUN only |
+| Loss in SUN | 150 | Rhythmic in PUT only |
+| Non-rhythmic | 4,871 | Neither tissue clears the threshold |
 
-**Within the 8 conserved genes**, a further BFDR-controlled call on peak timing:
+Loss-dominant remodeling (150 loss vs. 43 gain) matches the direction of
+the manuscript's own SUN-PUT finding, though the manuscript's much longer
+production chains recover far more genes overall (553 conserved, 424
+loss, 121 gain at the same BFDR alpha) because BFDR calibration sharpens
+with more retained posterior draws per gene.
+
+**Within the 2 conserved genes**, a further BFDR-controlled call on peak timing:
 
 | Phase category | Genes |
 |---|---|
 | Phase-conserved | 0 |
-| Phase-shifted | 8 |
-| Undetermined | 0 |
+| Phase-shifted | 1 |
+| Undetermined | 1 |
 
-At this chain length the conserved set is small, and every one of the 8
-happens to be phase-shifted rather than phase-conserved; a longer chain
-(as in the manuscript) recovers more conserved genes and a mix of both
-phase outcomes, as in the paper's own SUN-PUT case study.
+At this chain length the conserved set is small, so this table is not
+meant to be read on its own; a longer chain (as in the manuscript)
+recovers many more conserved genes and a fuller mix of phase outcomes, as
+in the paper's own SUN-PUT case study and in the pathway heatmap below,
+which uses the manuscript's real precomputed posterior rather than this
+Quick Start's shorter chain.
 
 ---
 
@@ -199,12 +226,14 @@ This design lets you read the entire circadian landscape of a pathway (which gen
 
 `plot_heatmap()` builds this figure from `transition_classify()` and
 `phase_infer()` output. Below is a real one: KEGG Parkinson disease
-(94 genes) in baboon putamen vs. substantia nigra, from the same GSE98965 run
-used in the Quick Start above. This pathway is enriched in the same
-comparison in the manuscript (mitochondrial and proteostasis genes), and it
-tests significant here too (pval = 0.0013). Most genes still fall below the
-BFDR threshold at this chain length, but two, `NDUFB7` and `NDUFA13`, clear
-it: both rhythmic in both tissues, both phase-shifted between PUT and SUN.
+(94 genes) in baboon putamen vs. substantia nigra, generated from the
+manuscript's own precomputed posterior at its full production chain
+length, not the Quick Start's shorter chain above (that shorter run is
+real and reproducible from the bundled data, but does not reach the
+manuscript's full statistical power; see the note above the categorization
+table). Among the 21 conserved genes, 18 are phase-shifted and 2 are
+phase-conserved, `HSPA5` and `NDUFB2`, matching the manuscript's own
+published result for this pathway exactly.
 
 ![KEGG Parkinson disease pathway heatmap, baboon PUT vs SUN](man/figures/pathway_heatmap_demo.png)
 
@@ -244,12 +273,19 @@ a linear interval gets wrong.
 > after MCMC and before any downstream analysis. Skipping it causes silent
 > failures further down the pipeline.
 
+**Single-group** (one condition's MCMC output at a time):
+
 | Function | Purpose |
 |---|---|
 | `match_symbols()` | Annotate MCMC output with gene symbols; required before classification |
 | `bfdr_from_posterior()` | BFDR threshold τ from a vector of posterior probabilities (paper Eq. 2) |
-| `detect_rhy()` | Condition-specific rhythmic gene sets with BFDR control |
 | `summarize_bay()` | Per-gene Bayes Factor: `BF = posterior_odds / prior_odds` |
+
+**Two-group** (comparing two conditions jointly):
+
+| Function | Purpose |
+|---|---|
+| `detect_rhy()` | Condition-specific rhythmic gene sets with BFDR control, one condition against the other |
 | `transition_classify()` | Joint posterior BFDR for gain / loss / conservation |
 | `phase_infer()` | Phase-shift vs. conservation classification + 95% circular HDI on Δφ |
 
