@@ -1,19 +1,22 @@
-# Builds man/figures/circular_hdi_demo.png from the manuscript-scale OMF
-# posterior (mcmc_rho_BF3.RData / mcmc_phi_BF3.RData, 2,001 iterations;
-# not bundled with the package). Assumes mcmc_OMF is already built in the
-# environment (load the two RData files, then run match_symbols() on it).
+# Builds man/figures/circular_hdi_demo.png from the bundled quickstart-scale
+# OMF posterior (2,500 iterations, from
+# inst/analysis/quickstart_baboon_OMF_THR.R). Assumes mcmc_OMF is already
+# built in the environment (see that script for the exact steps).
+#
+# Gene symbols are looked up via rownames(mcmc_OMF$rho)/rownames(mcmc_OMF$phi),
+# set by match_symbols(); a match_symbols()-processed object has no
+# separate $gname field (it's NULL), so don't index through that.
 
 suppressMessages(library(ggplot2))
 
-genes <- c("BMAL1", "NR1D1", "DBP", "FAM76B")
+genes <- c("ARNTL", "NR1D1", "DBP", "FAM76B")
 
 bf_OMF <- summarize_bay(mcmc_OMF$rho, BF = 3, p_rhythmic = 0.2)
 
 panels <- list()
 for (g in genes) {
-  i <- match(g, mcmc_OMF$gname)
-  rho <- mcmc_OMF$rho[i, ]
-  phi_rhy <- mcmc_OMF$phi[i, rho == 1]
+  rho <- mcmc_OMF$rho[g, ]
+  phi_rhy <- mcmc_OMF$phi[g, rho == 1]
   p_rhy <- mean(rho)
   bf <- bf_OMF[g, "BayesF"]
   hdi <- circular_HDI(phi_rhy, credMass = 0.95, P = 24)
@@ -53,8 +56,8 @@ make_panel <- function(g) {
     scale_y_continuous(limits = c(0, ring_r * 1.15)) +
     coord_polar(start = 0) +
     labs(title = sprintf("%s  (P[rhythmic] = %.2f, BF %s)", g, p$p_rhy,
-                          if (p$bf >= 1e6) "unbounded (> 1e6)" else sprintf("= %.0f", p$bf)),
-         subtitle = sprintf("median = %.1fh, 95%% circular HDI = [%.1f, %.1f]h  (red arc; black = median)",
+                          if (p$bf >= 1e6) "> 1e6" else sprintf("= %.0f", p$bf)),
+         subtitle = sprintf("median = %.1fh, 95%% circular HDI = [%.1f, %.1f]h",
                              p$med, p$hdi$lower, p$hdi$upper),
          x = NULL, y = NULL) +
     theme_minimal(base_size = 10) +
@@ -67,8 +70,10 @@ plots <- lapply(genes, make_panel)
 
 png("man/figures/circular_hdi_demo.png", width = 1600, height = 1550, res = 200, type = "cairo")
 gridExtra::grid.arrange(grobs = plots, ncol = 2,
-  top = grid::textGrob("Posterior phase distribution and 95% circular HDI (baboon OMF, manuscript-scale posterior, 4 genes)",
-                        gp = grid::gpar(fontsize = 12, fontface = "bold")))
+  top = grid::textGrob("Posterior phase distribution and 95% circular HDI (baboon OMF)",
+                        gp = grid::gpar(fontsize = 12, fontface = "bold")),
+  bottom = grid::textGrob("Red arc = 95% circular HDI; black diamond = posterior median",
+                           gp = grid::gpar(fontsize = 9, col = "#C0392B")))
 dev.off()
 cat("saved man/figures/circular_hdi_demo.png\n")
 for (g in genes) cat(g, ": HDI [", round(panels[[g]]$hdi$lower, 2), ",", round(panels[[g]]$hdi$upper, 2),
