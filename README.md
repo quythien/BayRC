@@ -220,9 +220,10 @@ section is organized (§2.1 through §2.4).
 |---|---|
 | `CB_init_single()` | Initialize MCMC chain from cosinor fit or random draws |
 | `CBt_init_single()` | Initialization for the pipeline's time-error-aware variant |
-| `CB_MCMC_single_rj_slice()` | Core Reversible Jump MCMC sampler — main engine |
+| `CB_MCMC_single_rj_slice()` | Core Reversible Jump MCMC sampler, the main engine |
 | `CB_getAllEst()` | Posterior point estimates + 95% credible intervals; uses `circular_HDI()` for phase |
 | `CBt_sim_data()` | Simulate circadian data for testing and tutorials |
+| `Cosinor_fit()` | Classical OLS cosinor fit, the non-Bayesian baseline the paper contrasts BayRC with |
 | `circular_HDI()` | Shortest-arc 95% credible interval for a phase posterior |
 | `circular_median()` | Circular median of a phase posterior |
 

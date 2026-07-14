@@ -27,6 +27,7 @@ tissues, species, and disease contexts.
       \item \code{\link{CB_MCMC_single_rj_slice}}
       \item \code{\link{CB_getAllEst}}
       \item \code{\link{CBt_sim_data}}
+      \item \code{\link{Cosinor_fit}}
       \item \code{\link{circular_HDI}}
       \item \code{\link{circular_median}}
     }

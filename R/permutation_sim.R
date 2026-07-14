@@ -621,6 +621,15 @@ bootstrap_conservation_pathway_within <- function(dat1, dat2, pathway.list,
 #' @param qvalue_threshold Numeric or \code{NULL}; q-value significance
 #'   cutoff.
 #' @param output.dir Character; directory for Excel output.
+#' @param save_output Logical; if \code{TRUE} (default), write results to an
+#'   Excel file in \code{output.dir}. Set \code{FALSE} to skip the write
+#'   (e.g. in tests or CI).
+#' @param use_cpp Logical; if \code{TRUE}, use the Rcpp-accelerated
+#'   concordance computation (default \code{FALSE}, pure R).
+#' @param compute_pvalue Logical; if \code{TRUE} (default), run the
+#'   permutation test for statistical significance.
+#' @param compute_ci Logical; if \code{TRUE} (default), run bootstrap
+#'   resampling for a 95\% confidence interval on the adjusted concordance.
 #'
 #' @return Named list of pairwise result data.frames.  Also writes an
 #'   Excel file to \code{output.dir}.
