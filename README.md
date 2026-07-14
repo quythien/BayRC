@@ -31,12 +31,6 @@ remotes::install_github("quythien/BayRC", upgrade = "never", build_vignettes = T
 library(BayRC)
 ```
 
-If you've cloned the repository and want to work on it locally:
-
-```r
-devtools::load_all("path/to/your/local/BayRC")
-```
-
 **Dependencies:** `Rcpp`, `circular`, `ggplot2`, `dplyr`  
 **Suggested:** `ComplexHeatmap`, `KEGGREST`, `biomaRt`, `edgeR`, `DESeq2`, `parallel`
 
@@ -46,25 +40,22 @@ devtools::load_all("path/to/your/local/BayRC")
 
 Omental fat (OMF, a visceral adipose depot) and thyroid (THR) aren't
 directly connected the way two brain nuclei might be, but thyroid hormone
-is a master regulator of whole-body metabolic rate, so a real circadian
-relationship between them is biologically plausible. This pair was found
-by screening real posterior data across all 26 baboon tissues in the
-underlying atlas for the pair with the strongest, most genuinely mixed
-transition signal, rather than picked in advance: the search itself is
-part of what BayRC is for.
+is a master regulator of whole-body metabolic rate
+([Mullur, Liu & Brent 2014](https://doi.org/10.1152/physrev.00030.2013)),
+so a circadian relationship between them is biologically plausible. This
+pair was found by screening posterior data across all 26 baboon tissues
+in the diurnal transcriptome atlas
+([Mure et al. 2018](https://doi.org/10.1126/science.aao0318)) for the
+pair with the strongest, most balanced transition signal, rather than
+picked in advance.
 
-The numbers below come from the manuscript's real production posterior
-(2,001 iterations per condition), loaded from external files, not from
-data bundled with the package: that posterior is too large to ship with
-the package. Every number is still real output from running the current
-package code, not a fabricated or illustrative example.
+The numbers below come from a 2,001-iteration posterior per condition.
 
 ```r
-# mcmc_OMF and mcmc_THR here are real production posteriors, loaded from
+# mcmc_OMF and mcmc_THR here are production posteriors, loaded from
 # external files (not bundled with the package). For a smaller version of
-# this walkthrough you can run yourself end to end on bundled data, see
-# inst/analysis/quickstart_baboon_OMF_THR.R: real and reproducible, at a
-# shorter 2,500-iteration chain.
+# this walkthrough that runs end to end on bundled data, see
+# inst/analysis/quickstart_baboon_OMF_THR.R (a shorter 2,500-iteration chain).
 
 bf_OMF <- summarize_bay(mcmc_OMF$rho, BF = 3, p_rhythmic = 0.2)
 head(bf_OMF[order(-bf_OMF$BayesF), c("RowAverage", "BayesF")], 5)
@@ -83,8 +74,8 @@ pA <- rowMeans(mcmc_OMF$rho)
 pB <- rowMeans(mcmc_THR$rho)
 trans <- transition_classify(pA, pB, bfdr_alpha = 0.20)
 # tau_gain = 0.659, n_gain = 512 | tau_loss = 0.694, n_loss = 330 | n_cons = 1498
-# A genuinely mixed picture: substantial gain, substantial loss, and a
-# large conserved set, not one category dominating the other two
+# Gain, loss, and conservation are all substantially represented, with
+# conservation the largest single group
 
 phase <- phase_infer(phi_matrix1 = mcmc_OMF$phi, phi_matrix2 = mcmc_THR$phi,
                      gain_loss_status = trans$gain_loss_status,
@@ -93,32 +84,87 @@ phase <- phase_infer(phi_matrix1 = mcmc_OMF$phi, phi_matrix2 = mcmc_THR$phi,
 # Close to an even split between conserved and shifted timing
 
 kegg <- readRDS(system.file("extdata", "kegg_pathway_list_hsa.rds", package = "BayRC"))
-result_union <- pathSelect(mcmc.merge.list = list(A = mcmc_OMF, B = mcmc_THR),
-                           pathway.list = kegg, dataset.names = c("A", "B"),
-                           ranking.method = "union", score_type = "pos",
-                           qvalue.cut = 0.20, nperm = 500)
-# 2 of 224 testable pathways pass the Stage 1 union pre-screen (pval < 0.05):
-# the union test emphasizes the gain direction, which isn't where this
-# pair's real signal is. Running the loss-specific and conserved-specific
-# Stage 2 tests directly (ranking.method = "loss" / "conserved") finds it:
 
+# pathSelect() tests one transition direction per call. Testing all three
+# directly against the same 224 testable KEGG pathways:
+result_gain <- pathSelect(mcmc.merge.list = list(A = mcmc_OMF, B = mcmc_THR),
+                          pathway.list = kegg, dataset.names = c("A", "B"),
+                          ranking.method = "gain", score_type = "pos",
+                          qvalue.cut = 0.20, nperm = 500)
 result_loss <- pathSelect(mcmc.merge.list = list(A = mcmc_OMF, B = mcmc_THR),
                           pathway.list = kegg, dataset.names = c("A", "B"),
                           ranking.method = "loss", score_type = "pos",
                           qvalue.cut = 0.20, nperm = 500)
-# 55 of 224 pathways reach Stage 2 significance (padj/Q < 0.20) for loss,
-# including KEGG Circadian rhythm (Q = 0.021) and KEGG Circadian
-# entrainment (Q = 0.022) -- real circadian-clock-specific KEGG pathways
-# showing significant loss of rhythmicity between these two tissues
+result_cons <- pathSelect(mcmc.merge.list = list(A = mcmc_OMF, B = mcmc_THR),
+                          pathway.list = kegg, dataset.names = c("A", "B"),
+                          ranking.method = "conserved", score_type = "pos",
+                          qvalue.cut = 0.20, nperm = 500)
+# gain: 0 of 224 significant (padj < 0.20)
+# loss: 55 of 224 significant, including KEGG Circadian rhythm (Q = 0.12)
+#       and KEGG Circadian entrainment (Q = 0.12)
+# conserved: 1 of 224 significant (KEGG DNA replication, Q = 0.17)
+#
+# Loss is the only direction with a strong pathway-level signal here, even
+# though the gene-level counts above show a substantial gain set too:
+# pathway enrichment and gene-level counts are different questions.
 
 global <- multi_conservation(mcmc.merge.list = list(A = mcmc_OMF, B = mcmc_THR),
                              dataset.names = c("A", "B"),
                              select.pathway.list = "global",
                              n_perm = 200, n_boot = 200, use_cpp = TRUE,
                              save_output = FALSE)
-# AdjustedConcordance = 0.094 (95% CI 0.084-0.105), p = 0.005 -- significant;
-# GainLossRatio = 1.135 (near-balanced, slightly gain-leaning)
+# AdjustedConcordance = 0.094 (95% CI 0.084-0.105), p = 0.005 (significant);
+# GainLossRatio = 1.135 (near-balanced, slightly gain-leaning; a continuous,
+# posterior-weighted score, not the same estimand as the discrete BFDR
+# gain/loss counts above, so the two aren't expected to match)
 ```
+
+---
+
+## Expected Rhythmic Counts, Before Any Threshold
+
+Before any BFDR cutoff is applied, every gene already carries a posterior
+probability of being rhythmic, gained, lost, or conserved. Summing these
+probabilities across all 5,066 genes gives an expected count: the same
+threshold-free quantity `pathSelect()` reports per pathway above, applied
+here to the whole genome.
+
+```r
+pA <- rowMeans(mcmc_OMF$rho)
+pB <- rowMeans(mcmc_THR$rho)
+sum(pA)                    # 2,869.4 of 5,066: expected rhythmic in OMF
+sum(pB)                    # 3,005.8 of 5,066: expected rhythmic in THR
+sum((1 - pA) * pB)        # 1,185.3: expected gain
+sum(pA * (1 - pB))        # 1,048.9: expected loss
+sum(pA * pB)               # 1,820.6: expected conserved
+sum((1 - pA) * (1 - pB))  # 1,011.3: expected non-rhythmic in both
+```
+
+**Expected rhythmic per condition:**
+
+| Condition | Genes tested | Expected rhythmic |
+|---|---|---|
+| OMF | 5,066 | 2,869.4 |
+| THR | 5,066 | 3,005.8 |
+
+**Expected transition counts, genome-wide:**
+
+| Transition | Expected genes |
+|---|---|
+| Gain in THR | 1,185.3 |
+| Loss in THR | 1,048.9 |
+| Conserved | 1,820.6 |
+| Non-rhythmic in both | 1,011.3 |
+
+The expected gain-loss ratio here (1,185.3 / 1,048.9 = 1.13) is close to
+`multi_conservation()`'s GainLossRatio of 1.135 above: both are
+threshold-free, continuous quantities computed the same way, just at
+different granularity (whole-genome sum vs. the permutation-calibrated
+version). The discrete, BFDR-thresholded counts in the next section (512
+gain, 330 loss, ratio 1.55) diverge more, since thresholding at α = 0.20
+doesn't affect the gain and loss directions symmetrically for this pair.
+
+---
 
 ## How BayRC Categorizes Every Gene
 
@@ -126,12 +172,17 @@ Every gene ends up in exactly one category at each stage, all under Bayesian
 FDR control at the same alpha, no gene left unclassified. Real counts from
 the run above (5,066 genes, BFDR α = 0.20):
 
-**Single-group detection** (before the two tissues are ever compared):
+**Single-group detection** (before the two tissues are ever compared). The
+last three columns are per-gene Bayes Factor cutoffs shown for
+comparison; they don't correct for testing 5,066 genes at once, so the
+BFDR-controlled column is the one used everywhere else in this
+walkthrough (see [Rhythmic Biomarker Summary](#rhythmic-biomarker-summary)
+for why these differ):
 
-| Condition | Genes tested | Rhythmic (BFDR-controlled) |
-|---|---|---|
-| OMF | 5,066 | 3,067 |
-| THR | 5,066 | 3,461 |
+| Condition | Genes tested | Rhythmic (BFDR-controlled, α=0.20) | BF ≥ 3 | BF ≥ 5 | BF ≥ 10 |
+|---|---|---|---|---|---|
+| OMF | 5,066 | 3,067 | 3,122 | 2,700 | 2,128 |
+| THR | 5,066 | 3,461 | 3,099 | 2,795 | 2,412 |
 
 **Two-group comparison** (OMF vs. THR jointly):
 
@@ -142,9 +193,9 @@ the run above (5,066 genes, BFDR α = 0.20):
 | Loss in THR | 330 | Rhythmic in OMF only |
 | Non-rhythmic | 2,726 | Neither tissue clears the threshold |
 
-Unlike a tissue pair dominated by one category, this one shows real
-representation in all three: substantial gain, substantial loss, and the
-largest classified category still being conservation.
+Unlike a tissue pair dominated by one category, this one splits fairly
+evenly across all three: gain, loss, and conservation, with conservation
+still the largest single group.
 
 **Within the 1,498 conserved genes**, a further BFDR-controlled call on peak timing:
 
@@ -156,19 +207,25 @@ largest classified category still being conservation.
 
 Close to an even split between genes that keep their peak timing and
 genes whose timing shifts, with a meaningful undetermined band. The phase
-call is a second, independent BFDR-controlled decision layered on top of
-the conserved-rhythm call, so at this stricter alpha a larger share of
-genes clear the bar for "rhythmic in both tissues" without also clearing
-the bar for a confident phase-shift verdict.
+call has its own BFDR threshold, separate from the one used to call a
+gene conserved in the first place, so some genes clear the first bar
+without also clearing the second.
 
 ---
 
 ## Rhythmic Biomarker Summary
 
-"How many rhythmic biomarkers do I have?" doesn't have one universal
-answer: it depends on how strict a call you're willing to make. BayRC
-supports two different criteria, and it's worth seeing them side by side
-on the same OMF/THR posteriors used above.
+A raw Bayes Factor cutoff is a per-gene evidence threshold, similar in
+spirit to a p-value cutoff in classical hypothesis testing. It quantifies
+the strength of evidence for rhythmicity in a single gene (`BF =
+posterior_odds / prior_odds`, using a 20% prior prevalence, `p_rhythmic =
+0.2`, below), but it says nothing about the expected error rate once
+thousands of genes are tested together. BFDR control addresses that
+directly: it sets a data-adaptive threshold per condition, calibrated
+across the whole gene set rather than gene by gene, so the expected false
+discovery rate stays under a chosen level. That's the default criterion
+for every gain/loss/conservation call in this walkthrough. The table
+below shows both computed on the same OMF/THR posteriors.
 
 ```r
 bf_OMF <- summarize_bay(mcmc_OMF$rho, BF = 3, p_rhythmic = 0.2)
@@ -181,29 +238,26 @@ d <- detect_rhy(mcmc_OMF, mcmc_THR, bfdr_alpha = 0.20)
 d$n_rhythmic_A  # 3,067 of 5,066
 ```
 
-| Criterion | OMF rhythmic | THR rhythmic | What it controls |
-|---|---|---|---|
-| Bayes Factor ≥ 3 ("positive" evidence) | 3,122 / 5,066 | 3,099 / 5,066 | Per-gene evidence strength; no correction for testing thousands of genes at once |
-| Bayes Factor ≥ 10 ("strong" evidence) | 2,128 / 5,066 | 2,412 / 5,066 | Same, at a stricter per-gene bar |
-| BFDR-controlled, α = 0.20 | 3,067 / 5,066 | 3,461 / 5,066 | Expected false discovery rate across the whole gene set |
+| Criterion | OMF rhythmic | THR rhythmic |
+|---|---|---|
+| Bayes Factor ≥ 3 ("positive" evidence) | 3,122 / 5,066 | 3,099 / 5,066 |
+| Bayes Factor ≥ 5 | 2,700 / 5,066 | 2,795 / 5,066 |
+| Bayes Factor ≥ 10 ("strong" evidence) | 2,128 / 5,066 | 2,412 / 5,066 |
+| BFDR-controlled, α = 0.20 | 3,067 / 5,066 | 3,461 / 5,066 |
+| BFDR-controlled, α = 0.15 | 2,608 / 5,066 | 3,101 / 5,066 |
+| BFDR-controlled, α = 0.10 | 2,066 / 5,066 | 2,702 / 5,066 |
+| BFDR-controlled, α = 0.05 | 1,325 / 5,066 | 2,165 / 5,066 |
 
-A raw Bayes Factor cutoff is a per-gene evidence threshold: it says
-nothing about how many false positives to expect once you're scanning
-thousands of genes at once. BFDR control answers that question directly,
-which is why it's the default criterion for every gain/loss/conservation
-call elsewhere in this walkthrough. The two criteria don't have to agree
-gene-for-gene, and here they don't fully: they're answering related but
-distinct questions, evidence strength for one gene versus expected error
-rate across all of them, so treat a BF-based count as a quick per-gene
-screen and a BFDR-based count as the one to report as a calibrated
-biomarker list.
+These two criteria won't always agree gene-for-gene, and they don't here.
+Read the Bayes Factor counts as a quick per-gene screen; report the
+BFDR-controlled counts as the calibrated biomarker list.
 
 ---
 
 ## Checking Convergence
 
-Every number above assumes the MCMC chain actually converged and mixed
-well. BayRC checks this with `mcmc_diagnostics()`, which runs
+Every number above assumes the MCMC chain converged and mixed well. BayRC
+checks this with `mcmc_diagnostics()`, which runs
 automatically (`diagnostics = TRUE` by default in
 `CB_MCMC_single_rj_slice()`) and can also be called later on any saved
 result, since the underlying `rho`, `phi`, and `if.accept.rj` matrices are
@@ -211,7 +265,17 @@ always stored regardless of that flag:
 
 ```r
 diag_OMF <- mcmc_diagnostics(mcmc_OMF)
+# === MCMC Diagnostics ===
+# Samples stored:         2001
+# Mean acceptance rate:   0.319
+# Mean ESS (rho):         762
+# Mean ESS (phi):         389.2
 ```
+
+(Sample output above is from the bundled quickstart-scale run in
+`inst/analysis/quickstart_baboon_OMF_THR.R`: the external manuscript-scale
+posterior files store only the summarized `rho`/`phi` matrices, not the
+raw `if.accept.rj` trace the acceptance-rate diagnostic needs.)
 
 ESS for phi needs a word of caution: it isn't simply "higher is better."
 A gene with a diffuse, unconfident phase posterior can show artificially
@@ -240,23 +304,60 @@ A key deliverable of BayRC is an integrated pathway heatmap (Figure 5 in the man
 This design lets you read the entire circadian landscape of a pathway (which genes oscillate, when they peak, and whether that timing is preserved) in a single glance.
 
 `plot_heatmap()` builds this figure from `transition_classify()` and
-`phase_infer()` output. Two real examples below, both from the same
-OMF-vs-THR posterior above, both real Stage 2 loss-significant KEGG
-pathways (padj < 0.20 among 224 testable):
+`phase_infer()` output, one pathway at a time. Picking which pathway to
+plot follows from the `pathSelect()` output for a chosen direction: a
+p-value, a BH-adjusted Q-value, and the expected number of gain, loss,
+and conserved genes per pathway (a continuous, posterior-weighted
+expectation, not a BFDR-thresholded count). The 10 strongest loss-direction
+hits from `result_loss` above:
+
+| Pathway | Size | p-value | Q | Exp. gain | Exp. loss | Exp. conserved |
+|---|---|---|---|---|---|---|
+| KEGG Long-term depression | 19 | 8.1e-06 | 0.0018 | 5.7 | 4.9 | 7.3 |
+| KEGG Renal cell carcinoma | 39 | 5.0e-05 | 0.0056 | 8.5 | 9.6 | 16.9 |
+| KEGG GnRH signaling pathway | 25 | 1.1e-04 | 0.0068 | 5.4 | 7.0 | 10.7 |
+| KEGG Serotonergic synapse | 19 | 1.2e-04 | 0.0068 | 6.6 | 4.8 | 5.7 |
+| KEGG Phospholipase D signaling pathway | 40 | 3.8e-04 | 0.0145 | 10.2 | 9.3 | 16.0 |
+| KEGG Non-small cell lung cancer | 29 | 4.3e-04 | 0.0145 | 6.3 | 7.7 | 12.2 |
+| KEGG ErbB signaling pathway | 35 | 5.0e-04 | 0.0145 | 6.4 | 11.1 | 14.0 |
+| KEGG Hepatitis C | 60 | 5.2e-04 | 0.0145 | 11.9 | 16.0 | 24.6 |
+| KEGG Neurotrophin signaling pathway | 56 | 7.4e-04 | 0.0184 | 11.0 | 14.6 | 19.9 |
+| KEGG Fc epsilon RI signaling pathway | 24 | 1.0e-03 | 0.0222 | 4.4 | 7.6 | 9.2 |
+
+55 pathways clear Q < 0.20 in total, including KEGG Circadian rhythm and
+KEGG Circadian entrainment (Q = 0.12 each, further down the ranked list
+than the 10 above). Any pathway name that clears the cutoff can be passed
+straight into `plot_heatmap()`, together with its member genes from
+`kegg` and the `trans` and `phase` objects already computed above:
+
+```r
+pathway_name <- "KEGG Long-term depression"   # a significant loss-direction hit
+
+plot_heatmap(
+  data1 = mcmc_OMF, data2 = mcmc_THR,
+  pathway_genes = kegg[[pathway_name]],
+  pathway_name  = pathway_name,
+  phase_results = phase, transition_results = trans,
+  group_names = c("OMF", "THR")
+)
+```
+
+Two examples below, both significant loss-direction hits from the same
+OMF-vs-THR posterior:
 
 **KEGG Long-term depression** (padj = 0.0018, the strongest statistical
 hit) has the most balanced gene-level mix of the two: of 19 matched
-genes, 4 gain in THR, 5 loss in THR, 6 maintained, 4 non-rhythmic. Every
-transition type is genuinely represented, not just the dominant one.
+genes, 4 gain in THR, 5 loss in THR, 6 maintained, 4 non-rhythmic, with no
+single transition type dominating.
 
 ![KEGG Long-term depression pathway heatmap, baboon OMF vs THR](man/figures/pathway_heatmap_demo_ltd.png)
 
-**KEGG Circadian rhythm** (padj = 0.12, weaker statistically but the
-clearest possible thematic fit) contains the core molecular clock genes
-themselves: `NR1D1`, `NR1D2`, `PER1`, `PER2`, `CRY1`, `BMAL1`, `CLOCK`,
-`CSNK1D`, `CSNK1E`. Of 23 matched genes, 2 gain in THR, 2 loss in THR, 9
-maintained, 10 non-rhythmic; among the maintained genes, most show THR
-peaking later than OMF.
+**KEGG Circadian rhythm** (padj = 0.12, still under the Q < 0.20 cutoff)
+contains the core molecular clock genes themselves: `NR1D1`, `NR1D2`,
+`PER1`, `PER2`, `CRY1`, `BMAL1`, `CLOCK`, `CSNK1D`, `CSNK1E`. Of 23
+matched genes, 2 gain in THR, 2 loss in THR, 9 maintained, 10
+non-rhythmic; among the maintained genes, most show THR peaking later
+than OMF.
 
 ![KEGG Circadian rhythm pathway heatmap, baboon OMF vs THR](man/figures/pathway_heatmap_demo_circadian.png)
 
@@ -264,7 +365,7 @@ peaking later than OMF.
 
 ## Key Functions
 
-BayRC exports 22 functions, grouped below the same way the paper's Methods
+BayRC exports 23 functions, grouped below the same way the paper's Methods
 section is organized (§2.1 through §2.4).
 
 ### 1. MCMC Core (paper §2.1)
@@ -280,18 +381,19 @@ section is organized (§2.1 through §2.4).
 | `circular_HDI()` | Shortest-arc 95% credible interval for a phase posterior |
 | `circular_median()` | Circular median of a phase posterior |
 
-`circular_HDI()` matters because phase is periodic: a gene peaking near ZT23
-and one peaking near ZT01 are one hour apart, not 22. A naive linear
-credible interval would miss that. The panel below shows real posterior
+Phase is periodic, so a standard linear credible interval doesn't work for
+it: a gene peaking near ZT23 and one peaking near ZT01 are one hour apart,
+not 22, and a linear interval would miss that. `circular_HDI()` computes
+the interval directly on the circle instead. The panel below shows posterior
 phase distributions for four genes in baboon omental fat, all with
-posterior P(rhythmic) > 0.9, from the same real production posterior
+posterior P(rhythmic) > 0.9, from the same production posterior
 used throughout the walkthrough above. `BMAL1` and `NR1D1`, both core
 clock genes, show an HDI that sits entirely within one day; `DBP` (also a
 core clock gene) and `FAM76B` show the arc correctly wrapping through
 ZT0/ZT24, which is exactly the case a linear interval gets wrong. All
-four genes were chosen for high confidence (posterior rhythmicity > 0.7)
-so the wrapping behavior reflects real signal, not sampling noise from a
-weakly-rhythmic gene.
+four genes were chosen for high confidence (posterior P(rhythmic) between
+0.976 and 1.00) so the wrapping behavior reflects real signal, not
+sampling noise from a weakly-rhythmic gene.
 
 ![Posterior phase distribution and 95% circular HDI for four genes, baboon OMF](man/figures/circular_hdi_demo.png)
 
@@ -320,7 +422,7 @@ weakly-rhythmic gene.
 ### 3. Pathway-Level Rhythmic Enrichment and Directionality (paper §2.3)
 | Function | Purpose |
 |---|---|
-| `pathSelect()` | Stage 1: `ranking.method="union"` (active pathways); Stage 2: `"gain"`, `"loss"`, `"conserved"` — one function, all stages |
+| `pathSelect()` | Pathway enrichment test for a chosen transition direction; `ranking.method` sets which one (`"gain"`, `"loss"`, `"conserved"`, or `"union"` for combined rhythmic signal in either direction) |
 | `plot_heatmap()` | The six-panel pathway heatmap described above (Figure 5 in the manuscript) |
 | `multi_conservation_pathway()` | Pathway-level concordance score for a chosen gene set |
 | `multi_conservation_pathway_bootstrap()` | Pathway-level concordance with bootstrap confidence intervals |
@@ -329,6 +431,7 @@ weakly-rhythmic gene.
 | Function | Purpose |
 |---|---|
 | `multi_conservation()` | Full pipeline: c-score + GLR + permutation p-value + bootstrap CI |
+| `pairwise_concordance()` | Pairwise Jaccard concordance matrix across more than two tissues or conditions at once; the multi-way extension of `multi_conservation()`'s two-condition score |
 
 ### 5. Cross-Species Alignment
 
@@ -346,7 +449,7 @@ comparison in the manuscript); skip for same-species comparisons.
 
 **Posterior probability.** After seeing the data, how likely a claim is, on a
 scale from 0 to 1. In BayRC, P(rhythmic | data) is the posterior probability
-that a gene actually oscillates on a 24-hour cycle, combining the prior
+that a gene oscillates on a 24-hour cycle, combining the prior
 assumption with what the expression data show (paper §2.1, spike-and-slab
 model).
 
@@ -397,6 +500,9 @@ bootstrap confidence interval.
 - Mure LS, Le HD, Benegiamo G, et al. Diurnal transcriptome atlas of a primate
   across major neural and peripheral tissues. *Science*. 2018;359(6381):eaao0318.
   [10.1126/science.aao0318](https://doi.org/10.1126/science.aao0318)
+- Mullur R, Liu YY, Brent GA. Thyroid hormone regulation of metabolism.
+  *Physiological Reviews*. 2014;94(2):355-382.
+  [10.1152/physrev.00030.2013](https://doi.org/10.1152/physrev.00030.2013)
 - Newton MA, Noueiry A, Sarkar D, Ahlquist P. Detecting differential gene
   expression with a semiparametric hierarchical mixture method.
   *Biostatistics*. 2004;5(2):155-176.

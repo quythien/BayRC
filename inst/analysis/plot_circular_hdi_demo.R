@@ -1,8 +1,7 @@
-# Builds man/figures/circular_hdi_demo.png from the real manuscript-scale
-# OMF posterior (mcmc_rho_BF3.RData / mcmc_phi_BF3.RData, 2,001 iterations;
-# not bundled with the package). Load those two files and build mcmc_OMF via
-# match_symbols() first (see omf_thr_full_pipeline.R for the exact steps),
-# or load a cached copy with mcmc_OMF already built.
+# Builds man/figures/circular_hdi_demo.png from the manuscript-scale OMF
+# posterior (mcmc_rho_BF3.RData / mcmc_phi_BF3.RData, 2,001 iterations;
+# not bundled with the package). Assumes mcmc_OMF is already built in the
+# environment (load the two RData files, then run match_symbols() on it).
 
 suppressMessages(library(ggplot2))
 
@@ -54,7 +53,7 @@ make_panel <- function(g) {
     scale_y_continuous(limits = c(0, ring_r * 1.15)) +
     coord_polar(start = 0) +
     labs(title = sprintf("%s  (P[rhythmic] = %.2f, BF %s)", g, p$p_rhy,
-                          if (p$bf >= 1e6) "> 1e6 (unbounded)" else sprintf("= %.0f", p$bf)),
+                          if (p$bf >= 1e6) "unbounded (> 1e6)" else sprintf("= %.0f", p$bf)),
          subtitle = sprintf("median = %.1fh, 95%% circular HDI = [%.1f, %.1f]h  (red arc; black = median)",
                              p$med, p$hdi$lower, p$hdi$upper),
          x = NULL, y = NULL) +
