@@ -157,27 +157,29 @@ phase <- phase_infer(phi_matrix1 = mcmc_OMF$phi, phi_matrix2 = mcmc_THR$phi,
 
 What these categories actually look like in the raw data: one example
 gene per category, plotted in both tissues with a classical OLS cosinor
-fit overlaid (`one_cosinor_OLS()`, the non-Bayesian baseline BayRC also
-ships; this fit is for visualization only, it isn't what produced the
-gain/loss/phase calls above, those come from the RJMCMC posterior):
+fit overlaid. `Cosinor_fit()` runs `one_cosinor_OLS()` (the non-Bayesian
+baseline BayRC also ships) across every gene and BH-adjusts the p-values
+into q-values, so each panel below shows a real p and q, not just a
+single-gene p-value; this classical fit is for visualization only, it
+isn't what produced the gain/loss/phase calls above, those come from the
+RJMCMC posterior:
 
 ```r
-one_cosinor_OLS(tod = baboon$zt, y = log2(baboon$expr_OMF["CRY2", ] + 1))
+rhythm_OMF <- Cosinor_fit(list(data = log2(baboon$expr_OMF + 1),
+                               time = baboon$zt, gname = baboon$gene_symbol))$rhythm
+rhythm_OMF[rhythm_OMF$gname == "CRY2", c("pvalue", "qvalue")]
 ```
 
 ![Cosinor fit examples by transition/phase category, baboon OMF vs THR](man/figures/cosinor_examples.png)
 
-`CRY2`, a core clock repressor, illustrates Gain: flat in OMF (R² = 0.19)
-and clearly rhythmic in THR (R² = 0.92). `B4GALT4` (Loss) is the mirror
-image. `SURF2` (Phase-conserved) peaks at the same hour (8.0h) in both
-tissues. `ARNTL` (BMAL1, the core clock activator) illustrates
-Phase-shifted: peak = 13.6h in OMF vs. 16.7h in THR, a real ~3h shift,
-with a strong fit in both tissues (R² = 0.97 and 0.73). `PKN1`
-(Undetermined) looks visually similar to the conserved example in both
-tissues, and that's expected: "undetermined" means the posterior
-probability of a phase shift didn't clear the BFDR threshold in either
-direction, a statistical judgment call, not necessarily a visibly messy
-pattern.
+`CRY2`, a core clock repressor, illustrates Gain: not significant in OMF
+(q = 0.44) and clearly rhythmic in THR (q = 0.003, BF > 1e6). `B4GALT4`
+(Loss) is the mirror image (OMF q = 0.04, THR q = 0.75). `SURF2`
+(Phase-conserved) peaks at the same hour (8.0h) in both tissues (q =
+0.07 in OMF, borderline; q = 0.03 in THR). `ARNTL` (BMAL1, the core clock
+activator) illustrates Phase-shifted: peak = 13.6h in OMF vs. 16.7h in
+THR, a real ~3h shift, significant in both tissues (q = 0.0003 and
+0.014).
 
 ```r
 kegg <- readRDS(system.file("extdata", "kegg_pathway_list_hsa.rds", package = "BayRC"))
