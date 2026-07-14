@@ -178,25 +178,15 @@ global <- multi_conservation(
 
 A key deliverable of BayRC is an integrated pathway heatmap (Figure 5 in the manuscript) that reads **across five panels from left to right** for each gene in a pathway of interest:
 
-```
-┌─────────────────────┬──────────────┬──────────────────┬────────────────┬──────────────────┐
-│  Rhythmicity Status │ Phase Status │  P(ρ=1 | data)   │  Phase post.   │  Phase post.     │
-│  (transition type)  │ (timing)     │  Condition A | B │  Condition A   │  Condition B     │
-├─────────────────────┼──────────────┼──────────────────┼────────────────┼──────────────────┤
-│ ■ Conserved (orange)│ ■ Shifted    │ ░░▒▒▓▓██ │ ░▒▓█ │ MCMC posterior │ MCMC posterior   │
-│ ■ Loss in B  (blue) │   (red)      │                  │ phase dist.    │ phase dist.      │
-│ ■ Gain in B  (purple│ ■ Conserved  │ Color: white→red │ ZT −6 to 18   │ ZT −6 to 18      │
-│                     │   (green)    │ = 0 → 1          │ (blue density) │ (blue density)   │
-└─────────────────────┴──────────────┴──────────────────┴────────────────┴──────────────────┘
-```
+| Panel | Shows | How to read it |
+|---|---|---|
+| 1. Rhythmicity status | Transition type (what happened biologically) | Orange = conserved rhythm, blue = loss in B, purple = gain in B |
+| 2. Phase status | Whether peak timing shifted | Green = conserved (peaks align within ±δ hours), red = shifted (the clock resets) |
+| 3. P(ρ=1 \| data), A and B | Posterior probability of oscillation in each condition | White to red gradient, 0 to 1; deep red = confident rhythmic, near white = flat. Gain genes are red only in B, loss genes only in A |
+| 4. Phase posterior, condition A | MCMC posterior distribution of peak time (ZT −6 to 18) | A sharp blue bar means confident peak timing; a spread bar means high uncertainty. Low-rhythmicity genes show low intensity |
+| 5. Phase posterior, condition B | Same as panel 4, for condition B | Same reading as panel 4 |
 
-**Reading a row (one gene):**
-- *Left annotation* tells you **what happened biologically**: did this gene maintain its rhythm (orange), lose it (blue), or gain it (purple)?
-- *Phase annotation* tells you **whether peak timing shifted**: conserved (green) means peaks align within ±δ hours; shifted (red) means the circadian clock resets.
-- *Rhythmicity columns* show the **posterior probability of oscillation** for each condition — deep red = confident rhythmic, near-white = flat. Gain genes appear red only in B; loss genes only in A.
-- *Phase histogram panels* show the **MCMC posterior distribution of peak time** in each condition — a sharp blue bar means confident peak timing; a spread bar means high uncertainty. Genes with low rhythmicity probability are shown at low intensity.
-
-This design lets you read the entire circadian landscape of a pathway — which genes oscillate, when they peak, and whether that timing is preserved — in a single glance.
+This design lets you read the entire circadian landscape of a pathway (which genes oscillate, when they peak, and whether that timing is preserved) in a single glance.
 
 ---
 
