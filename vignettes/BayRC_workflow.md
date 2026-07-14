@@ -38,7 +38,7 @@ conservation, and timing** of 24-hour oscillations between two conditions.
 
 The statistical foundation is Bayesian inference. Where a classical method returns
 a single yes/no decision for each gene, a Bayesian approach returns a **full
-probability distribution** over all possible parameter values — amplitude, phase,
+probability distribution** over all possible parameter values: amplitude, phase,
 and whether the gene even oscillates. A gene with P(rhythmic) = 0.95 deserves a
 different interpretation than one at P(rhythmic) = 0.51, even if both cross the
 same threshold. BayRC propagates that uncertainty through every downstream step,
@@ -47,7 +47,8 @@ pathway enrichment scores and concordance calculations.
 
 The deliverables of a full BayRC analysis are: (1) per-gene posterior probability
 of rhythmicity and Bayes Factor; (2) amplitude and phase point estimates with
-95% credible intervals; (3) BFDR-controlled transition calls (Gain / Loss /
+95% credible intervals; (3) Bayesian false discovery rate (BFDR)-controlled
+transition calls (Gain / Loss /
 Maintained / Non-rhythmic); (4) phase-shift versus conservation classification for
 rhythmically maintained genes; (5) two-stage pathway enrichment with gain-loss
 ratio; and (6) a genome-wide concordance c-score with permutation p-value and
@@ -1035,7 +1036,6 @@ to biological conclusions.
 | BFDR threshold | `bfdr_from_posterior(probs, alpha)` | `alpha=0.25` | threshold, rhythmic_genes, n_rhythmic |
 | Per-condition detection | `detect_rhy(dat1, dat2, bfdr_alpha)` | `bfdr_alpha=0.25` | Rhythmic gene sets per condition |
 | Transition classification | `transition_classify(pA, pB, bfdr_alpha)` | `bfdr_alpha=0.25` | gain_loss_status vector, counts, thresholds |
-| Marginal classification | `transition_classify_marginal(pA, pB, bfdr_alpha)` | — | Alternative to joint classification |
 | Phase inference | `phase_infer(phi1, phi2, gain_loss_status, shift, bfdr_alpha, compute_hdi)` | `shift=2` or `4`, `compute_hdi=TRUE` | flag_cons, flag_shift, deltaPhi.Est, HDI |
 | Pathway enrichment | `pathSelect(mcmc.merge.list, pathway.list, ranking.method, nperm)` | `ranking.method`: "union", "gain", "loss", "conserved" | fgsea results + GLR + top genes per pathway |
 | Genome-wide concordance | `multi_conservation(..., select.pathway.list="global")` | `n_perm=1000`, `n_boot=500` | One-row data.frame; `<A>_vs_<B>_AdjustedConcordance/_PValue/_CI_Lower_Adj/_CI_Upper_Adj/_GainLossRatio` |
