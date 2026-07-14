@@ -141,15 +141,16 @@ A key deliverable of BayRC is an integrated pathway heatmap (Figure 5 in the man
 This design lets you read the entire circadian landscape of a pathway (which genes oscillate, when they peak, and whether that timing is preserved) in a single glance.
 
 `plot_heatmap()` builds this figure from `transition_classify()` and
-`phase_infer()` output. Below is a real one, the KEGG Circadian rhythm pathway
-(23 genes) in baboon putamen vs. substantia nigra, from the same GSE98965 data
-used elsewhere in this README. At this run's MCMC scale no gene crosses the
-BFDR threshold for gain/loss/conserved (hence "Non-classified" throughout the
-left two panels), but the rhythmicity and phase-posterior columns show real,
-gene-by-gene structure. A full-scale run, like the ones behind the manuscript
-figures, is what resolves the left two panels into calls.
+`phase_infer()` output. Below is a real one: KEGG Oxidative phosphorylation
+(46 genes) in baboon putamen vs. substantia nigra, from the same GSE98965 run
+used in the Quick Start above. This pathway was picked because it's the one
+Stage 1 of that run actually flagged as enriched (pval = 1.3e-4, the top hit
+out of 220 testable pathways), not for being thematically circadian. Most
+genes still fall below the BFDR threshold at this chain length, but two,
+`NDUFB7` and `NDUFA13`, clear it: both rhythmic in both tissues, both
+phase-shifted between PUT and SUN.
 
-![KEGG Circadian rhythm pathway heatmap, baboon PUT vs SUN](man/figures/pathway_heatmap_demo.png)
+![KEGG Oxidative phosphorylation pathway heatmap, baboon PUT vs SUN](man/figures/pathway_heatmap_demo.png)
 
 ---
 
