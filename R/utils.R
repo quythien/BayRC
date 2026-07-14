@@ -14,8 +14,9 @@
 #'
 #'
 #' @examples
-#' adjust.to.2pi(-pi/2)  # returns 3*pi/2
-#' adjust.to.2pi(5*pi)   # returns pi
+#' # Internal helper (not exported); call with ::: as shown here.
+#' BayRC:::adjust.to.2pi(-pi/2)  # returns 3*pi/2
+#' BayRC:::adjust.to.2pi(5*pi)   # returns pi
 adjust.to.2pi = function(x){
   ((x %% (2*pi)) + 2*pi) %% (2*pi)
 }

@@ -39,8 +39,9 @@ The input list \code{x} augmented with a \code{rhythm}
 Fits a single-period OLS cosinor model (y = M + A*cos(omega*t - phi) +
 epsilon) to every gene in a dataset using vectorised least squares,
 returning MESOR, amplitude, acrophase, R-squared, and an F-test p-value
-for rhythmicity.  Primarily used to generate priors or pre-screening for
-\code{CB_init_single}.
+for rhythmicity. This is the classical (non-Bayesian) cosinor method the
+paper contrasts BayRC's RJMCMC approach with; useful as a fast baseline
+or a quick pre-screen before running the full MCMC pipeline.
 }
 \details{
 Fit OLS cosinor model to circadian expression data
@@ -52,4 +53,5 @@ tv <- seq(0, 47, length.out = N)
 x  <- list(data = Y, time = tv, gname = paste0("G", 1:G))
 res <- Cosinor_fit(x)
 head(res$rhythm)
+
 }

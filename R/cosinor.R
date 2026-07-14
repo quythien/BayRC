@@ -6,8 +6,9 @@
 #' Fits a single-period OLS cosinor model (y = M + A*cos(omega*t - phi) +
 #' epsilon) to every gene in a dataset using vectorised least squares,
 #' returning MESOR, amplitude, acrophase, R-squared, and an F-test p-value
-#' for rhythmicity.  Primarily used to generate priors or pre-screening for
-#' \code{CB_init_single}.
+#' for rhythmicity. This is the classical (non-Bayesian) cosinor method the
+#' paper contrasts BayRC's RJMCMC approach with; useful as a fast baseline
+#' or a quick pre-screen before running the full MCMC pipeline.
 #'
 #' @param x A list with elements \code{data} (G x N data.frame or matrix),
 #'   \code{time} (length-N numeric Zeitgeber time in hours), and
@@ -34,6 +35,8 @@
 #' x  <- list(data = Y, time = tv, gname = paste0("G", 1:G))
 #' res <- Cosinor_fit(x)
 #' head(res$rhythm)
+#'
+#' @export
 Cosinor_fit = function(x, period = 24, amp.cutoff = 0,  p.adjust.method = "BH", parallel.ncores  = 1){
 
   data = as.matrix(x$data)

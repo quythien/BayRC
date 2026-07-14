@@ -37,10 +37,8 @@ Imports:
     parallel,
     purrr,
     RColorBrewer,
-    Rfast,
     rootSolve,
     tibble,
-    truncdist,
     truncnorm,
     VGAM
 LinkingTo: Rcpp

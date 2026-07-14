@@ -19,6 +19,7 @@
 #'       \item \code{\link{CB_MCMC_single_rj_slice}}
 #'       \item \code{\link{CB_getAllEst}}
 #'       \item \code{\link{CBt_sim_data}}
+#'       \item \code{\link{Cosinor_fit}}
 #'       \item \code{\link{circular_HDI}}
 #'       \item \code{\link{circular_median}}
 #'     }
@@ -55,6 +56,10 @@
 #'   }
 #' }
 #' @importFrom Rcpp evalCpp
+#' @import stats
+#' @import graphics
+#' @import grDevices
+#' @import utils
 #' @importFrom circular circular median.circular mean.circular sd.circular
 #' @importFrom ggplot2 ggplot aes geom_point geom_line geom_bar geom_histogram
 #'   geom_density geom_segment geom_ribbon geom_errorbar geom_tile

@@ -22,6 +22,7 @@ standard Zeitgeber-time scale.
 Wrap an angle into [0, 2*pi)
 }
 \examples{
-adjust.to.2pi(-pi/2)  # returns 3*pi/2
-adjust.to.2pi(5*pi)   # returns pi
+# Internal helper (not exported); call with ::: as shown here.
+BayRC:::adjust.to.2pi(-pi/2)  # returns 3*pi/2
+BayRC:::adjust.to.2pi(5*pi)   # returns pi
 }

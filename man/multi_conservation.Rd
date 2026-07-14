@@ -40,6 +40,19 @@ a pathway (default 5).}
 cutoff.}
 
 \item{output.dir}{Character; directory for Excel output.}
+
+\item{save_output}{Logical; if \code{TRUE} (default), write results to an
+Excel file in \code{output.dir}. Set \code{FALSE} to skip the write
+(e.g. in tests or CI).}
+
+\item{use_cpp}{Logical; if \code{TRUE}, use the Rcpp-accelerated
+concordance computation (default \code{FALSE}, pure R).}
+
+\item{compute_pvalue}{Logical; if \code{TRUE} (default), run the
+permutation test for statistical significance.}
+
+\item{compute_ci}{Logical; if \code{TRUE} (default), run bootstrap
+resampling for a 95\% confidence interval on the adjusted concordance.}
 }
 \value{
 Named list of pairwise result data.frames.  Also writes an
