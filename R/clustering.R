@@ -19,7 +19,6 @@
 #'   a list of consensus matrices and cluster assignments for each k from
 #'   2 to \code{k}.
 #'
-#' @export
 #'
 #' @examples
 #' \dontrun{

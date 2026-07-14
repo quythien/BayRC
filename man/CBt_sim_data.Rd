@@ -6,9 +6,9 @@
 \usage{
 CBt_sim_data(
   P = 24,
-  TOJR.grid = my.TOJR.grid[, 1:3],
-  dParam = list(g2 = my.TOJR.grid[, 4:6], g3 = my.TOJR.grid[, 4:6]),
-  G = my.TOJR.grid$n,
+  TOJR.grid = NULL,
+  dParam = NULL,
+  G = NULL,
   n = 30,
   fixed_tp = TRUE,
   sigma.t = 2,

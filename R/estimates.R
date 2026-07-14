@@ -164,7 +164,6 @@ circular_median <- function(samples, P = 24) {
 #'
 #' @return Numeric; normalised angle(s) in \[a, a + P).
 #'
-#' @export
 normalize_angle <- function(x, a = 0, P = 24) {
   return(((x - a) %% P) + a)
 }

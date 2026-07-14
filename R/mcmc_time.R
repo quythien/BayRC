@@ -46,7 +46,6 @@
 #' @return Same structure as \code{CB_MCMC_single_rj_slice} plus a
 #'   \code{t_p} matrix (N x K) of posterior samples of time-error.
 #'
-#' @export
 #'
 #' @examples
 #' \dontrun{

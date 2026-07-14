@@ -52,6 +52,13 @@ plot_pathway_integrated <- function(data1, data2,
   if(!requireNamespace("circular", quietly = TRUE)) {
     stop("Install circular: install.packages('circular')")
   }
+  # requireNamespace() above only confirms the packages are installed; the
+  # heatmap calls below (rowAnnotation, Heatmap, colorRamp2, etc.) use bare
+  # unqualified names, so these must also be attached to the search path.
+  suppressPackageStartupMessages(library(ComplexHeatmap))
+  if (requireNamespace("circlize", quietly = TRUE)) {
+    suppressPackageStartupMessages(library(circlize))
+  }
   
   # ==========================================================================
   # 1. DATA PREPARATION

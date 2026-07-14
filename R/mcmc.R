@@ -509,7 +509,7 @@ update_sigma_single = function(Y, t.c, t.s, a.N,
 #'
 #' @param Y G x N expression matrix.
 #' @param X N x 2 design matrix of cos and sin columns.
-#' @param XtX 2 x 2 matrix t(X) %*% X.
+#' @param XtX 2 x 2 matrix t(X) \%*\% X.
 #' @param beta_hat0 N x 2 OLS projection matrix.
 #' @param beta_cov0_11,beta_cov0_22,beta_cov0_rho,beta_mean0_1,beta_mean0_2
 #'   Pre-computed OLS covariance scalars used by the Jeffreys prior.
@@ -1660,7 +1660,6 @@ rtrunclgamma = function(n, a, b, shape, rate){
 # FoxWright Method 1
 ####################################################
 
-#' @export
 FoxWright1<-function(alpha,beta,gamma,eps=.00001,log=FALSE){
   u=alpha;v=gamma;w=beta;
   j=0
@@ -1704,7 +1703,6 @@ FoxWright1<-function(alpha,beta,gamma,eps=.00001,log=FALSE){
 # FoxWright Method 2
 ####################################################
 
-#' @export
 FoxWright2<-function(alpha,beta,gamma,eps=.00001,log=FALSE){
   u=alpha;v=gamma;w=beta;
   
@@ -1749,7 +1747,6 @@ FoxWright2<-function(alpha,beta,gamma,eps=.00001,log=FALSE){
 ####################################################
 
 #install.packages('Rmpfr')
-#' @export
 FoxWright3<-function(alpha,beta,gamma,eps=.00001,log=FALSE){
   u=alpha;v=gamma;w=beta;
   j=1
@@ -1797,7 +1794,6 @@ FoxWright3<-function(alpha,beta,gamma,eps=.00001,log=FALSE){
 # FoxWright Method 4
 ####################################################
 
-#' @export
 FoxWright<-function(alpha,beta,gamma,eps=.00001,log=FALSE){
   u=alpha;v=gamma;w=beta;
   ###### part 1 #######

@@ -12,6 +12,7 @@ CB_MCMC_single_rj_slice(
   thin = 20,
   n.burn = 1000,
   seed = 15213,
+  diagnostics = FALSE,
   p_rhythmic = rep(0.2, 100),
   rj.p.stay = 0.5,
   A_prior = "Jeffreys_OLS_condi",

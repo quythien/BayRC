@@ -12,7 +12,6 @@
 #'
 #' @return Numeric scalar in \[0, 2*pi).
 #'
-#' @export
 #'
 #' @examples
 #' adjust.to.2pi(-pi/2)  # returns 3*pi/2
