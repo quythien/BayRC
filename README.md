@@ -147,14 +147,15 @@ sum((1 - pA) * (1 - pB))  # 1,011.3: expected non-rhythmic in both
 | OMF | 5,066 | 2,869.4 |
 | THR | 5,066 | 3,005.8 |
 
-**Expected transition counts, genome-wide:**
+**Expected transition counts, genome-wide**, as a 2x2 table of expected
+gene counts by rhythmicity status in each condition (rows and columns
+sum to the row/column totals above, and all four cells sum to 5,066):
 
-| Transition | Expected genes |
-|---|---|
-| Gain in THR | 1,185.3 |
-| Loss in THR | 1,048.9 |
-| Conserved | 1,820.6 |
-| Non-rhythmic in both | 1,011.3 |
+| | THR rhythmic | THR non-rhythmic | Row total |
+|---|---|---|---|
+| **OMF rhythmic** | 1,820.6 (conserved) | 1,048.9 (loss in THR) | 2,869.4 |
+| **OMF non-rhythmic** | 1,185.3 (gain in THR) | 1,011.3 (non-rhythmic in both) | 2,196.6 |
+| **Column total** | 3,005.8 | 2,060.2 | 5,066 |
 
 The expected gain-loss ratio here (1,185.3 / 1,048.9 = 1.13) is close to
 `multi_conservation()`'s GainLossRatio of 1.135 above: both are
