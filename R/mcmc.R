@@ -25,10 +25,12 @@
 #'   storing samples (default 1000).
 #' @param seed Integer; random seed for reproducibility (default 15213).
 #' @param diagnostics Logical; if \code{TRUE}, compute and print basic
-#'   post-run convergence diagnostics (RJMCMC acceptance rate, mean
-#'   effective sample size for rho) and attach them as \code{$diagnostics}
-#'   on the returned list. Warns if mean ESS for rho falls below 100
-#'   (default \code{FALSE}).
+#'   post-run convergence diagnostics (RJMCMC acceptance rate, ESS for rho
+#'   and phi) and attach them as \code{$diagnostics} on the returned list,
+#'   via \code{mcmc_diagnostics()}. Warns if mean ESS for rho falls below
+#'   100 (default \code{TRUE}). Can also be computed later on any MCMC
+#'   result by calling \code{mcmc_diagnostics()} directly, even if this was
+#'   \code{FALSE} at run time.
 #' @param p_rhythmic Numeric vector of length G; prior probability
 #'   Pr(rho_g = 1) for each gene.  Enters the RJMCMC log-prior odds as
 #'   log(p / (1 - p)).  Default is \code{rep(0.2, 100)}.
@@ -94,7 +96,7 @@
 #' }
 CB_MCMC_single_rj_slice = function(Data.list, Init.value, P = 24,
                                 iteration = 3000, thin = 20, n.burn=1000,
-                                seed = 15213, diagnostics = FALSE,
+                                seed = 15213, diagnostics = TRUE,
                                 # p_rhythmic: prior Pr(rho=1) per gene (length G).
                                 # Used in the RJMCMC log prior odds: log(p/(1-p)).
                                 # Uniform prior: rep(0.2, G) means 20% prior rhythmicity.
@@ -383,41 +385,126 @@ CB_MCMC_single_rj_slice = function(Data.list, Init.value, P = 24,
     }
   }
   if (diagnostics) {
-    # Per-gene RJMCMC acceptance rate: proportion of proposed jumps accepted.
-    # if.accept.rj == -1 means stay was drawn (no jump proposed).
-    proposed <- save$if.accept.rj != -1
-    n_proposed <- rowSums(proposed)
-    n_accepted <- rowSums(save$if.accept.rj == 1, na.rm = TRUE)
-    accept_rate <- ifelse(n_proposed > 0, n_accepted / n_proposed, NA_real_)
-
-    # Per-gene ESS for rho using lag-1 autocorrelation (no external dependencies).
-    ess_rho <- apply(save$rho, 1, function(x) {
-      K <- length(x)
-      if (K < 4 || var(x) < 1e-10) return(NA_real_)
-      r1 <- tryCatch(cor(x[-K], x[-1]), error = function(e) NA_real_)
-      if (is.na(r1) || abs(r1) >= 1) return(as.numeric(K))
-      K * (1 - r1) / (1 + r1)
-    })
-
-    save$diagnostics <- list(
-      acceptance_rate      = accept_rate,
-      ess_rho              = ess_rho,
-      mean_acceptance_rate = mean(accept_rate, na.rm = TRUE),
-      mean_ess_rho         = mean(ess_rho, na.rm = TRUE),
-      n_samples            = ncol(save$rho),
-      p_rhythmic_posterior = rowMeans(save$rho)
-    )
-
-    cat("\n=== MCMC Diagnostics ===\n")
-    cat("Samples stored:        ", save$diagnostics$n_samples, "\n")
-    cat("Mean acceptance rate:  ", round(save$diagnostics$mean_acceptance_rate, 3), "\n")
-    cat("Mean ESS (rho):        ", round(save$diagnostics$mean_ess_rho, 1), "\n")
-    if (!is.na(save$diagnostics$mean_ess_rho) && save$diagnostics$mean_ess_rho < 100)
-      warning("Low mean ESS for rho (", round(save$diagnostics$mean_ess_rho, 1),
-              " < 100). Consider increasing `iteration` or decreasing `thin`.")
+    save$diagnostics <- mcmc_diagnostics(save, P = P)
   }
 
   return(save)
+}
+
+#' Post-hoc MCMC convergence diagnostics
+#'
+#' @description
+#' Computes the same convergence diagnostics that
+#' \code{CB_MCMC_single_rj_slice()} attaches when called with
+#' \code{diagnostics = TRUE} (its default): per-gene RJMCMC acceptance rate,
+#' per-gene effective sample size (ESS) for the rhythmicity indicator
+#' \code{rho}, and per-gene ESS for phase \code{phi}. Use this on an MCMC
+#' result that was run with \code{diagnostics = FALSE}; the underlying
+#' \code{rho}, \code{phi}, and \code{if.accept.rj} matrices are always
+#' stored in the returned object regardless of that flag, so diagnostics can
+#' always be computed after the fact.
+#'
+#' @param mcmc_result List returned by \code{CB_MCMC_single_rj_slice()} (or
+#'   compatible), containing \code{$rho}, \code{$phi}, and
+#'   \code{$if.accept.rj}.
+#' @param P Numeric; circadian period in hours, matching the value used for
+#'   the MCMC run (default 24). Needed to convert \code{phi} to radians for
+#'   its circular autocorrelation.
+#'
+#' @details
+#' \code{phi} is periodic (an hour near \code{P} is one step from an hour
+#' near 0), so its lag-1 autocorrelation is computed on the circle: phase is
+#' converted to radians and the autocorrelation is the mean cosine of
+#' successive phase differences, \code{mean(cos(phi_rad[-1] -
+#' phi_rad[-K]))}, rather than a linear Pearson correlation on the raw
+#' hour values (which would be distorted by wraparound near \code{0/P}).
+#' \code{rho} is binary and unaffected by this, so its ESS still uses linear
+#' lag-1 autocorrelation.
+#'
+#' @return A list: \code{acceptance_rate}, \code{ess_rho}, \code{ess_phi}
+#'   (all per-gene, named by gene), \code{mean_acceptance_rate},
+#'   \code{mean_ess_rho}, \code{mean_ess_phi}, \code{n_samples}, and
+#'   \code{p_rhythmic_posterior}. Also printed as a summary; warns if mean
+#'   ESS for rho falls below 100.
+#'
+#' @export
+#'
+#' @examples
+#' \dontrun{
+#' mcmc_out <- CB_MCMC_single_rj_slice(dat, init, diagnostics = FALSE)
+#' diag <- mcmc_diagnostics(mcmc_out)
+#' }
+mcmc_diagnostics = function(mcmc_result, P = 24) {
+  if (is.null(mcmc_result$rho) || is.null(mcmc_result$if.accept.rj))
+    stop("mcmc_result must contain $rho and $if.accept.rj (as returned by CB_MCMC_single_rj_slice()).")
+
+  # Per-gene RJMCMC acceptance rate: proportion of proposed jumps accepted.
+  # if.accept.rj == -1 means stay was drawn (no jump proposed).
+  proposed <- mcmc_result$if.accept.rj != -1
+  n_proposed <- rowSums(proposed)
+  n_accepted <- rowSums(mcmc_result$if.accept.rj == 1, na.rm = TRUE)
+  accept_rate <- ifelse(n_proposed > 0, n_accepted / n_proposed, NA_real_)
+
+  # Per-gene ESS for rho using lag-1 autocorrelation (no external dependencies).
+  ess_rho <- apply(mcmc_result$rho, 1, function(x) {
+    K <- length(x)
+    if (K < 4 || var(x) < 1e-10) return(NA_real_)
+    r1 <- tryCatch(cor(x[-K], x[-1]), error = function(e) NA_real_)
+    if (is.na(r1) || abs(r1) >= 1) return(as.numeric(K))
+    K * (1 - r1) / (1 + r1)
+  })
+
+  # Per-gene ESS for phi using circular lag-1 autocorrelation (phi wraps at
+  # 0/P, so a linear correlation on the raw hour values would be wrong).
+  ess_phi <- if (is.null(mcmc_result$phi)) {
+    NA_real_
+  } else {
+    apply(mcmc_result$phi, 1, function(x) {
+      K <- length(x)
+      if (K < 4) return(NA_real_)
+      x_rad <- x * (2 * pi / P)
+      r1 <- mean(cos(x_rad[-1] - x_rad[-K]))
+      if (is.na(r1) || abs(r1) >= 1) return(as.numeric(K))
+      K * (1 - r1) / (1 + r1)
+    })
+  }
+
+  # Per-gene posterior phase estimate: circular median over the rhythmic
+  # draws only (phi is only biologically meaningful when rho = 1 for that
+  # draw), paralleling p_rhythmic_posterior's per-gene summary for rho.
+  phi_posterior_median <- if (is.null(mcmc_result$phi)) {
+    NA_real_
+  } else {
+    vapply(seq_len(nrow(mcmc_result$rho)), function(g) {
+      phi_rhy <- mcmc_result$phi[g, mcmc_result$rho[g, ] == 1]
+      if (length(phi_rhy) < 4) return(NA_real_)
+      circular_median(phi_rhy, P = P)
+    }, numeric(1))
+  }
+  if (is.numeric(phi_posterior_median)) names(phi_posterior_median) <- rownames(mcmc_result$rho)
+
+  diagnostics <- list(
+    acceptance_rate      = accept_rate,
+    ess_rho              = ess_rho,
+    ess_phi              = ess_phi,
+    mean_acceptance_rate = mean(accept_rate, na.rm = TRUE),
+    mean_ess_rho         = mean(ess_rho, na.rm = TRUE),
+    mean_ess_phi         = mean(ess_phi, na.rm = TRUE),
+    n_samples            = ncol(mcmc_result$rho),
+    p_rhythmic_posterior = rowMeans(mcmc_result$rho),
+    phi_posterior_median = phi_posterior_median
+  )
+
+  cat("\n=== MCMC Diagnostics ===\n")
+  cat("Samples stored:        ", diagnostics$n_samples, "\n")
+  cat("Mean acceptance rate:  ", round(diagnostics$mean_acceptance_rate, 3), "\n")
+  cat("Mean ESS (rho):        ", round(diagnostics$mean_ess_rho, 1), "\n")
+  cat("Mean ESS (phi):        ", round(diagnostics$mean_ess_phi, 1), "\n")
+  if (!is.na(diagnostics$mean_ess_rho) && diagnostics$mean_ess_rho < 100)
+    warning("Low mean ESS for rho (", round(diagnostics$mean_ess_rho, 1),
+            " < 100). Consider increasing `iteration` or decreasing `thin`.")
+
+  diagnostics
 }
 
 # Updating functions ------------------------------------------------------

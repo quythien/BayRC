@@ -12,7 +12,7 @@ CB_MCMC_single_rj_slice(
   thin = 20,
   n.burn = 1000,
   seed = 15213,
-  diagnostics = FALSE,
+  diagnostics = TRUE,
   p_rhythmic = rep(0.2, 100),
   rj.p.stay = 0.5,
   A_prior = "Jeffreys_OLS_condi",
@@ -56,10 +56,12 @@ storing samples (default 1000).}
 \item{seed}{Integer; random seed for reproducibility (default 15213).}
 
 \item{diagnostics}{Logical; if \code{TRUE}, compute and print basic
-post-run convergence diagnostics (RJMCMC acceptance rate, mean
-effective sample size for rho) and attach them as \code{$diagnostics}
-on the returned list. Warns if mean ESS for rho falls below 100
-(default \code{FALSE}).}
+post-run convergence diagnostics (RJMCMC acceptance rate, ESS for rho
+and phi) and attach them as \code{$diagnostics} on the returned list,
+via \code{mcmc_diagnostics()}. Warns if mean ESS for rho falls below
+100 (default \code{TRUE}). Can also be computed later on any MCMC
+result by calling \code{mcmc_diagnostics()} directly, even if this was
+\code{FALSE} at run time.}
 
 \item{p_rhythmic}{Numeric vector of length G; prior probability
 Pr(rho_g = 1) for each gene.  Enters the RJMCMC log-prior odds as
