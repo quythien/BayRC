@@ -607,7 +607,7 @@ plot_heatmap(
 #>   [full] Using all 21 genes
 ```
 
-![plot of chunk pathway-heatmap](figure/pathway-heatmap-1.png)
+![plot of chunk pathway-heatmap](figure/pathway-heatmap-1.svg)
 
 ```
 #> 

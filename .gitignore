@@ -14,8 +14,6 @@
 !tests/**
 !inst/
 !inst/**
-!data/
-!data/**
 !DESCRIPTION
 !NAMESPACE
 !README.md
@@ -49,3 +47,6 @@ cache/
 
 # Paper kept local only (not tracked in git)
 paper/
+
+# knitr-generated vignette figures (regenerated at build time, not committed)
+vignettes/figure/

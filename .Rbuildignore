@@ -17,3 +17,4 @@
 ^\.Rhistory$
 ^\.RData$
 ^Rplots\.pdf$
+^vignettes/figure$

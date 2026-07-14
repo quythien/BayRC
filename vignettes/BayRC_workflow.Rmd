@@ -19,10 +19,11 @@ knitr::opts_chunk$set(
   eval     = TRUE,
   fig.width = 7,
   fig.height = 5,
-  dev = "png",
-  dev.args = list(type = "cairo"),
+  dev = "svg",
   dpi = 120
 )
+# svg avoids a raster (png/jpeg) device entirely, so this vignette renders
+# on headless build machines without X11 or Cairo support.
 # fgsea and any other package used below that accepts a process/core count is
 # pinned to a single process, so this vignette stays inside R CMD check's core
 # budget; none of the functions called here spawn a parallel cluster.

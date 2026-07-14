@@ -116,7 +116,15 @@ installing the package.
 - `vignettes/BayRC_workflow.Rmd` rewritten to be genuinely runnable (was
   entirely `eval = FALSE` with placeholder objects that don't exist,
   which is a real `R CMD check` ERROR since `knitr::purl()` extracts
-  chunk code regardless of the `eval` option).
+  chunk code regardless of the `eval` option); runs an actual 62-gene
+  chain on the bundled baboon data in under a minute. Uses `dev = "svg"`
+  rather than `dev = "png"` with a forced Cairo device type, since the
+  latter fails under `R CMD check`'s vignette rebuild on machines without
+  a working X11/Cairo `png()` (knitr's own device-operability probe does
+  not account for `dev.args`, so it silently falls back to an
+  incompatible device). The knitted `vignettes/figure/` directory is no
+  longer committed (regenerated at build time; `R CMD check` flags a
+  committed copy as a stray leftover).
 - Unused `Rfast`/`truncdist` removed from `DESCRIPTION` `Imports`.
 
 # BayRC 0.2.0 (2026-04-23)
