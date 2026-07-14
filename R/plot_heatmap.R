@@ -34,15 +34,15 @@
 #' @return Called for side effects; invisibly returns the heatmap object.
 #'
 #' @export
-plot_pathway_integrated <- function(data1, data2,
-                                    pathway_genes,
-                                    pathway_name,
-                                    phase_results,
-                                    transition_results = NULL,
-                                    group_names = c("Group1", "Group2"),
-                                    save_path = NULL,
-                                    n_bins = 24,
-                                    versions = c("full", "rhythmic_only", "both")) {
+plot_heatmap <- function(data1, data2,
+                          pathway_genes,
+                          pathway_name,
+                          phase_results,
+                          transition_results = NULL,
+                          group_names = c("Group1", "Group2"),
+                          save_path = NULL,
+                          n_bins = 24,
+                          versions = c("full", "rhythmic_only", "both")) {
 
   versions <- match.arg(versions)
   

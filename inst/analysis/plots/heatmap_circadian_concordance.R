@@ -45,7 +45,7 @@ subtitle_text <- if (is.na(adj_conc)) {
 }
 
 # Build heatmap using existing integrated plotting
-plot_pathway_integrated(
+plot_heatmap(
   data1 = baboon_LUN,
   data2 = human_LUN,
   pathway_genes = kegg.pathway.list_hsa[[pathway_name]],

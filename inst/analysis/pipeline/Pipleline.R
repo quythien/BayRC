@@ -2439,7 +2439,7 @@ for (pathway in all_pathways_to_plot) {
     
     while (dev.cur() > 1) dev.off()
     
-    plot_pathway_integrated(
+    plot_heatmap(
       data1 = mcmc_age$COMBINED_younger,
       data2 = mcmc_age$COMBINED_older,
       pathway_genes = pathway_genes,
