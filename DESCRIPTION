@@ -1,7 +1,7 @@
 Package: BayRC
 Type: Package
 Title: Bayesian Framework for Comparative Circadian Genomics
-Version: 0.2.0
+Version: 0.3.0
 Authors@R: c(
     person("Thien Quy", "Pham", role = c("aut", "cre"),
            email = "quythien14@gmail.com"),
