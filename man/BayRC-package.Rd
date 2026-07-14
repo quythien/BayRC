@@ -19,54 +19,61 @@ tissues, species, and disease contexts.
 }
 \section{Main functions}{
 
-\describe{
-  \item{MCMC core (paper Sec. 2.1)}{
-    \itemize{
-      \item \code{\link{CB_init_single}}
-      \item \code{\link{CBt_init_single}}
-      \item \code{\link{CB_MCMC_single_rj_slice}}
-      \item \code{\link{CB_getAllEst}}
-      \item \code{\link{CBt_sim_data}}
-      \item \code{\link{Cosinor_fit}}
-      \item \code{\link{circular_HDI}}
-      \item \code{\link{circular_median}}
-    }
-  }
-  \item{Gene-level biomarker detection with BFDR control (paper Sec. 2.2)}{
-    \itemize{
-      \item \code{\link{match_symbols}}
-      \item \code{\link{bfdr_from_posterior}}
-      \item \code{\link{detect_rhy}}
-      \item \code{\link{summarize_bay}}
-      \item \code{\link{transition_classify}}
-      \item \code{\link{phase_infer}}
-    }
-  }
-  \item{Pathway-level rhythmic enrichment (paper Sec. 2.3)}{
-    \itemize{
-      \item \code{\link{pathSelect}}
-      \item \code{\link{plot_heatmap}}
-      \item \code{\link{multi_conservation_pathway}}
-      \item \code{\link{multi_conservation_pathway_bootstrap}}
-    }
-  }
-  \item{Genome-wide concordance summary (paper Sec. 2.4)}{
-    \itemize{
-      \item \code{\link{multi_conservation}}
-      \item \code{\link{pairwise_concordance}}
-    }
-  }
-  \item{Cross-species alignment}{
-    \itemize{
-      \item \code{\link{match_homologs}}
-      \item \code{\link{merge_mcmc}}
-    }
-  }
+\strong{MCMC core (paper Sec. 2.1)}
+
+\itemize{
+  \item \code{\link{CB_init_single}}
+  \item \code{\link{CBt_init_single}}
+  \item \code{\link{CB_MCMC_single_rj_slice}}
+  \item \code{\link{CB_getAllEst}}
+  \item \code{\link{CBt_sim_data}}
+  \item \code{\link{Cosinor_fit}}
+  \item \code{\link{circular_HDI}}
+  \item \code{\link{circular_median}}
+}
+
+\strong{Single-group biomarker detection with BFDR control (paper Sec. 2.2)}
+
+\itemize{
+  \item \code{\link{match_symbols}}
+  \item \code{\link{bfdr_from_posterior}}
+  \item \code{\link{summarize_bay}}
+}
+
+\strong{Two-group transition classification and phase concordance (paper Sec. 2.2)}
+
+\itemize{
+  \item \code{\link{detect_rhy}}
+  \item \code{\link{transition_classify}}
+  \item \code{\link{phase_infer}}
+}
+
+\strong{Pathway-level rhythmic enrichment (paper Sec. 2.3)}
+
+\itemize{
+  \item \code{\link{pathSelect}}
+  \item \code{\link{plot_heatmap}}
+  \item \code{\link{multi_conservation_pathway}}
+  \item \code{\link{multi_conservation_pathway_bootstrap}}
+}
+
+\strong{Genome-wide concordance summary (paper Sec. 2.4)}
+
+\itemize{
+  \item \code{\link{multi_conservation}}
+  \item \code{\link{pairwise_concordance}}
+}
+
+\strong{Cross-species alignment}
+
+\itemize{
+  \item \code{\link{match_homologs}}
+  \item \code{\link{merge_mcmc}}
 }
 }
 
 \author{
-\strong{Maintainer}: Thien Quy Pham \email{quythien14@gmail.com}
+\strong{Maintainer}: Thien Quy Pham \email{qtp1@pitt.edu}
 
 Authors:
 \itemize{
