@@ -79,30 +79,52 @@ mcmc_SUN <- CB_MCMC_single_rj_slice(Data.list = data_list_SUN, Init.value = init
 # mcmc_PUT$rho — posterior samples of rhythmicity (0/1), one row per gene
 # mcmc_PUT$phi — posterior samples of phase (hours, ZT scale)
 
-# ── STEP 2: Annotate and summarize ────────────────────────────────────────
-# match_symbols() must run before anything downstream, or the row names and
-# Bayes factors below won't line up.
+# ── STEP 2: Annotate (must run before anything downstream) ───────────────
 mcmc_PUT <- match_symbols(mcmc_PUT, BF = 3, p_rhythmic = 0.2)
 mcmc_SUN <- match_symbols(mcmc_SUN, BF = 3, p_rhythmic = 0.2)
-
-pA <- rowMeans(mcmc_PUT$rho)   # Pr(rhythmic | data), PUT
-pB <- rowMeans(mcmc_SUN$rho)   # Pr(rhythmic | data), SUN
-# mean P(rhythmic): 0.154 in PUT, 0.147 in SUN
+# match_symbols() computes a Bayes Factor per gene internally and stores the
+# binary call as attr(rho, "RHYindex"); see Part 1 below for the same BF
+# ranking on its own.
 
 est_PUT <- CB_getAllEst(mcmc_PUT, burn = 50)
 names(est_PUT) <- c("A", "phi", "M", "sigma")   # returned unnamed; name once for $-access
 
-# ── STEP 3: Transition classification (gain / loss / conserved) ──────────
+# ═══ PART 1: single-group biomarker detection ════════════════════════════
+# Rank genes within one condition by Bayes Factor, before ever comparing
+# conditions. BF = posterior odds / prior odds; BF > 3 is a common call.
+
+bf_PUT <- summarize_bay(mcmc_PUT$rho, BF = 3, p_rhythmic = 0.2)
+head(bf_PUT[order(-bf_PUT$BayesF), c("RowAverage", "BayesF")], 5)
+#         RowAverage BayesF
+# LAMTOR4       0.93  56.80
+# NDUFA13       0.92  46.67
+# DPP7          0.89  34.00
+# NDUFB7        0.89  34.00
+# TMEM222       0.89  34.00
+
+detected <- detect_rhy(mcmc_PUT, mcmc_SUN, bfdr_alpha = 0.25)
+# BFDR-controlled per-condition detection (independent thresholds per
+# condition, not a fixed BF cutoff): 58 rhythmic genes in PUT, 85 in SUN,
+# of 5,066 tested.
+
+# ═══ PART 2: two-group comparison ═════════════════════════════════════════
+# Now compare PUT and SUN jointly: which genes gained, lost, or kept their
+# rhythm, and among the kept ones, did peak timing hold or shift?
+
+pA <- rowMeans(mcmc_PUT$rho)   # Pr(rhythmic | data), PUT
+pB <- rowMeans(mcmc_SUN$rho)   # Pr(rhythmic | data), SUN
+
 trans <- transition_classify(pA, pB, bfdr_alpha = 0.25)
 # tau_gain = 1, n_gain = 0 | tau_loss = 1, n_loss = 0 | tau_cons = 0.68, n_cons = 8
+# "Conserved" is as much a finding here as gain or loss: these are the 8
+# genes confidently rhythmic in both tissues, not just the leftover category.
 
-# ── STEP 4: Phase concordance among conserved genes ───────────────────────
 phase <- phase_infer(phi_matrix1 = mcmc_PUT$phi, phi_matrix2 = mcmc_SUN$phi,
                      gain_loss_status = trans$gain_loss_status,
                      shift = 2, P = 24, bfdr_alpha = 0.25, compute_hdi = TRUE)
 # of the 8 conserved genes: 0 phase-conserved, 8 phase-shifted
 
-# ── STEP 5A: Two-stage pathway enrichment ─────────────────────────────────
+# ── STEP 3: Two-stage pathway enrichment ──────────────────────────────────
 kegg <- readRDS("data/kegg_pathway_list_hsa.rds")   # 354 KEGG pathways, real gene sets
 
 result_union <- pathSelect(mcmc.merge.list = list(A = mcmc_PUT, B = mcmc_SUN),
@@ -114,7 +136,7 @@ active <- dplyr::filter(result_union$results, pval < 0.05)$pathway
 # Oxidative phosphorylation (pval = 1.3e-4), which lines up with the paper's
 # own SUN-PUT finding that oxidative phosphorylation is enriched here
 
-# ── STEP 5B: Genome-wide concordance ──────────────────────────────────────
+# ── STEP 4: Genome-wide concordance ───────────────────────────────────────
 global <- multi_conservation(mcmc.merge.list = list(A = mcmc_PUT, B = mcmc_SUN),
                              dataset.names = c("A", "B"),
                              select.pathway.list = "global",
@@ -123,6 +145,41 @@ global <- multi_conservation(mcmc.merge.list = list(A = mcmc_PUT, B = mcmc_SUN),
 # AdjustedConcordance = 0.044 (95% CI 0.038-0.049), p = 0.005 -- significant,
 # though genuinely small given the short chain length above
 ```
+
+## How BayRC Categorizes Every Gene
+
+Every gene ends up in exactly one category at each stage, all under Bayesian
+FDR control at the same alpha, no gene left unclassified. Real counts from
+the run above (5,066 genes, BFDR α = 0.25):
+
+**Part 1, single-group detection** (before the two tissues are ever compared):
+
+| Condition | Genes tested | Rhythmic (BFDR-controlled) |
+|---|---|---|
+| PUT | 5,066 | 58 |
+| SUN | 5,066 | 85 |
+
+**Part 2, two-group comparison** (PUT vs. SUN jointly):
+
+| Category | Genes | What it means |
+|---|---|---|
+| Conserved | 8 | Rhythmic in both tissues, confidently |
+| Gain in SUN | 0 | Rhythmic in SUN only |
+| Loss in SUN | 0 | Rhythmic in PUT only |
+| Non-rhythmic | 5,058 | Neither tissue clears the threshold |
+
+**Within the 8 conserved genes**, a further BFDR-controlled call on peak timing:
+
+| Phase category | Genes |
+|---|---|
+| Phase-conserved | 0 |
+| Phase-shifted | 8 |
+| Undetermined | 0 |
+
+At this chain length the conserved set is small, and every one of the 8
+happens to be phase-shifted rather than phase-conserved; a longer chain
+(as in the manuscript) recovers more conserved genes and a mix of both
+phase outcomes, as in the paper's own SUN-PUT case study.
 
 ---
 
@@ -141,16 +198,15 @@ A key deliverable of BayRC is an integrated pathway heatmap (Figure 5 in the man
 This design lets you read the entire circadian landscape of a pathway (which genes oscillate, when they peak, and whether that timing is preserved) in a single glance.
 
 `plot_heatmap()` builds this figure from `transition_classify()` and
-`phase_infer()` output. Below is a real one: KEGG Oxidative phosphorylation
-(46 genes) in baboon putamen vs. substantia nigra, from the same GSE98965 run
-used in the Quick Start above. This pathway was picked because it's the one
-Stage 1 of that run actually flagged as enriched (pval = 1.3e-4, the top hit
-out of 220 testable pathways), not for being thematically circadian. Most
-genes still fall below the BFDR threshold at this chain length, but two,
-`NDUFB7` and `NDUFA13`, clear it: both rhythmic in both tissues, both
-phase-shifted between PUT and SUN.
+`phase_infer()` output. Below is a real one: KEGG Parkinson disease
+(94 genes) in baboon putamen vs. substantia nigra, from the same GSE98965 run
+used in the Quick Start above. This pathway is enriched in the same
+comparison in the manuscript (mitochondrial and proteostasis genes), and it
+tests significant here too (pval = 0.0013). Most genes still fall below the
+BFDR threshold at this chain length, but two, `NDUFB7` and `NDUFA13`, clear
+it: both rhythmic in both tissues, both phase-shifted between PUT and SUN.
 
-![KEGG Oxidative phosphorylation pathway heatmap, baboon PUT vs SUN](man/figures/pathway_heatmap_demo.png)
+![KEGG Parkinson disease pathway heatmap, baboon PUT vs SUN](man/figures/pathway_heatmap_demo.png)
 
 ---
 
