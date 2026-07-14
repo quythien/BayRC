@@ -1,6 +1,5 @@
 ---
 title: "BayRC Workflow: Comparative Circadian Genomics"
-author: "Thien Quy Pham"
 date: "`r Sys.Date()`"
 output:
   rmarkdown::html_vignette:
@@ -17,421 +16,526 @@ vignette: >
 knitr::opts_chunk$set(
   collapse = TRUE,
   comment  = "#>",
-  eval     = FALSE   # all chunks set to eval=FALSE; run interactively with your data
+  eval     = TRUE,
+  fig.width = 7,
+  fig.height = 5,
+  dev = "png",
+  dev.args = list(type = "cairo"),
+  dpi = 120
 )
+# fgsea and any other package used below that accepts a process/core count is
+# pinned to a single process, so this vignette stays inside R CMD check's core
+# budget; none of the functions called here spawn a parallel cluster.
 ```
 
-> **Audience:** Biologists with RNA-seq experience; no Bayesian statistics
-> background required. For the full mathematical derivations see
-> Pham *et al.* (2025) and the package supplementary materials (`supplementary.tex`).
+> **Audience:** biologists with RNA-seq experience; no background in Bayesian
+> statistics is assumed. For the full derivations, see the BayRC manuscript
+> and its supplementary methods.
 
-BayRC answers one question that standard differential expression tools cannot:
+BayRC answers a question standard differential-expression tools do not:
 **how has the circadian transcriptome been remodeled between two biological
-conditions?** Which genes switched from oscillating to flat? Which gained
-rhythmicity? For genes that kept oscillating, do they still peak at the same
-hour? BayRC propagates posterior uncertainty from the gene level through pathway
-enrichment and genome-wide concordance scoring, so that confidence in a single
-gene's rhythmicity directly feeds into all downstream analyses.
+conditions?** Which genes switched from oscillating to flat? Which gained a
+24-hour rhythm they didn't have before? Among genes that kept oscillating in
+both conditions, do they still peak at the same hour, or has the clock reset
+for them? BayRC answers all three questions from one posterior sample,
+carrying the same uncertainty estimate from the single gene, through pathway
+enrichment, to a genome-wide summary score.
 
-# Data Requirements and Setup
+This vignette runs the complete five-step BayRC workflow on real data: a
+small, hand-picked gene panel from the bundled baboon putamen (PUT) versus
+substantia nigra (SUN) dataset (Mure *et al.* 2018), so every chunk below
+executes in under a minute and the numbers you see are the actual output of
+the code, not a transcript. The panel and chain length are chosen for speed,
+not statistical power: see the note at the end of the next section, and
+`README.md`'s Quick Start, for the full 5,066-gene analysis at the chain
+length used in the manuscript.
 
-## Input format
+# Data and Setup
 
 BayRC needs two objects per condition:
 
-- **Expression matrix** (`Y`): G genes × N samples, log-normalized (log-CPM,
-  VST, or similar). Row names must be gene symbols.
-- **Zeitgeber time vector** (`t`): length N, hours, matching column order of Y.
+- an expression matrix, genes by samples, log-scale (log2(FPKM + 1) here),
+  with gene symbols as row names;
+- a zeitgeber time vector, one value per sample column, in hours.
 
-```{r}
-dim(expr_PUT)    # [G, N], e.g., [15000, 48]
-length(time_PUT) # must equal ncol(expr_PUT)
-head(time_PUT)   # e.g., 0 2 4 6 8 10 ...
+The package ships a real dataset built from GSE98965 (Mure *et al.* 2018,
+*Science*): 5,066 genes, 12 zeitgeber timepoints (ZT0 to ZT22, every 2 hours)
+in each of two baboon brain regions, putamen and substantia nigra.
+
+```{r load-data}
+library(BayRC)
+
+baboon <- readRDS(system.file("extdata", "baboon_PUT_SUN_GSE98965.rds", package = "BayRC"))
+kegg   <- readRDS(system.file("extdata", "kegg_pathway_list_hsa.rds",   package = "BayRC"))
+
+dim(baboon$expr_PUT)
+baboon$zt
 ```
 
-## Installation
+## A fast gene panel for this vignette
 
-```{r}
-devtools::install("/path/to/BayRC")
+Running RJMCMC on all 5,066 genes at a chain length long enough to fully
+resolve each gene's posterior takes about 30 minutes per condition, too slow
+for a document meant to build in well under a minute. Instead this vignette
+runs on a hand-picked panel of 62 genes: the 22 genes of the KEGG Circadian
+rhythm pathway present in this dataset (the core clock machinery), 20 genes
+from KEGG Oxidative phosphorylation, and 20 background genes sampled at
+random, all fixed in advance so the panel below is exactly reproducible.
+Two of the oxidative-phosphorylation genes, `NDUFB7` and `NDUFA13`, are
+included deliberately: at the manuscript's full chain length on the complete
+5,066-gene set, these two clear the Bayesian FDR threshold for conservation
+between PUT and SUN and both show a shifted peak time, so keeping them in a
+small illustrative panel gives this vignette a real, non-trivial signal to
+walk through end to end, instead of an all-flat toy example.
 
-# Bioconductor dependencies
-if (!requireNamespace("BiocManager", quietly = TRUE))
-  install.packages("BiocManager")
-BiocManager::install("fgsea")
+```{r gene-panel}
+gene_panel <- c(
+  "ATP6AP1", "ATP6V0A2", "ATP6V0D1", "ATP6V0E1", "ATP6V1B2", "ATP6V1C1",
+  "BTRC", "CD99", "CLOCK", "COX11", "COX4I1", "CREB1", "CRY1", "CRY2",
+  "CSE1L", "CSNK1D", "CSNK1E", "CUL1", "CUL4A", "DAD1", "DBP", "DEGS1",
+  "DUSP7", "ENSPANG00000006856", "FBXL3", "FBXW11", "GPATCH4", "HIF1A",
+  "IDI1", "LHPP", "LMBR1", "MPV17", "NDUFA13", "NDUFA6", "NDUFB10",
+  "NDUFB11", "NDUFB2", "NDUFB7", "NDUFS6", "NDUFV1", "NDUFV3", "NFIL3",
+  "NR1D1", "NR1D2", "PER1", "PER2", "PPA2", "PRKAA1", "PRKAB1", "PRKAB2",
+  "PRKAG1", "PRKAG2", "RORA", "SLC39A7", "SMG7", "SOD1", "SSB", "TEX261",
+  "UQCRB", "UQCRC2", "USP53", "VASP"
+)
+n_genes <- length(gene_panel)
+idx <- match(gene_panel, baboon$gene_symbol)
+
+expr_PUT <- baboon$expr_PUT[idx, ]; rownames(expr_PUT) <- gene_panel
+expr_SUN <- baboon$expr_SUN[idx, ]; rownames(expr_SUN) <- gene_panel
 ```
+
+> **Interpretation:** Nothing about the code below is specific to this
+> panel; the same calls run unchanged on the full 5,066-gene matrix, only
+> slower. If you are adapting this vignette to your own data, this is the
+> section to replace: build `expr_PUT`/`expr_SUN`-style matrices (genes by
+> samples, log-scale) and a zeitgeber time vector, and skip the panel
+> subsetting entirely.
 
 # Step 1: MCMC Inference
 
-For each gene, BayRC fits:
-$$Y_g(t) = M_g + A_g \cos\!\left(\tfrac{2\pi}{24}(t - \phi_g)\right) + \varepsilon_g$$
+For each gene, BayRC fits a cosinor curve with a rhythmicity switch:
 
-where $M_g$ is the MESOR (midline), $A_g$ the amplitude, $\phi_g$ the acrophase
-(peak time), and $\rho_g \in \{0,1\}$ a rhythmicity indicator. Reversible Jump
-MCMC explores both the flat ($\rho_g = 0$) and rhythmic ($\rho_g = 1$) models
-in a single chain, using slice sampling for efficient amplitude-phase updates.
+$$Y_g(t) = M_g + \rho_g \, A_g \cos\!\left(\tfrac{2\pi}{24}(t - \phi_g)\right) + \varepsilon_g$$
 
-## Running the sampler
+$M_g$ is the MESOR (the rhythm-adjusted mean), $A_g$ the amplitude, $\phi_g$
+the acrophase (peak time), and $\rho_g \in \{0, 1\}$ an indicator of whether
+the gene oscillates at all. Reversible-jump MCMC moves between the flat
+($\rho_g = 0$) and rhythmic ($\rho_g = 1$) models within a single chain
+(Green 1995), updating amplitude and phase with slice sampling (Neal 2003).
+The output is not a single best-fit curve per gene but a full posterior
+sample of $\rho$, $\phi$, $A$, and $M$, which is what lets every downstream
+step (Bayes factors, transition calls, phase concordance, pathway
+enrichment) carry uncertainty forward instead of conditioning on a point
+estimate.
 
-```{r}
-library(BayRC)
+```{r mcmc, results='hide'}
+data_list_PUT <- list(data = as.data.frame(log2(expr_PUT + 1)),
+                       time = baboon$zt, gname = gene_panel)
+data_list_SUN <- list(data = as.data.frame(log2(expr_SUN + 1)),
+                       time = baboon$zt, gname = gene_panel)
 
-# --- Condition A: Putamen ---
-data_list_PUT <- list(
-  data  = as.data.frame(expr_PUT),
-  time  = time_PUT,
-  gname = rownames(expr_PUT)
-)
-init_PUT  <- CB_init_single(Data.list = data_list_PUT, P = 24)
-mcmc_PUT  <- CB_MCMC_single_rj_slice(
-  Data.list  = data_list_PUT,
-  Init.value = init_PUT,
-  P          = 24,
-  iteration  = 3000,  # post-thinning stored iterations
-  n.burn     = 1000,  # warm-up discarded
-  thin       = 20,    # keep 1 of every 20 raw steps
-  p_rhythmic = rep(0.2, nrow(data_list_PUT$data))  # prior P(rhythmic)
-)
-
-# --- Condition B: Substantia Nigra ---
-data_list_SUN <- list(
-  data  = as.data.frame(expr_SUN),
-  time  = time_SUN,
-  gname = rownames(expr_SUN)
-)
-init_SUN  <- CB_init_single(Data.list = data_list_SUN, P = 24)
-mcmc_SUN  <- CB_MCMC_single_rj_slice(
-  Data.list  = data_list_SUN,
-  Init.value = init_SUN,
-  P = 24, iteration = 3000, n.burn = 1000, p_rhythmic = rep(0.2, nrow(data_list_SUN$data))
-)
-
-# Save immediately — MCMC is the most expensive step
-saveRDS(mcmc_PUT, "mcmc_PUT.rds")
-saveRDS(mcmc_SUN, "mcmc_SUN.rds")
-```
-
-> **Output:** Each `mcmc_*` object contains G × K matrices: `$rho` (rhythmicity
-> indicator), `$phi` (acrophase), `$A` (amplitude), `$M` (MESOR). K = stored
-> iterations after thinning.
-
-## Optional: convergence diagnostics
-
-```{r}
+init_PUT <- CB_init_single(Data.list = data_list_PUT, P = 24)
 mcmc_PUT <- CB_MCMC_single_rj_slice(
-  Data.list = data_list_PUT, Init.value = init_PUT,
-  P = 24, iteration = 3000, n.burn = 1000,
-  p_rhythmic = rep(0.2, nrow(data_list_PUT$data)),
-  diagnostics = TRUE   # prints ESS, acceptance rate; appends $diagnostics to output
+  Data.list = data_list_PUT, Init.value = init_PUT, P = 24,
+  iteration = 3000, n.burn = 500, thin = 10,          # short chain: vignette speed only
+  p_rhythmic = rep(0.2, n_genes),
+  save.file  = tempfile(fileext = ".rds"),             # keep intermediate saves out of the repo
+  save.file2 = tempfile(fileext = ".rds")
 )
-# Console output:
-# === MCMC Diagnostics ===
-# Samples stored:          3000
-# Mean acceptance rate:    0.135
-# Mean ESS (rho):          842
+
+init_SUN <- CB_init_single(Data.list = data_list_SUN, P = 24)
+mcmc_SUN <- CB_MCMC_single_rj_slice(
+  Data.list = data_list_SUN, Init.value = init_SUN, P = 24,
+  iteration = 3000, n.burn = 500, thin = 10,
+  p_rhythmic = rep(0.2, n_genes),
+  save.file  = tempfile(fileext = ".rds"),
+  save.file2 = tempfile(fileext = ".rds")
+)
 ```
 
-> **Interpretation:** Acceptance rates of 10-20% indicate healthy RJMCMC mixing.
-> Mean ESS > 200 is satisfactory for Bayesian false discovery rate (BFDR)-controlled
-> downstream analysis (see Step 3 below).
+```{r mcmc-dim}
+dim(mcmc_PUT$rho)   # genes x stored posterior draws
+```
 
-# Step 2: Annotate and Extract Summaries
+> **Interpretation:** `iteration = 3000, n.burn = 500, thin = 10` on 62
+> genes is a chain sized for this document to build in seconds; README's
+> Quick Start runs `iteration = 2000, n.burn = 500` (default `thin = 20`) on
+> the full 5,066 genes, which is why that version takes about 30 minutes
+> per condition instead of seconds. A short chain and a small gene panel
+> both reduce statistical power, so treat every number in this vignette as
+> a demonstration of the mechanics, not a result to cite. `save.file`/
+> `save.file2` point at temporary files here only so this document does not
+> leave stray `.rds` files behind; in your own analysis, point them
+> somewhere you actually want a crash-recovery checkpoint.
 
-## Mandatory annotation with `match_symbols()`
+# Step 2: Posterior Summaries
 
-```{r}
-# Attaches gene symbols and RHYindex (BF > 3 binary call) to the MCMC object.
-# match_symbols() defaults to p_rhythmic = 0.5, so pass p_rhythmic = 0.2
-# explicitly here to match the prior used in CB_MCMC_single_rj_slice above.
-# A mismatch here miscalibrates RHYindex and any Bayes Factor computed later.
+## Annotate first
+
+`match_symbols()` has to run once per condition, immediately after MCMC and
+before anything downstream; it attaches gene symbols and a Bayes-factor-based
+call to the `rho` matrix as R attributes that later functions read.
+
+```{r match-symbols, results='hide'}
 mcmc_PUT <- match_symbols(mcmc_PUT, BF = 3, p_rhythmic = 0.2)
 mcmc_SUN <- match_symbols(mcmc_SUN, BF = 3, p_rhythmic = 0.2)
 ```
 
-## Posterior rhythmicity probability
+## Posterior probability of rhythmicity
 
-```{r}
-pA <- rowMeans(mcmc_PUT$rho)   # P(rhythmic | data), condition A
-pB <- rowMeans(mcmc_SUN$rho)   # condition B
+`rowMeans()` on the `rho` matrix is the posterior probability that a gene
+oscillates, P(rho = 1 | data): the fraction of retained MCMC draws in which
+that gene was in the rhythmic state.
 
-hist(pA, breaks = 50, main = "P(rhythmic | data) — Putamen",
-     xlab = "Posterior probability", col = "steelblue")
+```{r pA-pB}
+pA <- rowMeans(mcmc_PUT$rho)   # P(rhythmic | data), putamen
+pB <- rowMeans(mcmc_SUN$rho)   # P(rhythmic | data), substantia nigra
 ```
 
-> **Interpretation:** `pA = 0.92` means 92% of MCMC samples supported the
-> rhythmic model for that gene — a direct probability statement, not a p-value.
+## Bayes factor and per-condition detection
 
-## Bayes Factor
+`summarize_bay()` turns the same posterior probability into a Bayes factor,
+BF = posterior odds / prior odds, which is easier to compare against a fixed
+evidence scale (BF > 3 moderate, > 10 strong, > 100 decisive).
+`detect_rhy()` applies Bayesian FDR (BFDR) control independently in each
+condition to decide which genes count as rhythmic, rather than using a fixed
+BF cutoff for every dataset.
 
-```{r}
-# p_rhythmic must match the MCMC prior (0.2) or BF values will be miscalibrated.
+```{r bf-detect}
 bf_PUT <- summarize_bay(mcmc_PUT$rho, BF = 3, p_rhythmic = 0.2)
-bf_SUN <- summarize_bay(mcmc_SUN$rho, BF = 3, p_rhythmic = 0.2)
+head(bf_PUT[order(-bf_PUT$BayesF), c("RowAverage", "BayesF")], 5)
 
-cat("PUT rhythmic genes (BF > 3):", sum(bf_PUT$Rhythmicity), "\n")
+detected <- detect_rhy(mcmc_PUT, mcmc_SUN, bfdr_alpha = 0.25)
+c(rhythmic_PUT = detected$n_rhythmic_A, rhythmic_SUN = detected$n_rhythmic_B,
+  n_total = detected$n_total)
 ```
 
-| BF | Evidence for rhythmicity |
-|---|---|
-| 1–3 | Weak |
-| 3–10 | Moderate |
-| 10–100 | Strong |
-| > 100 | Decisive |
+> **Interpretation:** BFDR control sorts genes from most to least confidently
+> rhythmic, then asks: if everything above this point were called rhythmic,
+> what fraction would be wrong on average? `bfdr_from_posterior()` picks the
+> most permissive cutoff that keeps this expected error rate under
+> `bfdr_alpha` (0.25, matching the manuscript). Because it depends on the
+> shape of the whole posterior-probability distribution rather than a fixed
+> threshold like BF > 3, the same alpha calls a different number of genes
+> rhythmic in different datasets, and calibrates more reliably with more
+> candidate genes to sort. `NDUFB7` and `NDUFA13`, seeded into this panel for
+> exactly this reason, sit at the top of the PUT ranking with Bayes factors
+> around 33 and 23.
 
 ## Amplitude, phase, and credible intervals
 
-```{r}
-# CB_getAllEst extracts posterior medians and 95% circular HDIs for phi, A, M
-est_PUT <- CB_getAllEst(mcmc_PUT, burn = 100)
+`CB_getAllEst()` extracts posterior point estimates and 95% credible
+intervals for every parameter. It returns an unnamed list in the order
+amplitude, phase, MESOR, sigma, so name it once before using `$`-access.
+Because phase is measured on a 24-hour circle, its credible interval is a
+circular highest-density interval (HDI): the shortest arc containing 95% of
+the posterior phase draws, computed so that it correctly wraps through
+ZT0/24 rather than treating 23:00 and 01:00 as 22 hours apart.
 
-# CB_getAllEst() returns its four parameter data frames as an unnamed list,
-# in the order A, phi, M, sigma; name them once so $-access below is correct.
+```{r get-est}
+est_PUT <- CB_getAllEst(mcmc_PUT, burn = 20)
 names(est_PUT) <- c("A", "phi", "M", "sigma")
 
-# est_PUT$A     : amplitude (A.Est, A.Lower, A.Upper)
-# est_PUT$phi   : acrophase / peak time (phi.Est, phi.Lower, phi.Upper)
-# est_PUT$M     : MESOR (M.Est, M.Lower, M.Upper)
-# est_PUT$sigma : residual variance
-head(est_PUT$phi[order(bf_PUT$BayesF, decreasing = TRUE), ])
+est_PUT$phi[c("NDUFB7", "NDUFA13"), ]
+est_PUT$A[c("NDUFB7", "NDUFA13"), ]
 ```
 
-> **Interpretation:** The phase credible interval (cHDI) is the shortest arc on
-> the 24-hour circle containing 95% of posterior samples — correctly handling the
-> ZT 0/24 wrap-around. A narrow interval means tightly constrained peak timing.
+The same shortest-arc logic is available directly through `circular_HDI()`
+and `circular_median()`, which is what `CB_getAllEst()` calls internally:
 
-## Cross-species alignment (match_homologs / merge_mcmc)
-
-Skip this subsection when condition A and condition B are the same species;
-`match_symbols()` alone is enough. When they come from different species,
-gene identifiers must be mapped to a shared reference gene space before any
-joint analysis, and BayRC gives you two ways to do it.
-
-`match_homologs()` queries `biomaRt` live and needs both MCMC objects to have
-been annotated by `match_symbols()` from Ensembl IDs (so
-`attr(rho, "ensembl_gene_ids")` is set). Its internal species map currently
-covers `"human"` and `"mouse"` only; other species need that map extended
-first, so it is the right tool for a human vs. mouse comparison:
-
-```{r}
-library(biomaRt)
-ensembl_human <- useMart("ensembl", dataset = "hsapiens_gene_ensembl")
-ensembl_mouse <- useMart("ensembl", dataset = "mmusculus_gene_ensembl")
-
-mcmc_PUT   <- match_symbols(mcmc_PUT,   BF = 3, ensemble = ensembl_human, p_rhythmic = 0.2)
-mcmc_mouse <- match_symbols(mcmc_mouse, BF = 3, ensemble = ensembl_mouse, p_rhythmic = 0.2)
-
-aligned <- match_homologs(
-  input_dfs    = list(human = mcmc_PUT, mouse = mcmc_mouse),
-  species_from = c("human", "mouse"),
-  ref          = "human"
-)
-mcmc_PUT_aligned   <- aligned[[1]]  # reference species, subset to shared orthologs
-mcmc_mouse_aligned <- aligned[[2]]  # re-indexed to the reference gene IDs
-
-identical(rownames(mcmc_PUT_aligned$rho), rownames(mcmc_mouse_aligned$rho))  # TRUE
+```{r circular-hdi}
+hdi_NDUFB7 <- circular_HDI(mcmc_PUT$phi["NDUFB7", ], credMass = 0.95, P = 24)
+c(lower = round(hdi_NDUFB7$lower, 2), upper = round(hdi_NDUFB7$upper, 2),
+  median = round(circular_median(mcmc_PUT$phi["NDUFB7", ]), 2))
 ```
 
-For a species pair not in that internal map, for example the baboon vs.
-human tissue comparisons in the manuscript, use `merge_mcmc()` with a
-curated ortholog table instead. It is also the more reproducible choice in
-general, since it does not depend on a live database query returning the
-same mapping every time:
-
-```{r}
-# hw_orth is a precomputed human-baboon ortholog table (one column per
-# species, one row per ortholog pair); see the manuscript methods for how
-# it was built.
-merged <- merge_mcmc(
-  list(human = mcmc_PUT, baboon = mcmc_baboon),
-  species     = c("human", "baboon"),
-  ortholog.db = hw_orth,
-  reference   = 1
-)
-mcmc_PUT_aligned    <- merged[[1]]
-mcmc_baboon_aligned <- merged[[2]]
-```
-
-> **Interpretation:** After alignment, both MCMC objects carry identical row
-> names in the reference species' gene space, so every downstream function
-> (`transition_classify()`, `phase_infer()`, `pathSelect()`,
-> `multi_conservation()`) compares the same genes across species. Genes
-> without a 1:1 ortholog are dropped; report the number retained
-> (`nrow(mcmc_PUT_aligned$rho)`) alongside any cross-species result, since it
-> directly limits statistical power.
+> **Interpretation:** `NDUFB7`'s posterior peak time in putamen is ZT 4.1,
+> with a 95% credible interval of roughly ZT 1.4 to ZT 6.5, a fairly tight
+> window given only 12 samples per condition. A wide interval, or one that
+> straddles ZT0/24 (as some genes' intervals do), would mean the peak time
+> itself is poorly constrained even if the gene is confidently rhythmic;
+> amplitude and phase uncertainty are separate questions from rhythmicity.
 
 # Step 3: Transition Classification
 
-```{r}
+`transition_classify()` takes the marginal rhythmicity probabilities from
+each condition and computes three joint posterior probabilities: gained
+rhythmicity, p_gain = (1 − pA) × pB; lost rhythmicity, p_loss = pA × (1 −
+pB); and maintained rhythmicity, p_cons = pA × pB. Each of these three
+vectors then gets its own BFDR threshold, the same rule used above but
+applied to the transition probability rather than the raw rhythmicity
+probability. This posterior gain/loss/conserved classification replaces the
+older practice of intersecting fixed-cutoff gene lists across conditions
+with a Venn diagram, a practice shown to overstate how much circadian
+reprogramming has actually occurred (Pelikan *et al.* 2022).
+
+```{r transition}
 trans <- transition_classify(pA, pB, bfdr_alpha = 0.25)
-
-# Prints thresholds and counts:
-# τ_gain = 0.142 | n_gain = 312
-# τ_loss = 0.118 | n_loss = 523
-# τ_cons = 0.198 | n_cons = 677
-
-table(trans$gain_loss_status)
-# Non-rhythmic   Gain   Loss   Maintained
-#        11934    312    523          677
+c(n_gain = trans$n_gain, n_loss = trans$n_loss, n_cons = trans$n_cons)
+names(trans$gain_loss_status)[trans$gain_loss_status == "Maintained"]
 ```
 
-Joint transition posteriors used:
-- **P(gain)** = (1 − pA) × pB
-- **P(loss)** = pA × (1 − pB)
-- **P(maintained)** = pA × pB
-
-> **Interpretation:** `gain_loss_status` is the central annotation vector. Every
-> downstream step uses these labels. A Gain gene was flat in condition A and
-> oscillates in condition B — the clock acquired a new transcriptional target. A
-> Loss gene lost circadian regulation — a common signature of aging, disease, or
-> metabolic stress. A Maintained gene oscillates in both: the substrate for phase
-> analysis.
+> **Interpretation:** `gain_loss_status` is the central annotation vector;
+> every function past this point reads it. On this 62-gene panel at BFDR
+> 0.25, nothing clears the gain or loss threshold, and only `NDUFB7` and
+> `NDUFA13` clear the conservation threshold, the two genes seeded into the
+> panel for that reason. That is expected here, not a bug: p_gain, p_loss,
+> and p_cons are products of two marginal probabilities, so they run smaller
+> and noisier than either marginal alone, and BFDR calibrates more weakly
+> with only 62 candidate genes than with the full genome. The product
+> formula also encodes an assumption worth stating plainly: it treats a
+> gene's rhythmicity call in one condition as conditionally independent of
+> its call in the other, given the data, reasonable for two independently
+> profiled tissues, and the same assumption the manuscript uses throughout.
 
 # Step 4: Phase Concordance
 
-```{r}
+For genes classified as "Maintained," `phase_infer()` asks a second
+question: does the gene peak at the same time of day in both conditions, or
+has its phase shifted? It computes the posterior distribution of the
+circular phase difference delta-phi = phi_PUT − phi_SUN, tests whether
+abs(delta-phi) exceeds a tolerance (2 hours here, the manuscript's primary
+threshold), and applies BFDR control separately to the shift and
+conservation calls.
+
+```{r phase-infer}
 phase <- phase_infer(
-  phi_matrix1      = mcmc_PUT$phi,
-  phi_matrix2      = mcmc_SUN$phi,
+  phi_matrix1 = mcmc_PUT$phi, phi_matrix2 = mcmc_SUN$phi,
   gain_loss_status = trans$gain_loss_status,
-  shift            = 2,          # δ = 2 h tolerance (paper primary threshold)
-  P                = 24,
-  bfdr_alpha       = 0.25,
-  compute_hdi      = TRUE        # compute 95% circular HDI of Δφ
+  shift = 2, P = 24, bfdr_alpha = 0.25, compute_hdi = TRUE
 )
 
-cat("Phase-conserved:", sum(phase$flag_cons,  na.rm = TRUE), "\n")
-cat("Phase-shifted:  ", sum(phase$flag_shift, na.rm = TRUE), "\n")
+maintained <- names(trans$gain_loss_status)[trans$gain_loss_status == "Maintained"]
+data.frame(
+  gene = maintained,
+  peak_PUT = round(phase$peak1[maintained], 2),
+  peak_SUN = round(phase$peak2[maintained], 2),
+  deltaPhi = round(phase$deltaPhi.Est[maintained], 2),
+  shifted  = phase$flag_shift[maintained],
+  conserved = phase$flag_cons[maintained]
+)
 ```
 
-> **Interpretation:**
->
-> - `flag_cons = TRUE`: the gene oscillates in both conditions and peaks within
->   ±2 h of the same time. The circadian phase is biologically conserved.
-> - `flag_shift = TRUE`: the gene oscillates in both but has shifted its peak
->   timing. Oscillation is maintained but the clock has been reset for this gene.
-> - `deltaPhi.Est`: the posterior median of Δφ = φ_A − φ_B in hours. Positive
->   values mean condition A peaks earlier; negative values mean later.
-> - A circular HDI [3.1, 7.4] that does not contain zero provides clear evidence
->   of a 3–7 hour advance in condition A relative to condition B.
+> **Interpretation:** Both `NDUFB7` and `NDUFA13` peak roughly 3.5 hours
+> later in substantia nigra than in putamen (`deltaPhi` is PUT minus SUN, so
+> a negative value means SUN peaks later), and both clear the shift
+> threshold; neither is phase-conserved. Oscillation is maintained for these
+> two mitochondrial complex-I subunits, but the clock has reset for them
+> between tissues, a small-scale echo of the manuscript's own SUN-PUT
+> finding that mitochondrial and proteostasis genes staying rhythmic in both
+> tissues show widespread phase shifts rather than tight phase agreement.
 
 # Step 5A: Two-Stage Pathway Enrichment
 
-## Stage 1 — circadian-active pathways
+## Stage 1: which pathways are circadian-active at all
 
-```{r}
-kegg <- readRDS("kegg_pathway_list_hsa.rds")
+`pathSelect()` ranks genes by a posterior metric and tests every pathway in
+a gene-set collection for enrichment toward one end of that ranking, using
+FGSEA (`nproc = 1` keeps this single-process, which is also what keeps this
+step check-safe under R CMD check's core budget). With
+`ranking.method = "union"`, the ranking metric rewards genes rhythmic in
+*either* condition, which is what makes this stage a broad first pass:
+pathways that show up here have some circadian signal worth following up on
+in Stage 2, whether that signal is gain, loss, or conservation.
 
+```{r pathselect-stage1}
 result_union <- pathSelect(
   mcmc.merge.list = list(A = mcmc_PUT, B = mcmc_SUN),
-  pathway.list    = kegg,
-  dataset.names   = c("PUT", "SUN"),
-  ranking.method  = "union",   # score = −2 log[(1−pA)(1−pB)]
-  score_type      = "pos",
-  qvalue.cut      = 0.20,
-  nperm           = 1000,
-  seed            = 42
+  pathway.list = kegg, dataset.names = c("PUT", "SUN"),
+  ranking.method = "union", score_type = "pos",
+  qvalue.cut = 0.20, nperm = 1000, nproc = 1, seed = 42
 )
 
-active_names        <- result_union$results$pathway[result_union$results$padj < 0.20]
-active_pathway_list <- kegg[active_names]
-cat(length(active_names), "pathways active in Stage 1\n")
+active <- result_union$results$pathway[result_union$results$pval < 0.05]
+active_pathway_list <- kegg[active]
+result_union$results[order(result_union$results$pval),
+                      c("pathway", "pval", "padj", "size")]
 ```
 
-## Stage 2 — transition enrichment within active pathways
+> **Interpretation:** Two pathways clear an unadjusted p < 0.05 pre-screen:
+> KEGG Oxidative phosphorylation and KEGG Non-alcoholic fatty liver disease
+> (which shares most of its genes with oxidative phosphorylation). KEGG
+> Circadian rhythm itself, despite contributing 22 of the 62 genes in this
+> panel, is not significant (p = 0.86): the union score rewards genes with
+> high posterior support in either tissue, and on this short chain most
+> core-clock genes carry only modest support individually, so the set does
+> not stand out even though it is biologically the most clock-relevant list
+> here. Pathway membership in "the circadian pathway" does not by itself
+> guarantee an enrichment signal, especially when per-gene evidence is weak.
 
-```{r}
+## Stage 2: what kind of transition is each active pathway enriched for
+
+Restricting to the pathways that passed Stage 1, three more `pathSelect()`
+calls test whether each is specifically enriched for gain, loss, or
+conserved rhythmicity.
+
+```{r pathselect-stage2}
 result_gain <- pathSelect(mcmc.merge.list = list(A = mcmc_PUT, B = mcmc_SUN),
   pathway.list = active_pathway_list, dataset.names = c("PUT", "SUN"),
-  ranking.method = "gain", score_type = "pos", qvalue.cut = 0.20, nperm = 1000)
-
-result_loss <- pathSelect(mcmc.merge.list = list(A = mcmc_PUT, B = mcmc_SUN),
-  pathway.list = active_pathway_list, dataset.names = c("PUT", "SUN"),
-  ranking.method = "loss", score_type = "pos", qvalue.cut = 0.20, nperm = 1000)
+  ranking.method = "gain", score_type = "pos",
+  qvalue.cut = 0.20, nperm = 1000, nproc = 1, seed = 42)
 
 result_cons <- pathSelect(mcmc.merge.list = list(A = mcmc_PUT, B = mcmc_SUN),
   pathway.list = active_pathway_list, dataset.names = c("PUT", "SUN"),
-  ranking.method = "conserved", score_type = "pos", qvalue.cut = 0.20, nperm = 1000)
+  ranking.method = "conserved", score_type = "pos",
+  qvalue.cut = 0.20, nperm = 1000, nproc = 1, seed = 42)
 
-nrow(result_gain$results[result_gain$results$padj < 0.20, ])
+result_gain$results[, c("pathway", "Gain_Loss_Ratio_Arithmetic", "padj")]
 ```
 
-> **Gain-Loss Ratio (GLR):** `Gain_Loss_Ratio_Arithmetic` in the results table.
-> GLR > 1 = pathway gained more rhythmicity than it lost in condition B.
-> GLR < 1 = more loss than gain — pathway uncoupled from the clock.
+> **Gain-loss ratio (GLR):** `Gain_Loss_Ratio_Arithmetic` compares expected
+> gains to expected losses within a pathway; GLR > 1 means the pathway
+> gained more rhythmicity than it lost going from PUT to SUN, GLR < 1 the
+> reverse. Both active pathways sit just under 1 (about 0.87 and 0.94), a
+> mild loss-leaning signal, consistent with conservation being the stage
+> that reaches significance (Q around 0.028 for both) while gain finds
+> nothing: these two pathways show mitochondrial genes staying rhythmic in
+> both tissues while shifting phase, not genes switching on or off.
 
-# Step 5B: Genome-Wide Concordance (c-score)
+# Step 5B: Genome-Wide Concordance
 
-```{r}
+`multi_conservation()` collapses the whole comparison into one number: an
+adjusted Jaccard concordance score (the "c-score"), related to the
+transcriptomic congruence framework of Zong *et al.* (2023), centered at 0
+under no more overlap than chance and approaching 1 under perfect agreement,
+together with a permutation p-value and a bootstrap confidence interval.
+`select.pathway.list = "global"` runs it over every gene in the input rather
+than one pathway at a time.
+
+```{r global-concordance}
 global <- multi_conservation(
-  mcmc.merge.list     = list(A = mcmc_PUT, B = mcmc_SUN),
-  dataset.names       = c("PUT", "SUN"),
+  mcmc.merge.list = list(A = mcmc_PUT, B = mcmc_SUN),
+  dataset.names = c("PUT", "SUN"),
   select.pathway.list = "global",
-  n_perm              = 1000,
-  n_boot              = 500,
-  output.dir          = "results/concordance",
-  use_cpp             = TRUE,
-  save_output         = TRUE   # set FALSE to suppress Excel write in non-interactive use
+  n_perm = 80, n_boot = 80,      # small here for speed; see README for n_perm/n_boot at manuscript scale
+  use_cpp = TRUE, save_output = FALSE
 )
 
-# global is a one-row data.frame, not a matrix; with dataset.names = c("PUT",
-# "SUN") every column is prefixed PUT_vs_SUN_.
-cat("Adjusted c-score:", round(global$PUT_vs_SUN_AdjustedConcordance, 3), "\n")
-cat("p-value:         ", round(global$PUT_vs_SUN_PValue,   4), "\n")
-cat("95% CI: [", round(global$PUT_vs_SUN_CI_Lower_Adj, 3), ",",
-                  round(global$PUT_vs_SUN_CI_Upper_Adj, 3), "]\n")
-cat("Genome-wide GLR: ", round(global$PUT_vs_SUN_GainLossRatio, 3), "\n")
+round(global[, c("PUT_vs_SUN_AdjustedConcordance", "PUT_vs_SUN_PValue",
+                  "PUT_vs_SUN_CI_Lower_Adj", "PUT_vs_SUN_CI_Upper_Adj",
+                  "PUT_vs_SUN_GainLossRatio")], 3)
 ```
 
-> **Interpretation:**
->
-> - **c-score > 0.3, p < 0.01:** strong transcriptome-wide circadian conservation.
-> - **c-score ≈ 0.1–0.2, p < 0.05:** modest but significant conservation.
-> - **c-score ≈ 0, p > 0.1:** two largely independent circadian programs.
->
-> The genome-wide GLR (`PUT_vs_SUN_GainLossRatio`) summarizes the net direction:
-> is the circadian system gaining or losing rhythmic output from condition A to
-> condition B across the whole transcriptome?
+> **Interpretation:** The adjusted concordance here is about 0.11 (95% CI
+> roughly 0.05 to 0.17, p = 0.012). Do not read this as an estimate of
+> genome-wide PUT-SUN concordance: this panel was deliberately built around
+> core clock genes and a mitochondrial pathway with two known real hits, not
+> a random sample of the transcriptome, so its concordance runs biased
+> upward relative to the full 5,066-gene comparison. Treat this number as
+> confirmation the function runs correctly end to end, and compare it
+> against README's Quick Start for the equivalent score on the full,
+> unbiased gene set. As a general reading guide: a c-score above roughly 0.3
+> with a small p-value indicates strong transcriptome-wide conservation, 0.1
+> to 0.2 indicates modest but real conservation, and a score near 0 with p
+> not significant indicates two largely independent circadian programs.
+
+# The Five-Panel Pathway Heatmap
+
+`plot_heatmap()` is BayRC's main visualization: one figure per pathway,
+combining rhythmicity, transition status, and phase timing for every gene
+in the pathway into five panels read left to right. It draws directly to
+the current graphics device (nothing extra to save unless you pass
+`save_path`), building on the output of `transition_classify()` and
+`phase_infer()` above.
+
+```{r pathway-heatmap, fig.width=9, fig.height=7.5, eval=requireNamespace("ComplexHeatmap", quietly = TRUE) && requireNamespace("circlize", quietly = TRUE)}
+plot_heatmap(
+  data1 = mcmc_PUT, data2 = mcmc_SUN,
+  pathway_genes = kegg[["KEGG Oxidative phosphorylation"]],
+  pathway_name  = "KEGG Oxidative phosphorylation",
+  phase_results = phase, transition_results = trans,
+  group_names = c("PUT", "SUN")
+)
+```
+
+| Panel | Shows | How to read it |
+|---|---|---|
+| 1. Rhythmicity status | Transition type from `transition_classify()` | Orange = conserved rhythm, blue = loss in SUN, purple = gain in SUN |
+| 2. Phase status | Shift/conservation flag from `phase_infer()` | Green = peaks align within the tolerance, red = peak timing shifted |
+| 3. P(rho = 1 \| data), PUT and SUN | Posterior rhythmicity probability per condition | White to red gradient, 0 to 1; deep red is confident rhythmicity, near-white is flat |
+| 4. Phase posterior, PUT | Histogram of the MCMC phase samples for each gene | A sharp bar means a tightly constrained peak time; a spread-out bar means high phase uncertainty |
+| 5. Phase posterior, SUN | Same reading as panel 4, other condition | Compare bar position against panel 4 to see the shift visually |
+
+> **Interpretation:** With only 21 of the 46 KEGG Oxidative phosphorylation
+> genes present in this panel, most rows show pale panel-3 colors and no
+> panel-1/2 annotation: those genes did not clear the BFDR threshold at this
+> chain length, so they are correctly left unclassified rather than forced
+> into a category. `NDUFB7` and `NDUFA13` are the two rows with a filled
+> "Conserved" (panel 1) and "Shifted" (panel 2) annotation, and their
+> panel-4/5 phase histograms sit visibly apart, PUT earlier, SUN later,
+> matching the roughly 3.5-hour shift reported above. That contrast, a
+> couple of confidently classified genes among many pale, unclassified ones,
+> is what a real pathway heatmap looks like at limited statistical power; a
+> longer chain on the full gene set fills in more rows, as in the
+> manuscript's own figures.
 
 # Biological Interpretation Checklist
 
-After completing the analysis, work through these questions:
+Working through a BayRC result on your own data, these are the questions
+worth asking in order:
 
-- [ ] **Rhythmicity landscape:** What fraction of genes is rhythmic in each
-  condition (`pA > 0.5`, `pB > 0.5`)? A large difference suggests broad circadian
-  dampening or activation.
+- [ ] **Rhythmicity landscape.** What fraction of genes is rhythmic in each
+  condition (`detect_rhy()`'s `n_rhythmic_A`/`n_rhythmic_B` relative to
+  `n_total`)? A large asymmetry between conditions suggests broad circadian
+  dampening or activation, not just a handful of genes moving.
 
-- [ ] **Dominant transition:** Compare `n_gain` vs. `n_loss`. Loss-dominant =
-  circadian uncoupling (common in aging, neurodegeneration). Gain-dominant =
-  circadian recruitment of new gene targets.
+- [ ] **Dominant transition.** Compare `trans$n_gain` against `trans$n_loss`.
+  Loss-dominant is a signature commonly seen in aging and
+  neurodegeneration; gain-dominant suggests the clock recruiting new
+  transcriptional targets in the second condition.
 
-- [ ] **Phase shifts:** Are shifts in `phase$deltaPhi.Est` systematic (all similar
-  magnitude/direction, implying a global clock advance or delay) or gene-specific
-  (implying altered transcription factor binding)?
+- [ ] **Phase shifts among maintained genes.** For genes with
+  `flag_shift = TRUE`, is `deltaPhi.Est` similar in size and direction
+  across genes (pointing to one global clock advance or delay), or
+  scattered (pointing to gene-specific regulatory rewiring rather than a
+  single shifted oscillator)?
 
-- [ ] **Pathway biology:** Which pathways are enriched for gain vs. loss? Check
-  `Top_Gain_Genes` and `Top_Loss_Genes` in pathway results to identify driver genes
-  for follow-up validation.
+- [ ] **Pathway direction.** For each pathway that passes Stage 1, is Stage
+  2 significant for gain, loss, or conserved rhythmicity, and is
+  `Gain_Loss_Ratio_Arithmetic` above or below 1? A pathway can pass Stage 1
+  for entirely different biological reasons depending on which Stage 2
+  category drives it.
 
-- [ ] **Global concordance:** Is the c-score significant? Is the genome-wide GLR
-  above or below 1? Together these tell you whether the circadian transcriptomes are
-  related and in which direction.
+- [ ] **Panel size versus BFDR power.** BFDR calibration needs a reasonably
+  large candidate gene list to work well, as this vignette's own 62-gene
+  panel illustrates: run classification and pathway enrichment on the full
+  gene set before drawing conclusions from a filtered subset.
 
-# Function Quick Reference
+- [ ] **Global concordance in context.** Is the c-score's confidence
+  interval bounded away from 0, and is the genome-wide GLR above or below
+  1? Read both together: a significant but small c-score with a GLR near 1
+  describes two circadian programs that overlap modestly and are drifting
+  in neither direction on net.
 
-| Step | Function | Key arguments |
-|---|---|---|
-| Initialize | `CB_init_single(Data.list, P=24)` | `Data.list = list(data, time, gname)` |
-| MCMC | `CB_MCMC_single_rj_slice(Data.list, Init.value, ...)` | `iteration`, `n.burn`, `thin`, `p_rhythmic`, `diagnostics` |
-| Annotate | `match_symbols(mcmc, BF=3, p_rhythmic=0.2)` | `p_rhythmic` must match MCMC prior |
-| Cross-species align | `match_homologs(input_dfs, species_from, ref)` or `merge_mcmc(mcmc.list, species, ortholog.db)` | skip for same-species comparisons |
-| P(rhythmic) | `rowMeans(mcmc$rho)` | — |
-| Bayes Factor | `summarize_bay(mcmc$rho, BF, p_rhythmic=0.2)` | `p_rhythmic` must match MCMC prior |
-| Estimates+HDI | `CB_getAllEst(mcmc, burn=100)` | `credMass=0.95`; returns an unnamed list, name it `c("A","phi","M","sigma")` |
-| Transition | `transition_classify(pA, pB, bfdr_alpha=0.25)` | `bfdr_alpha` |
-| Phase | `phase_infer(phi1, phi2, gain_loss_status, shift=2, ...)` | `shift`, `compute_hdi` |
-| Pathway | `pathSelect(mcmc.merge.list, pathway.list, ranking.method, ...)` | `"union"`, `"gain"`, `"loss"`, `"conserved"` |
-| Concordance | `multi_conservation(..., select.pathway.list="global")` | `n_perm`, `n_boot`, `save_output`; returns a one-row data.frame with `<A>_vs_<B>_*` columns |
+# References
 
-# Citation
-
-Pham T, *et al.* BayesRC: a comparative Bayesian multilevel framework for
-evaluating circadian synchrony across conditions. *Manuscript in preparation*, 2025.
+- Green PJ. Reversible jump Markov chain Monte Carlo computation and
+  Bayesian model determination. *Biometrika*. 1995;82(4):711-732.
+  [10.1093/biomet/82.4.711](https://doi.org/10.1093/biomet/82.4.711)
+- Neal RM. Slice sampling. *Annals of Statistics*. 2003;31(3):705-767.
+- Newton MA, Noueiry A, Sarkar D, Ahlquist P. Detecting differential gene
+  expression with a semiparametric hierarchical mixture method.
+  *Biostatistics*. 2004;5(2):155-176.
+- Müller P, Parmigiani G, Rice K. FDR and Bayesian multiple comparisons
+  rules. *Bayesian Statistics 8*. 2007:349-370.
+- Scott JG, Berger JO. Bayes and empirical-Bayes multiplicity adjustment in
+  the variable-selection problem. *Annals of Statistics*.
+  2010;38(5):2587-2619.
+- Stephens M. False discovery rates: a new deal. *Biostatistics*.
+  2016;18(2):275-294.
+- Partch CL, Green CB, Takahashi JS. Molecular architecture of the
+  mammalian circadian clock. *Trends in Cell Biology*. 2014;24(2):90-99.
+- Mure LS, Le HD, Benegiamo G, et al. Diurnal transcriptome atlas of a
+  primate across major neural and peripheral tissues. *Science*.
+  2018;359(6381):eaao0318.
+  [10.1126/science.aao0318](https://doi.org/10.1126/science.aao0318)
+- Zong W, Rahman T, Zhu L, et al. Transcriptomic congruence analysis for
+  evaluating model organisms. *PNAS*. 2023;120(6):e2202584120.
+  [10.1073/pnas.2202584120](https://doi.org/10.1073/pnas.2202584120)
+- Pelikan A, Herzel H, Kramer A, Ananthasubramaniam B. Venn diagram
+  analysis overestimates the extent of circadian rhythm reprogramming.
+  *FEBS Journal*. 2022;289(21):6605-6621.
+  [10.1111/febs.16095](https://doi.org/10.1111/febs.16095)
