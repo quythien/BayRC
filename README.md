@@ -140,7 +140,7 @@ A key deliverable of BayRC is an integrated pathway heatmap (Figure 5 in the man
 
 This design lets you read the entire circadian landscape of a pathway (which genes oscillate, when they peak, and whether that timing is preserved) in a single glance.
 
-`plot_pathway_integrated()` builds this figure from `transition_classify()` and
+`plot_heatmap()` builds this figure from `transition_classify()` and
 `phase_infer()` output. Below is a real one, the KEGG Circadian rhythm pathway
 (23 genes) in baboon putamen vs. substantia nigra, from the same GSE98965 data
 used elsewhere in this README. At this run's MCMC scale no gene crosses the
@@ -200,7 +200,7 @@ a linear interval gets wrong.
 | Function | Purpose |
 |---|---|
 | `pathSelect()` | Stage 1: `ranking.method="union"` (active pathways); Stage 2: `"gain"`, `"loss"`, `"conserved"` — one function, all stages |
-| `plot_pathway_integrated()` | The five-panel pathway heatmap described above (Figure 5 in the manuscript) |
+| `plot_heatmap()` | The five-panel pathway heatmap described above (Figure 5 in the manuscript) |
 | `multi_conservation_pathway()` | Pathway-level concordance score for a chosen gene set |
 | `multi_conservation_pathway_bootstrap()` | Pathway-level concordance with bootstrap confidence intervals |
 

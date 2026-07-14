@@ -1,4 +1,4 @@
-# # plot_pathway_integrated <- function(data1, data2,
+# # plot_heatmap <- function(data1, data2,
 # #                                     pathway_genes,
 # #                                     pathway_name,
 # #                                     phase_results,
@@ -8,7 +8,7 @@
 # #                                     n_bins = 24) 
 # 
 # 
-# plot_pathway_integrated <- function(data1, data2,
+# plot_heatmap <- function(data1, data2,
 #                                     pathway_genes,
 #                                     pathway_name,
 #                                     phase_results,
@@ -484,7 +484,7 @@
 # 
 
 
-# plot_pathway_integrated <- function(data1, data2,
+# plot_heatmap <- function(data1, data2,
 #                                     pathway_genes,
 #                                     pathway_name,
 #                                     phase_results,
@@ -495,7 +495,7 @@
 library(ComplexHeatmap)
 library(circlize)
 
-plot_pathway_integrated <- function(data1, data2,
+plot_heatmap <- function(data1, data2,
                                     pathway_genes,
                                     pathway_name,
                                     phase_results,

@@ -713,7 +713,7 @@ for (pathway in pathways_to_plot) {
     # Close any open graphics devices
     while (dev.cur() > 1) dev.off()
     
-    plot_pathway_integrated(
+    plot_heatmap(
       data1 = human_LIV,
       data2 = baboon_LIV,
       pathway_genes = pathway_genes,
