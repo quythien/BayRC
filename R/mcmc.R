@@ -24,6 +24,11 @@
 #' @param n.burn Integer; number of burn-in iterations discarded before
 #'   storing samples (default 1000).
 #' @param seed Integer; random seed for reproducibility (default 15213).
+#' @param diagnostics Logical; if \code{TRUE}, compute and print basic
+#'   post-run convergence diagnostics (RJMCMC acceptance rate, mean
+#'   effective sample size for rho) and attach them as \code{$diagnostics}
+#'   on the returned list. Warns if mean ESS for rho falls below 100
+#'   (default \code{FALSE}).
 #' @param p_rhythmic Numeric vector of length G; prior probability
 #'   Pr(rho_g = 1) for each gene.  Enters the RJMCMC log-prior odds as
 #'   log(p / (1 - p)).  Default is \code{rep(0.2, 100)}.

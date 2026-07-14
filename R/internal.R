@@ -1995,8 +1995,11 @@ pairwise_concordance <- function(human_data, n_gene = NULL) {
         rho1 <- rho1[common_genes, , drop = FALSE]
         rho2 <- rho2[common_genes, , drop = FALSE]
         
-        # Now concordance() returns just the Jaccard index
-        jaccard <- concordance(rho1, rho2)
+        # Jaccard index over the rhythmic-call contingency table
+        TP <- mean(rho1 == 1 & rho2 == 1)
+        FP <- mean(rho1 == 1 & rho2 == 0)
+        FN <- mean(rho1 == 0 & rho2 == 1)
+        jaccard <- TP / (TP + FN + FP)
         concordance_matrix[i, j] <- jaccard
         concordance_matrix[j, i] <- jaccard
       } else if (i == j) {
@@ -2734,7 +2737,16 @@ detect_rhy <- function(dat1, dat2, bfdr_alpha = 0.05) {
 #'
 #' @export
 transition_classify <- function(pA, pB, bfdr_alpha = 0.05) {
-  
+
+  if (is.matrix(pA) || is.matrix(pB) || is.data.frame(pA) || is.data.frame(pB)) {
+    stop("pA and pB must be numeric vectors of per-gene marginal rhythmicity ",
+         "probability (length G), not posterior sample matrices. ",
+         "Did you mean rowMeans(mcmc$rho) instead of mcmc$rho?")
+  }
+  if (length(pA) != length(pB)) {
+    stop("pA and pB must have the same length (one value per gene).")
+  }
+
   n_genes <- length(pA)
   gene_names <- names(pA)
   if (is.null(gene_names)) gene_names <- paste0("Gene_", seq_len(n_genes))
@@ -2843,6 +2855,15 @@ transition_classify <- function(pA, pB, bfdr_alpha = 0.05) {
 #'   \code{rhythmic_A} and \code{rhythmic_B}.
 #'
 transition_classify_marginal <- function(pA, pB, bfdr_alpha = 0.05) {
+
+  if (is.matrix(pA) || is.matrix(pB) || is.data.frame(pA) || is.data.frame(pB)) {
+    stop("pA and pB must be numeric vectors of per-gene marginal rhythmicity ",
+         "probability (length G), not posterior sample matrices. ",
+         "Did you mean rowMeans(mcmc$rho) instead of mcmc$rho?")
+  }
+  if (length(pA) != length(pB)) {
+    stop("pA and pB must have the same length (one value per gene).")
+  }
 
   n_genes <- length(pA)
   gene_names <- names(pA)
