@@ -1958,6 +1958,7 @@ congruence <- function(matrix1, matrix2, delta = 3, units = "hours") {
 #' @return Square symmetric numeric matrix of Jaccard concordance values,
 #'   with row and column names equal to \code{names(human_data)}.
 #'
+#' @export
 pairwise_concordance <- function(human_data, n_gene = NULL) {
   tissue_names <- names(human_data)
   
@@ -3196,6 +3197,16 @@ phase_infer <- function(phi_matrix1, phi_matrix2, gain_loss_status,
   }
   
   # output ---------------------------------------------------------------------
+  # Name every per-gene vector by gene_names so downstream code can index by
+  # gene symbol (matching transition_classify()'s gain_loss_status, which is
+  # already named) instead of silently returning NA on character indexing.
+  names(peak1) <- names(peak2) <- gene_names
+  names(deltaPhi.Est) <- names(deltaPhi.Lower) <- names(deltaPhi.Upper) <- gene_names
+  names(prob_shift) <- names(flag_shift) <- names(BFDR_shift_vec) <- gene_names
+  names(prob_conserved) <- names(flag_cons) <- names(BFDR_cons_vec) <- gene_names
+  names(flag_undetermined) <- gene_names
+  names(hdi.width) <- names(in_HDI) <- gene_names
+
   list(
     peak1 = peak1,
     peak2 = peak2,
