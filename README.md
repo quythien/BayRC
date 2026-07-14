@@ -238,6 +238,38 @@ for loss while still having a gain-leaning GLR.
 
 ---
 
+## Checking Convergence
+
+Every number above assumes the MCMC chain converged and mixed well. BayRC
+checks this with `mcmc_diagnostics()`, which runs
+automatically (`diagnostics = TRUE` by default in
+`CB_MCMC_single_rj_slice()`) and can also be called later on any saved
+result, since the underlying `rho`, `phi`, and `if.accept.rj` matrices are
+always stored regardless of that flag. This is the same
+`mcmc_diagnostics(mcmc_OMF)` call shown under Running the MCMC above:
+acceptance rate 0.319, ESS(rho) 762, ESS(phi) 389.2, from 2,001 stored
+samples.
+
+Here's how to read those three numbers. The acceptance rate of 0.319
+means about a third of proposed RJMCMC moves (birth, death, or update)
+were accepted; healthy Metropolis-Hastings samplers typically fall
+somewhere between 0.2 and 0.5, so this indicates the chain is exploring
+rather than getting stuck. ESS(rho) of 762 out of 2,001 stored samples
+means the binary rhythmicity calls are mixing reasonably well, close to
+2 samples per independent draw. ESS(phi) of 389.2 is lower, which on its
+own would look worse, but ESS for phi needs a word of caution: it isn't
+simply "higher is better." A gene with a diffuse, unconfident phase
+posterior can show artificially *high* ESS, because each draw is close
+to independent of the last when there's little real signal to get stuck
+on. A gene with a tight, confident posterior can show *low* ESS if the
+sampler moves in small steps within that narrow region from iteration to
+iteration, even though the estimate itself is trustworthy. Together,
+these three numbers demonstrate the chain is mixing adequately rather
+than stuck or degenerate; read ESS for phi alongside the posterior
+rhythmicity probability for that gene, not on its own.
+
+---
+
 ## Expected Rhythmic Counts, Before Any Threshold
 
 Before any BFDR cutoff is applied, every gene already carries a posterior
@@ -371,38 +403,6 @@ d$n_rhythmic_A  # 3,067 of 5,066
 These two criteria won't always agree gene-for-gene, and they don't here.
 Read the Bayes Factor counts as a quick per-gene screen; report the
 BFDR-controlled counts as the calibrated biomarker list.
-
----
-
-## Checking Convergence
-
-Every number above assumes the MCMC chain converged and mixed well. BayRC
-checks this with `mcmc_diagnostics()`, which runs
-automatically (`diagnostics = TRUE` by default in
-`CB_MCMC_single_rj_slice()`) and can also be called later on any saved
-result, since the underlying `rho`, `phi`, and `if.accept.rj` matrices are
-always stored regardless of that flag. This is the same
-`mcmc_diagnostics(mcmc_OMF)` call shown under Running the MCMC above:
-acceptance rate 0.319, ESS(rho) 762, ESS(phi) 389.2, from 2,001 stored
-samples.
-
-Here's how to read those three numbers. The acceptance rate of 0.319
-means about a third of proposed RJMCMC moves (birth, death, or update)
-were accepted; healthy Metropolis-Hastings samplers typically fall
-somewhere between 0.2 and 0.5, so this indicates the chain is exploring
-rather than getting stuck. ESS(rho) of 762 out of 2,001 stored samples
-means the binary rhythmicity calls are mixing reasonably well, close to
-2 samples per independent draw. ESS(phi) of 389.2 is lower, which on its
-own would look worse, but ESS for phi needs a word of caution: it isn't
-simply "higher is better." A gene with a diffuse, unconfident phase
-posterior can show artificially *high* ESS, because each draw is close
-to independent of the last when there's little real signal to get stuck
-on. A gene with a tight, confident posterior can show *low* ESS if the
-sampler moves in small steps within that narrow region from iteration to
-iteration, even though the estimate itself is trustworthy. Together,
-these three numbers demonstrate the chain is mixing adequately rather
-than stuck or degenerate; read ESS for phi alongside the posterior
-rhythmicity probability for that gene, not on its own.
 
 ---
 
