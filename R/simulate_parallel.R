@@ -25,7 +25,6 @@
 #'
 #' @return A data.frame with columns \code{p_A} and \code{p_B} (length n).
 #'
-#' @export
 generate_gene_data_full_spectrum <- function(n, conservation = 0.5, skewness = "symmetric") {
   if (skewness == "symmetric") {
     p_A <- rbeta(n, 2, 2)
@@ -63,7 +62,6 @@ generate_gene_data_full_spectrum <- function(n, conservation = 0.5, skewness = "
 #'
 #' @return Numeric scalar; congruence index in \[0, 1\].
 #'
-#' @export
 calculate_congruence <- function(p_A, p_B) {
   sum(p_A * p_B) / sum(p_A + p_B - p_A * p_B)
 }
@@ -80,7 +78,6 @@ calculate_congruence <- function(p_A, p_B) {
 #'
 #' @return A list with \code{observed}, \code{p_value}, and \code{null_dist}.
 #'
-#' @export
 permutation_test <- function(p_A, p_B, B = 1000) {
   n <- length(p_A)
   obs <- calculate_congruence(p_A, p_B)
@@ -105,7 +102,6 @@ permutation_test <- function(p_A, p_B, B = 1000) {
 #' @return A list with \code{variance} (bootstrap estimate of the
 #'   permutation variance) and \code{se} (standard error).
 #'
-#' @export
 bootstrap_permutation_variance <- function(p_A, p_B, n_boot = 500) {
   n <- length(p_A)
   
@@ -149,7 +145,6 @@ bootstrap_permutation_variance <- function(p_A, p_B, n_boot = 500) {
 #' @return A list with \code{variance} (delta-method estimate) and
 #'   \code{gradient} (partial derivatives for diagnostics).
 #'
-#' @export
 delta_variance <- function(p_A, p_B) {
   n <- length(p_A)
   AB_vec <- p_A * p_B
@@ -185,7 +180,6 @@ delta_variance <- function(p_A, p_B) {
 #' @return A list with \code{z_score}, \code{p_value}, and
 #'   \code{variance_est}.
 #'
-#' @export
 gaussian_test_bootstrap <- function(p_A, p_B, n_boot = 500) {
   obs <- calculate_congruence(p_A, p_B)
   params <- bootstrap_permutation_variance(p_A, p_B, n_boot)
@@ -207,7 +201,6 @@ gaussian_test_bootstrap <- function(p_A, p_B, n_boot = 500) {
 #' @return A list with \code{z_score}, \code{p_value}, and
 #'   \code{variance_est}.
 #'
-#' @export
 gaussian_test_delta <- function(p_A, p_B) {
   obs <- calculate_congruence(p_A, p_B)
   params <- delta_variance(p_A, p_B)
@@ -244,7 +237,6 @@ edgeworth_correction_fixed <- function(z, skew, kurt, n) {
 #' @return A list with \code{z_score}, \code{p_value_gaussian},
 #'   \code{p_value_edgeworth}, and \code{variance_est}.
 #'
-#' @export
 edgeworth_test_bootstrap <- function(p_A, p_B, n_boot = 500) {
   n <- length(p_A)
   obs <- calculate_congruence(p_A, p_B)
@@ -278,7 +270,6 @@ edgeworth_test_bootstrap <- function(p_A, p_B, n_boot = 500) {
 #' @return A list with \code{z_score}, \code{p_value_gaussian},
 #'   \code{p_value_edgeworth}, and \code{variance_est}.
 #'
-#' @export
 edgeworth_test_delta <- function(p_A, p_B) {
   n <- length(p_A)
   obs <- calculate_congruence(p_A, p_B)
@@ -317,7 +308,6 @@ edgeworth_test_delta <- function(p_A, p_B) {
 #' @return Data.frame with one row per method and columns for method name,
 #'   z-score, p-value, and variance.
 #'
-#' @export
 compare_variances <- function(p_A, p_B, n_boot = 500) {
   boot_params <- bootstrap_permutation_variance(p_A, p_B, n_boot)
   delta_params <- delta_variance(p_A, p_B)
@@ -354,7 +344,6 @@ compare_variances <- function(p_A, p_B, n_boot = 500) {
 #' @return Data.frame with columns for sim_id, method, z_score, p_value,
 #'   observed_congruence, and variance.
 #'
-#' @export
 run_single_simulation <- function(sim_id, n, cons, skew, B_perm, B_boot) {
   dat <- generate_gene_data_full_spectrum(n, cons, skew)
   

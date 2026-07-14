@@ -34,7 +34,7 @@ update_A_phi_slice(
 
 \item{X}{N x 2 design matrix of cos and sin columns.}
 
-\item{XtX}{2 x 2 matrix t(X) %*% X.}
+\item{XtX}{2 x 2 matrix t(X) \%*\% X.}
 
 \item{beta_hat0}{N x 2 OLS projection matrix.}
 

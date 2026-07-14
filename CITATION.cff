@@ -1,0 +1,70 @@
+cff-version: 1.2.0
+message: >-
+  If you use BayRC in your research, please cite the manuscript and the software.
+title: "BayRC: Bayesian Framework for Comparative Circadian Genomics"
+version: 0.2.0
+date-released: "TODO: set on release (manuscript is currently in preparation; do not fabricate)"
+authors:
+  - family-names: Pham
+    given-names: "Thien Quy"
+    email: quythien14@gmail.com
+  - family-names: Xue
+    given-names: Xiangning
+  - family-names: Zhang
+    given-names: Xingjian
+  - family-names: Yu
+    given-names: Guan
+  - family-names: Zhang
+    given-names: Liangliang
+  - family-names: Tseng
+    given-names: "George C"
+    email: ctseng@pitt.edu
+license: GPL-3.0
+repository-code: "https://github.com/quythien/BayRC"
+url: "https://github.com/quythien/BayRC"
+type: software
+keywords:
+  - circadian
+  - circadian rhythm
+  - Bayesian inference
+  - cross condition analysis
+  - aging
+  - phase coordination
+  - synchrony
+  - transcriptomics
+  - reversible jump MCMC
+  - Bayesian FDR
+preferred-citation:
+  type: article
+  title: "BayesRC: a comparative Bayesian multilevel framework for evaluating circadian synchrony across conditions"
+  authors:
+    - family-names: Pham
+      given-names: "Thien Quy"
+      affiliation: "Department of Biostatistics, University of Pittsburgh, Pittsburgh, PA 15261, United States"
+    - family-names: Li
+      given-names: Danyang
+      affiliation: "Department of Biostatistics, University of Pittsburgh, Pittsburgh, PA 15261, United States"
+    - family-names: Yin
+      given-names: Ruofei
+      affiliation: "Department of Biostatistics, University of Pittsburgh, Pittsburgh, PA 15261, United States"
+    - family-names: Wang
+      given-names: Hao
+      affiliation: "Department of Biostatistics, University of Pittsburgh, Pittsburgh, PA 15261, United States"
+    - family-names: Xue
+      given-names: Xiangning
+      affiliation: "Department of Biostatistics, University of Pittsburgh, Pittsburgh, PA 15261, United States"
+    - family-names: Zhang
+      given-names: Xingjian
+      affiliation: "Department of Biostatistics, University of Pittsburgh, Pittsburgh, PA 15261, United States"
+    - family-names: Yu
+      given-names: Guan
+      affiliation: "Department of Biostatistics, University of Pittsburgh, Pittsburgh, PA 15261, United States"
+    - family-names: Zhang
+      given-names: Liangliang
+      affiliation: "Department of Population and Quantitative Health Sciences, Case Western Reserve University, Cleveland, OH 44106, United States"
+    - family-names: Tseng
+      given-names: "George C"
+      email: ctseng@pitt.edu
+      affiliation: "Department of Biostatistics, University of Pittsburgh, Pittsburgh, PA 15261, United States"
+  year: "TODO: manuscript in preparation as of NEWS.md/README.md; do not fabricate a year"
+  journal: "TODO: manuscript in preparation; journal not yet determined, do not fabricate"

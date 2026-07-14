@@ -4,7 +4,7 @@
 \alias{summarize_bay}
 \title{Summarise posterior rhythmicity and Bayes Factor per gene}
 \usage{
-summarize_bay(input_df, BF, p_rhythmic = 0.5)
+summarize_bay(input_df, BF, p_rhythmic = 0.2)
 }
 \arguments{
 \item{input_df}{G x K binary matrix of posterior rho samples.}

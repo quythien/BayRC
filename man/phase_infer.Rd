@@ -10,7 +10,7 @@ phase_infer(
   gain_loss_status,
   P = 24,
   credMass = 0.95,
-  shift = 4,
+  shift = 2,
   a = -P/2,
   bfdr_alpha = 0.05,
   compute_hdi = FALSE

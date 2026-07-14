@@ -26,7 +26,6 @@
 #'   (acrophase in hours), \code{R2}, \code{sigma}, \code{pvalue}, and
 #'   \code{qvalue} (BH-adjusted p-value).  Also adds \code{x$P}.
 #'
-#' @export
 #'
 #' @examples
 #' G <- 10; N <- 48

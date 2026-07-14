@@ -32,7 +32,6 @@
 #' @return A B x 4 numeric matrix with columns \code{congruence_index},
 #'   \code{gain_index}, \code{loss_index}, \code{gain_loss_ratio}.
 #'
-#' @export
 # Global permutation function with rounds support
 perm_conservation_global <- function(dat1, dat2, delta = 3, units = "hours", B = 1000,
                                      ncores = NULL, parallel = "auto",
@@ -233,7 +232,6 @@ run_single_round_global <- function(dat1, dat2, G, metrics, delta, units, B_roun
 #'   \code{gain_index}, \code{loss_index} (observed values), and
 #'   \code{ratio} (list of right/left/two-sided p-values for the ratio).
 #'
-#' @export
 # Global p-value calculation
 # For congruence_index: right-sided test only
 # For gain_loss_ratio: right-sided, left-sided, and two-sided tests
@@ -321,7 +319,6 @@ p_conservation_global <- function(observed_scores, perm_results) {
 #'   and p-values, gain and loss indices, ratio scores and p-values.
 #'   Also writes an Excel file to \code{output.dir}.
 #'
-#' @export
 # Main global conservation function with rounds support and Excel output
 multi_conservation_global <- function(mcmc.merge.list, dataset.names,
                                       delta = 3, units = "hours", B = 1000,
@@ -621,7 +618,6 @@ multi_conservation_global <- function(mcmc.merge.list, dataset.names,
 #' @return List with elements \code{jaccard_obs}, \code{jaccard_adj}, and
 #'   \code{jaccard_null} (all numeric scalars).
 #'
-#' @export
 # Minimal concordance summary from posterior ρ matrices
 # Wraps compute_iteration_jaccard to return scalar summaries per condition pair.
 compute_concordance_minimal <- function(rho_A, rho_B) {

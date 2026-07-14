@@ -3,9 +3,14 @@ Type: Package
 Title: Bayesian Framework for Comparative Circadian Genomics
 Version: 0.2.0
 Authors@R: c(
-    person("Thien", "Pham", role = c("aut", "cre"),
+    person("Thien Quy", "Pham", role = c("aut", "cre"),
            email = "quythien14@gmail.com"),
-    person("Kyle", "Kauffman", role = "aut"))
+    person("Xiangning", "Xue", role = "aut"),
+    person("Xingjian", "Zhang", role = "aut"),
+    person("Guan", "Yu", role = "aut"),
+    person("Liangliang", "Zhang", role = "aut"),
+    person("George C", "Tseng", role = "aut",
+           email = "ctseng@pitt.edu"))
 Description: BayRC (Bayesian Rhythmicity Comparison) provides a unified
     Bayesian framework for detecting conserved and altered circadian rhythms
     across conditions, tissues, or species. It implements Reversible Jump MCMC
@@ -45,6 +50,8 @@ Suggests:
     rmarkdown,
     biomaRt,
     BiocManager,
+    circlize,
+    ComplexHeatmap,
     ConsensusClusterPlus,
     KEGGgraph,
     pathview,

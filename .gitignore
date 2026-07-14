@@ -20,6 +20,9 @@
 !NAMESPACE
 !README.md
 !NEWS.md
+!LICENSE.md
+!CITATION.cff
+!BayRC-manual.pdf
 !.gitignore
 
 # Claude Code project instructions kept local only (not tracked in git)

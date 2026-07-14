@@ -1675,7 +1675,6 @@ match_homologs <- function(input_dfs, species_from ,ref = "human") {
 #'       proportions.}
 #'   }
 #'
-#' @export
 concordance2 <- function(matrix1, matrix2) {
   rho1 <- matrix1$rho
   rho2 <- matrix2$rho
@@ -1773,7 +1772,6 @@ concordance2 <- function(matrix1, matrix2) {
 #' @return Numeric vector of signed circular phase differences, wrapped to
 #'   \[-12, 12\] hours or \[-pi, pi\] radians.
 #'
-#' @export
 # Helper function for phase differences
 phase_difference <- function(phi1, phi2, units = "hours") {
   if (units == "hours") {
@@ -1888,7 +1886,6 @@ phase_difference <- function(phi1, phi2, units = "hours") {
 #'     \item{n_genes}{Integer; number of genes.}
 #'   }
 #'
-#' @export
 congruence <- function(matrix1, matrix2, delta = 3, units = "hours") {
   if (!missing(delta) && delta != 3)
     warning("`delta` is not used by the probabilistic c-score (paper Eq. 3); it is reserved for a future phase-threshold variant.")
@@ -1961,7 +1958,6 @@ congruence <- function(matrix1, matrix2, delta = 3, units = "hours") {
 #' @return Square symmetric numeric matrix of Jaccard concordance values,
 #'   with row and column names equal to \code{names(human_data)}.
 #'
-#' @export
 pairwise_concordance <- function(human_data, n_gene = NULL) {
   tissue_names <- names(human_data)
   
@@ -2099,7 +2095,6 @@ summarize_bay <- function(input_df, BF, p_rhythmic = 0.2) {
 #' @return List with elements \code{X_c} and \code{Y_c} (phase matrices
 #'   restricted to common genes, in matching row order).
 #'
-#' @export
 # Filter common genes between datasets
 phi_filter <- function(X_summary, Y_summary) {
   common_genes <- intersect(attr(X_summary$rho, "symbols"), attr(Y_summary$rho, "symbols"))
@@ -2328,7 +2323,6 @@ pathShiftEnrich <- function(phi1, phi2, pathway.list,
 #' @return Called for side effects; invisibly returns \code{NULL}.  Saves
 #'   a PNG named \code{<genes>_<tissue1>_<tissue2>_posterior_phase.png}.
 #'
-#' @export
 plotGenePosteriorPhase <- function(gene_aliases,
                                    phi_mat1, phi_mat2,
                                    species_names = c("Species1", "Species2"),
@@ -2439,7 +2433,6 @@ plotGenePosteriorPhase <- function(gene_aliases,
 #'
 #' @return Called for side effects; saves a PNG and returns \code{NULL}.
 #'
-#' @export
 plotCoreClockMedians <- function(phi_mat, gene_aliases, tissue_label, output_path, P = 24) {
   # Step 1: Compute median phase for core clock genes
   get_median_phase <- function(phi_mat, gene) {
@@ -2505,7 +2498,6 @@ plotCoreClockMedians <- function(phi_mat, gene_aliases, tissue_label, output_pat
 #'
 #' @return Called for side effects; saves a PNG and returns \code{NULL}.
 #'
-#' @export
 plotHDIClockPolar <- function(phi_mat, gene_aliases, tissue_label, output_path,
                               credMass = 0.95, P = 24) {
   # Build HDI data frame using your own circular_HDI
@@ -3251,7 +3243,6 @@ phase_infer <- function(phi_matrix1, phi_matrix2, gain_loss_status,
 #'   \code{transition_classify}), and \code{phase_summary} (from
 #'   \code{phase_infer}).
 #'
-#' @export
 phase_analysis <- function(matrix1, matrix2,
                            P = 24, credMass = 0.95,
                            shift = 4, a = -P/2,

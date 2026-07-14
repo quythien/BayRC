@@ -139,9 +139,11 @@ mcmc_PUT <- CB_MCMC_single_rj_slice(
 
 ```{r}
 # Attaches gene symbols and RHYindex (BF > 3 binary call) to the MCMC object.
-# p_rhythmic must match the value used in CB_MCMC_single_rj_slice (default 0.2).
-mcmc_PUT <- match_symbols(mcmc_PUT, BF = 3)
-mcmc_SUN <- match_symbols(mcmc_SUN, BF = 3)
+# match_symbols() defaults to p_rhythmic = 0.5, so pass p_rhythmic = 0.2
+# explicitly here to match the prior used in CB_MCMC_single_rj_slice above.
+# A mismatch here miscalibrates RHYindex and any Bayes Factor computed later.
+mcmc_PUT <- match_symbols(mcmc_PUT, BF = 3, p_rhythmic = 0.2)
+mcmc_SUN <- match_symbols(mcmc_SUN, BF = 3, p_rhythmic = 0.2)
 ```
 
 ## Posterior rhythmicity probability
@@ -180,15 +182,80 @@ cat("PUT rhythmic genes (BF > 3):", sum(bf_PUT$Rhythmicity), "\n")
 # CB_getAllEst extracts posterior medians and 95% circular HDIs for phi, A, M
 est_PUT <- CB_getAllEst(mcmc_PUT, burn = 100)
 
-# est_PUT[[1]] — phase: phi.Est, phi.Lower, phi.Upper
-# est_PUT[[2]] — amplitude: A.Est, A.Lower, A.Upper
-# est_PUT[[3]] — MESOR: M.Est, M.Lower, M.Upper
-head(est_PUT[[1]][order(bf_PUT$BayesF, decreasing = TRUE), ])
+# CB_getAllEst() returns its four parameter data frames as an unnamed list,
+# in the order A, phi, M, sigma; name them once so $-access below is correct.
+names(est_PUT) <- c("A", "phi", "M", "sigma")
+
+# est_PUT$A     : amplitude (A.Est, A.Lower, A.Upper)
+# est_PUT$phi   : acrophase / peak time (phi.Est, phi.Lower, phi.Upper)
+# est_PUT$M     : MESOR (M.Est, M.Lower, M.Upper)
+# est_PUT$sigma : residual variance
+head(est_PUT$phi[order(bf_PUT$BayesF, decreasing = TRUE), ])
 ```
 
 > **Interpretation:** The phase credible interval (cHDI) is the shortest arc on
 > the 24-hour circle containing 95% of posterior samples — correctly handling the
 > ZT 0/24 wrap-around. A narrow interval means tightly constrained peak timing.
+
+## Cross-species alignment (match_homologs / merge_mcmc)
+
+Skip this subsection when condition A and condition B are the same species;
+`match_symbols()` alone is enough. When they come from different species,
+gene identifiers must be mapped to a shared reference gene space before any
+joint analysis, and BayRC gives you two ways to do it.
+
+`match_homologs()` queries `biomaRt` live and needs both MCMC objects to have
+been annotated by `match_symbols()` from Ensembl IDs (so
+`attr(rho, "ensembl_gene_ids")` is set). Its internal species map currently
+covers `"human"` and `"mouse"` only; other species need that map extended
+first, so it is the right tool for a human vs. mouse comparison:
+
+```{r}
+library(biomaRt)
+ensembl_human <- useMart("ensembl", dataset = "hsapiens_gene_ensembl")
+ensembl_mouse <- useMart("ensembl", dataset = "mmusculus_gene_ensembl")
+
+mcmc_PUT   <- match_symbols(mcmc_PUT,   BF = 3, ensemble = ensembl_human, p_rhythmic = 0.2)
+mcmc_mouse <- match_symbols(mcmc_mouse, BF = 3, ensemble = ensembl_mouse, p_rhythmic = 0.2)
+
+aligned <- match_homologs(
+  input_dfs    = list(human = mcmc_PUT, mouse = mcmc_mouse),
+  species_from = c("human", "mouse"),
+  ref          = "human"
+)
+mcmc_PUT_aligned   <- aligned[[1]]  # reference species, subset to shared orthologs
+mcmc_mouse_aligned <- aligned[[2]]  # re-indexed to the reference gene IDs
+
+identical(rownames(mcmc_PUT_aligned$rho), rownames(mcmc_mouse_aligned$rho))  # TRUE
+```
+
+For a species pair not in that internal map, for example the baboon vs.
+human tissue comparisons in the manuscript, use `merge_mcmc()` with a
+curated ortholog table instead. It is also the more reproducible choice in
+general, since it does not depend on a live database query returning the
+same mapping every time:
+
+```{r}
+# hw_orth is a precomputed human-baboon ortholog table (one column per
+# species, one row per ortholog pair); see the manuscript methods for how
+# it was built.
+merged <- merge_mcmc(
+  list(human = mcmc_PUT, baboon = mcmc_baboon),
+  species     = c("human", "baboon"),
+  ortholog.db = hw_orth,
+  reference   = 1
+)
+mcmc_PUT_aligned    <- merged[[1]]
+mcmc_baboon_aligned <- merged[[2]]
+```
+
+> **Interpretation:** After alignment, both MCMC objects carry identical row
+> names in the reference species' gene space, so every downstream function
+> (`transition_classify()`, `phase_infer()`, `pathSelect()`,
+> `multi_conservation()`) compares the same genes across species. Genes
+> without a 1:1 ortholog are dropped; report the number retained
+> (`nrow(mcmc_PUT_aligned$rho)`) alongside any cross-species result, since it
+> directly limits statistical power.
 
 # Step 3: Transition Classification
 
@@ -304,9 +371,13 @@ global <- multi_conservation(
   save_output         = TRUE   # set FALSE to suppress Excel write in non-interactive use
 )
 
-cat("Adjusted c-score:", round(global$Adjusted["Global", "PUT&SUN"], 3), "\n")
-cat("p-value:         ", round(global$PValue["Global", "PUT&SUN"],   4), "\n")
-cat("Genome-wide GLR: ", round(global$Gain_loss_ratio["Global", "PUT&SUN"], 3), "\n")
+# global is a one-row data.frame, not a matrix; with dataset.names = c("PUT",
+# "SUN") every column is prefixed PUT_vs_SUN_.
+cat("Adjusted c-score:", round(global$PUT_vs_SUN_AdjustedConcordance, 3), "\n")
+cat("p-value:         ", round(global$PUT_vs_SUN_PValue,   4), "\n")
+cat("95% CI: [", round(global$PUT_vs_SUN_CI_Lower_Adj, 3), ",",
+                  round(global$PUT_vs_SUN_CI_Upper_Adj, 3), "]\n")
+cat("Genome-wide GLR: ", round(global$PUT_vs_SUN_GainLossRatio, 3), "\n")
 ```
 
 > **Interpretation:**
@@ -315,9 +386,9 @@ cat("Genome-wide GLR: ", round(global$Gain_loss_ratio["Global", "PUT&SUN"], 3), 
 > - **c-score ≈ 0.1–0.2, p < 0.05:** modest but significant conservation.
 > - **c-score ≈ 0, p > 0.1:** two largely independent circadian programs.
 >
-> The genome-wide GLR summarizes the net direction: is the circadian system gaining
-> or losing rhythmic output from condition A to condition B across the whole
-> transcriptome?
+> The genome-wide GLR (`PUT_vs_SUN_GainLossRatio`) summarizes the net direction:
+> is the circadian system gaining or losing rhythmic output from condition A to
+> condition B across the whole transcriptome?
 
 # Biological Interpretation Checklist
 
@@ -349,14 +420,15 @@ After completing the analysis, work through these questions:
 |---|---|---|
 | Initialize | `CB_init_single(Data.list, P=24)` | `Data.list = list(data, time, gname)` |
 | MCMC | `CB_MCMC_single_rj_slice(Data.list, Init.value, ...)` | `iteration`, `n.burn`, `thin`, `p_rhythmic`, `diagnostics` |
-| Annotate | `match_symbols(mcmc, BF=3)` | `BF` threshold for binary call |
+| Annotate | `match_symbols(mcmc, BF=3, p_rhythmic=0.2)` | `p_rhythmic` must match MCMC prior |
+| Cross-species align | `match_homologs(input_dfs, species_from, ref)` or `merge_mcmc(mcmc.list, species, ortholog.db)` | skip for same-species comparisons |
 | P(rhythmic) | `rowMeans(mcmc$rho)` | — |
 | Bayes Factor | `summarize_bay(mcmc$rho, BF, p_rhythmic=0.2)` | `p_rhythmic` must match MCMC prior |
-| Estimates+HDI | `CB_getAllEst(mcmc, burn=100)` | `credMass=0.95` |
+| Estimates+HDI | `CB_getAllEst(mcmc, burn=100)` | `credMass=0.95`; returns an unnamed list, name it `c("A","phi","M","sigma")` |
 | Transition | `transition_classify(pA, pB, bfdr_alpha=0.25)` | `bfdr_alpha` |
 | Phase | `phase_infer(phi1, phi2, gain_loss_status, shift=2, ...)` | `shift`, `compute_hdi` |
 | Pathway | `pathSelect(mcmc.merge.list, pathway.list, ranking.method, ...)` | `"union"`, `"gain"`, `"loss"`, `"conserved"` |
-| Concordance | `multi_conservation(..., select.pathway.list="global")` | `n_perm`, `n_boot`, `save_output` |
+| Concordance | `multi_conservation(..., select.pathway.list="global")` | `n_perm`, `n_boot`, `save_output`; returns a one-row data.frame with `<A>_vs_<B>_*` columns |
 
 # Citation
 

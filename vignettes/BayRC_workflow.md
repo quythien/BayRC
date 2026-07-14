@@ -278,9 +278,11 @@ library(BayRC)
 # After running MCMC: annotate both conditions.
 # BF = 3 is the Bayes Factor threshold for the binary rhythmicity call stored
 # in attr(mcmc$rho, "RHYindex"). This does NOT filter genes — all G genes are kept.
-# p_rhythmic = 0.2 must match the prior used in CB_MCMC_single_rj_slice (default 0.2).
-mcmc_PUT <- match_symbols(mcmc_PUT, BF = 3)
-mcmc_SUN <- match_symbols(mcmc_SUN, BF = 3)
+# match_symbols() defaults to p_rhythmic = 0.5, so pass p_rhythmic = 0.2
+# explicitly: it must match the prior used in CB_MCMC_single_rj_slice (default
+# 0.2), or RHYindex and any downstream Bayes Factor will be miscalibrated.
+mcmc_PUT <- match_symbols(mcmc_PUT, BF = 3, p_rhythmic = 0.2)
+mcmc_SUN <- match_symbols(mcmc_SUN, BF = 3, p_rhythmic = 0.2)
 
 # What changed:
 # - rownames(mcmc_PUT$rho)  now confirmed = gene symbols (e.g., "BMAL1", "CLOCK")
@@ -300,8 +302,8 @@ matching:
 library(biomaRt)
 ensembl_mart <- useMart("ensembl", dataset = "hsapiens_gene_ensembl")
 
-mcmc_PUT <- match_symbols(mcmc_PUT, BF = 3, ensemble = ensembl_mart)
-mcmc_SUN <- match_symbols(mcmc_SUN, BF = 3, ensemble = ensembl_mart)
+mcmc_PUT <- match_symbols(mcmc_PUT, BF = 3, ensemble = ensembl_mart, p_rhythmic = 0.2)
+mcmc_SUN <- match_symbols(mcmc_SUN, BF = 3, ensemble = ensembl_mart, p_rhythmic = 0.2)
 
 # After this step:
 # - rownames(mcmc_PUT$rho) = HGNC gene symbols
@@ -314,18 +316,25 @@ mcmc_SUN <- match_symbols(mcmc_SUN, BF = 3, ensemble = ensembl_mart)
 > data uses Ensembl IDs but you do not pass `ensemble`, the function will stop with
 > an informative error.
 
-### Cross-species workflow (human vs. baboon, human vs. mouse, etc.)
+### Cross-species workflow (human vs. mouse, human vs. baboon, etc.)
 
 When comparing conditions from different species, gene identifiers must be mapped
-to a common reference space before any joint analysis. BayRC requires:
+to a common reference space before any joint analysis. BayRC gives you two ways to
+do this, and which one applies depends on the species pair.
+
+**Option 1: `match_homologs()` (live biomaRt query).** BayRC requires:
 
 1. Both MCMC objects have been through `match_symbols()` with Ensembl IDs input
    (so `attr(rho, "ensembl_gene_ids")` is populated)
 2. `match_homologs()` maps each non-reference species to the reference space and
    computes the intersection of 1:1 orthologous genes
 
+Its internal `species_map` currently only recognizes `"human"` (homo_sapiens) and
+`"mouse"` (mus_musculus); add other species to that map before calling it for a
+different pair. It is the right tool for a human vs. mouse comparison:
+
 ```r
-# Example: comparing human Putamen (condition A) vs. baboon Putamen (condition B)
+# Example: comparing human Putamen (condition A) vs. mouse Putamen (condition B)
 # Both MCMC objects must already be annotated with match_symbols().
 
 # match_homologs() arguments:
@@ -333,22 +342,21 @@ to a common reference space before any joint analysis. BayRC requires:
 #   species_from — character vector, same length, indicating each dataset's species
 #   ref          — reference species for gene ID space (default: "human")
 #
-# Supported species: "human" (homo_sapiens), "mouse" (mus_musculus)
-# Additional species can be added to the internal species_map in match_homologs().
+# Supported species out of the box: "human" (homo_sapiens), "mouse" (mus_musculus).
 
 aligned <- match_homologs(
-  input_dfs    = list(human = mcmc_PUT, baboon = mcmc_SUN),
-  species_from = c("human", "baboon"),
+  input_dfs    = list(human = mcmc_PUT, mouse = mcmc_mouse),
+  species_from = c("human", "mouse"),
   ref          = "human"
 )
 
 # aligned is a list of two MCMC objects with matching rownames in human gene space.
 # Only genes with 1:1 orthologs found in both species are retained.
-mcmc_PUT_aligned <- aligned[[1]]   # human, subset to shared orthologs
-mcmc_SUN_aligned <- aligned[[2]]   # baboon, re-indexed to human gene IDs
+mcmc_PUT_aligned   <- aligned[[1]]   # human, subset to shared orthologs
+mcmc_mouse_aligned <- aligned[[2]]   # mouse, re-indexed to human gene IDs
 
 # Verify alignment:
-identical(rownames(mcmc_PUT_aligned$rho), rownames(mcmc_SUN_aligned$rho))  # must be TRUE
+identical(rownames(mcmc_PUT_aligned$rho), rownames(mcmc_mouse_aligned$rho))  # must be TRUE
 cat("Shared orthologs:", nrow(mcmc_PUT_aligned$rho), "\n")
 ```
 
@@ -357,8 +365,26 @@ cat("Shared orthologs:", nrow(mcmc_PUT_aligned$rho), "\n")
 > input row names are Ensembl IDs. If you call `match_homologs()` on data whose row
 > names are already gene symbols, it will stop with an error about missing Ensembl
 > IDs — go back and re-run your MCMC pipeline from expression data with Ensembl IDs
-> as row names, or use `merge_mcmc()` with an ortholog table (see `?merge_mcmc`)
-> as an alternative cross-species matching approach.
+> as row names.
+
+**Option 2: `merge_mcmc()` with a curated ortholog table.** For a species pair not
+in the `species_map` above, for example the baboon vs. human tissue comparisons in
+the manuscript, `merge_mcmc()` is the tool to use: you supply your own ortholog
+table instead of relying on a live database query, which also makes the matching
+reproducible run to run.
+
+```r
+# hw_orth is a precomputed human-baboon ortholog table: one column per species,
+# one row per ortholog pair (see the manuscript methods for how it was built).
+merged <- merge_mcmc(
+  list(human = mcmc_PUT, baboon = mcmc_baboon),
+  species     = c("human", "baboon"),
+  ortholog.db = hw_orth,
+  reference   = 1
+)
+mcmc_PUT_aligned    <- merged[[1]]
+mcmc_baboon_aligned <- merged[[2]]
+```
 
 ### What breaks if you skip annotation
 
@@ -455,14 +481,17 @@ amplitudes, or MESOR values for genes of interest.
 est_PUT <- CB_getAllEst(mcmc_PUT, burn = 100)
 est_SUN <- CB_getAllEst(mcmc_SUN, burn = 100)
 
-# est_PUT is a list; access individual parameter data frames by index:
-#   est_PUT[[1]] — phi (acrophase / peak time): phi.Est, phi.Lower, phi.Upper
-#   est_PUT[[2]] — A  (amplitude):              A.Est,   A.Lower,   A.Upper
-#   est_PUT[[3]] — M  (MESOR):                  M.Est,   M.Lower,   M.Upper
-#   est_PUT[[4]] — sigma (noise variance)
+# CB_getAllEst() returns its four parameter data frames as an unnamed list, in
+# the order A, phi, M, sigma; name them once so $-access below is correct.
+names(est_PUT) <- names(est_SUN) <- c("A", "phi", "M", "sigma")
+
+# est_PUT$A     : amplitude              (A.Est,   A.Lower,   A.Upper)
+# est_PUT$phi   : acrophase / peak time  (phi.Est, phi.Lower, phi.Upper)
+# est_PUT$M     : MESOR                  (M.Est,   M.Lower,   M.Upper)
+# est_PUT$sigma : residual noise variance
 
 # Phase estimates for the most confident rhythmic genes:
-phase_df <- est_PUT[[1]]
+phase_df <- est_PUT$phi
 head(phase_df[order(bf_PUT$BayesF, decreasing = TRUE), ])
 #         phi.Est phi.Lower phi.Upper RHYindex
 # ARNTL      6.1       4.2       8.0        1
@@ -816,13 +845,13 @@ global <- multi_conservation(
   compute_ci          = TRUE
 )
 
-# Key output: results are stored in matrices indexed by pathway name and pair name.
-# For global analysis there is one row ("Global") and one column ("PUT&SUN").
-cscore   <- global$Adjusted["Global", "PUT&SUN"]
-pvalue   <- global$PValue["Global", "PUT&SUN"]
-ci_lower <- global$CI_lower_adj["Global", "PUT&SUN"]
-ci_upper <- global$CI_upper_adj["Global", "PUT&SUN"]
-glr      <- global$Gain_loss_ratio["Global", "PUT&SUN"]
+# Key output: global is a one-row data.frame, not a matrix. With
+# dataset.names = c("PUT", "SUN") every column is prefixed PUT_vs_SUN_.
+cscore   <- global$PUT_vs_SUN_AdjustedConcordance
+pvalue   <- global$PUT_vs_SUN_PValue
+ci_lower <- global$PUT_vs_SUN_CI_Lower_Adj
+ci_upper <- global$PUT_vs_SUN_CI_Upper_Adj
+glr      <- global$PUT_vs_SUN_GainLossRatio
 
 cat("Adjusted c-score:", round(cscore, 3), "\n")
 cat("Permutation p-value:", round(pvalue, 4), "\n")
@@ -982,7 +1011,8 @@ to biological conclusions.
 
 - [ ] **What is the global concordance (c-score)? Is it significantly different from
   chance?**  
-  Check `global$Adjusted` and `global$PValue`.  
+  Check `global$PUT_vs_SUN_AdjustedConcordance` and `global$PUT_vs_SUN_PValue`
+  (column names follow the `<A>_vs_<B>_` prefix from your `dataset.names`).  
   c-score > 0.3, p < 0.01: strong transcriptome-wide circadian conservation.  
   c-score ≈ 0.1–0.2, p < 0.05: modest but significant conservation — a meaningful
   subset of the rhythmic program is shared.  
@@ -1000,17 +1030,17 @@ to biological conclusions.
 | Initialize chain | `CB_init_single(Data.list, P=24)` | `Data.list=list(data, time, gname)`; `data` is `as.data.frame(Y)` | Init object |
 | Run MCMC | `CB_MCMC_single_rj_slice(Data.list, Init.value, P=24, iteration=3000, n.burn=1000)` | `iteration=3000`, `n.burn=1000`, `thin=20` typical | List of G×K posterior sample matrices |
 | Posterior P(rhythmic) | `rowMeans(mcmc$rho)` | — | Numeric vector of length G |
-| Bayes Factor | `summarize_bay(mcmc$rho, BF, p_rhythmic)` | `BF=3`, `p_rhythmic=0.5` | BayesF, Rhythmicity, RowAverage |
-| All estimates + HDI | `CB_getAllEst(mcmc, burn)` | `burn=100`, `credMass=0.95` | List of data frames: phi, A, M, sigma |
+| Bayes Factor | `summarize_bay(mcmc$rho, BF, p_rhythmic)` | `BF=3`, `p_rhythmic=0.2` (must match MCMC prior) | BayesF, Rhythmicity, RowAverage |
+| All estimates + HDI | `CB_getAllEst(mcmc, burn)` | `burn=100`, `credMass=0.95` | Unnamed list of data frames in order A, phi, M, sigma (name it before use) |
 | BFDR threshold | `bfdr_from_posterior(probs, alpha)` | `alpha=0.25` | threshold, rhythmic_genes, n_rhythmic |
 | Per-condition detection | `detect_rhy(dat1, dat2, bfdr_alpha)` | `bfdr_alpha=0.25` | Rhythmic gene sets per condition |
 | Transition classification | `transition_classify(pA, pB, bfdr_alpha)` | `bfdr_alpha=0.25` | gain_loss_status vector, counts, thresholds |
 | Marginal classification | `transition_classify_marginal(pA, pB, bfdr_alpha)` | — | Alternative to joint classification |
 | Phase inference | `phase_infer(phi1, phi2, gain_loss_status, shift, bfdr_alpha, compute_hdi)` | `shift=2` or `4`, `compute_hdi=TRUE` | flag_cons, flag_shift, deltaPhi.Est, HDI |
 | Pathway enrichment | `pathSelect(mcmc.merge.list, pathway.list, ranking.method, nperm)` | `ranking.method`: "union", "gain", "loss", "conserved" | fgsea results + GLR + top genes per pathway |
-| Genome-wide concordance | `multi_conservation(..., select.pathway.list="global")` | `n_perm=1000`, `n_boot=500` | c-score, p-value, CI, GLR |
-| Multi-dataset concordance | `multi_conservation_global(mcmc.merge.list, dataset.names)` | `B=1000` | Pairwise c-score matrix |
-| Ortholog matching | `match_homologs(input_dfs, species_from, ref)` | — | Matched MCMC objects for cross-species analysis |
+| Genome-wide concordance | `multi_conservation(..., select.pathway.list="global")` | `n_perm=1000`, `n_boot=500` | One-row data.frame; `<A>_vs_<B>_AdjustedConcordance/_PValue/_CI_Lower_Adj/_CI_Upper_Adj/_GainLossRatio` |
+| Ortholog matching (live query) | `match_homologs(input_dfs, species_from, ref)` | supports `"human"`/`"mouse"` out of the box | Matched MCMC objects for cross-species analysis |
+| Ortholog matching (curated table) | `merge_mcmc(mcmc.list, species, ortholog.db, reference)` | needs a precomputed ortholog table (e.g. for baboon) | Matched MCMC objects, reproducible without a live query |
 
 ---
 

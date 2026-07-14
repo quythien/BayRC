@@ -64,7 +64,6 @@
 #'       across iterations (excluding NA).}
 #'   }
 #'
-#' @export
 # NEW: Compute iteration-level Jaccard index
 compute_iteration_jaccard <- function(rho_A, rho_B) {
   # rho_A, rho_B: binary matrices (genes × iterations)
@@ -177,7 +176,6 @@ compute_iteration_jaccard <- function(rho_A, rho_B) {
 #'   \code{exp_gain}, \code{exp_loss}, and \code{exp_union}, each
 #'   containing iteration-level index values.
 #'
-#' @export
 # Compute gain/loss across iterations
 compute_gain_loss_iterations <- function(rho_A, rho_B) {
   # rho_A, rho_B: binary matrices (genes × iterations)
@@ -266,7 +264,6 @@ compute_gain_loss_iterations <- function(rho_A, rho_B) {
 #'   \code{p_value}, \code{ci_lower}, \code{ci_upper}, and related
 #'   diagnostic fields.
 #'
-#' @export
 analyze_pathway_concordance <- function(rho_A, rho_B, idx = NULL,
                                         n_perm = 1000, n_boot = 500,
                                         alpha = 0.05, use_cpp = FALSE, is_global = FALSE,
@@ -857,7 +854,6 @@ multi_conservation <- function(mcmc.merge.list, dataset.names,
 #'   hypergeometric p-values), \code{confusion} (K x 4 matrix of
 #'   contingency table proportions), and \code{mean_pvalue}.
 #'
-#' @export
 # For each MCMC iteration, treats the binary ρ vectors as a 2×2 contingency table
 # and computes the exact one-sided hypergeometric p-value (more overlap than chance).
 # Returns a posterior distribution of Jaccard values and confusion-matrix elements.

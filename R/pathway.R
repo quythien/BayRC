@@ -28,7 +28,6 @@
 #'       each pathway.}
 #'   }
 #'
-#' @export
 # Observed pathway conservation scores with pathway metadata
 conservation_pathway_circadian <- function(dat1, dat2, select.pathway.list,
                                            delta = 3, units = "hours") {
@@ -126,7 +125,6 @@ conservation_pathway_circadian <- function(dat1, dat2, select.pathway.list,
 #' @return A named list of K arrays (one per pathway), each B x 4
 #'   containing permuted congruence, gain, loss, and ratio scores.
 #'
-#' @export
 # Permutation for pathway analysis with improved progress tracking and rounds support
 perm_pathway_circadian <- function(dat1, dat2, select.pathway.list,
                                    delta = 3, units = "hours", B = 1000,
@@ -372,7 +370,6 @@ run_single_round <- function(dat1, dat2, pathway_indices_A, pathway_indices_B,
 #' @return A data.frame with one row per pathway and columns for observed
 #'   scores, p-values, and q-values (BH-adjusted).
 #'
-#' @export
 # P-value calculation for pathway analysis
 # For congruence_index: right-sided test only
 # For gain_loss_ratio:

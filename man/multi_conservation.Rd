@@ -14,6 +14,7 @@ multi_conservation(
   min.p = 5,
   qvalue_threshold = NULL,
   output.dir = "Conservation_Pathway_Bootstrap",
+  save_output = TRUE,
   use_cpp = FALSE,
   compute_pvalue = TRUE,
   compute_ci = TRUE
