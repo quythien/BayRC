@@ -2842,7 +2842,6 @@ transition_classify <- function(pA, pB, bfdr_alpha = 0.05) {
 #'   loss/cons}, and a \code{results} data.frame with columns
 #'   \code{rhythmic_A} and \code{rhythmic_B}.
 #'
-#' @export
 transition_classify_marginal <- function(pA, pB, bfdr_alpha = 0.05) {
 
   n_genes <- length(pA)

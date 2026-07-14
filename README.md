@@ -250,7 +250,6 @@ a linear interval gets wrong.
 | `detect_rhy()` | Condition-specific rhythmic gene sets with BFDR control |
 | `summarize_bay()` | Per-gene Bayes Factor: `BF = posterior_odds / prior_odds` |
 | `transition_classify()` | Joint posterior BFDR for gain / loss / conservation |
-| `transition_classify_marginal()` | Marginal per-condition BFDR (alternative to joint) |
 | `phase_infer()` | Phase-shift vs. conservation classification + 95% circular HDI on Δφ |
 
 ### 3. Pathway-Level Rhythmic Enrichment and Directionality (paper §2.3)
@@ -275,6 +274,51 @@ comparison in the manuscript); skip for same-species comparisons.
 |---|---|---|
 | `match_homologs()` | Automated, needs internet | Uses biomaRt to find 1:1 orthologs; aligns all datasets to reference gene space |
 | `merge_mcmc()` | Reproducible, needs a pre-built ortholog table | Alternative to `match_homologs()` using an explicit ortholog database; more reproducible than live biomaRt queries |
+
+---
+
+## Glossary
+
+Plain-language definitions for readers who aren't Bayesian statisticians.
+
+**Posterior probability.** After seeing the data, how likely a claim is, on a
+scale from 0 to 1. In BayRC, P(rhythmic | data) is the posterior probability
+that a gene actually oscillates on a 24-hour cycle, combining the prior
+assumption with what the expression data actually show.
+
+**Bayes factor.** How much more the data support "this gene is rhythmic"
+over "this gene is not," expressed as a ratio. A Bayes factor of 3 means the
+data are 3 times more consistent with rhythmicity than with no rhythm; higher
+is stronger evidence. `summarize_bay()` computes this per gene.
+
+**Credible interval.** The Bayesian counterpart to a confidence interval: a
+range that has a stated probability (usually 95%) of containing the true
+value, given the data. For phase, this is computed on a circle rather than a
+line (see circular HDI below), since 23:00 and 01:00 are close together, not
+22 hours apart.
+
+**Bayesian false discovery rate (BFDR).** The expected fraction of "rhythmic"
+or "gained/lost/conserved" calls that are actually false positives, computed
+directly from posterior probabilities rather than from p-values. BayRC picks
+a decision threshold so this expected fraction stays under a chosen level
+(0.25 in most examples here), then calls every gene that clears it.
+
+**Circular / phase concordance.** Whether two conditions peak at the same
+time of day. Because time of day wraps around every 24 hours, phase
+differences have to be measured on a circle: a gene peaking at 23:00 in one
+condition and 01:00 in the other is 2 hours off, not 22.
+
+**Gain / loss / conservation.** The three ways a gene's rhythm can change
+between two conditions: it can start oscillating where it didn't before
+(gain), stop oscillating (loss), or keep oscillating in both (conserved).
+`transition_classify()` makes this call under BFDR control.
+
+**Genome-wide concordance (c-score).** A single number summarizing how
+similar two conditions' rhythmic programs are overall, built by averaging an
+adjusted Jaccard index across MCMC iterations so it propagates posterior
+uncertainty rather than relying on one fixed gene list. Centered at 0 (no
+more overlap than chance) with 1 meaning perfect agreement. `multi_conservation()`
+computes it along with a permutation p-value and bootstrap confidence interval.
 
 ---
 

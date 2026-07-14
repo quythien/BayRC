@@ -130,8 +130,9 @@ mcmc_PUT <- CB_MCMC_single_rj_slice(
 # Mean ESS (rho):          842
 ```
 
-> **Interpretation:** Acceptance rates of 10–20% indicate healthy RJMCMC mixing.
-> Mean ESS > 200 is satisfactory for BFDR-controlled downstream analysis.
+> **Interpretation:** Acceptance rates of 10-20% indicate healthy RJMCMC mixing.
+> Mean ESS > 200 is satisfactory for Bayesian false discovery rate (BFDR)-controlled
+> downstream analysis (see Step 3 below).
 
 # Step 2: Annotate and Extract Summaries
 

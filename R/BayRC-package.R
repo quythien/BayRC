@@ -30,7 +30,6 @@
 #'       \item \code{\link{detect_rhy}}
 #'       \item \code{\link{summarize_bay}}
 #'       \item \code{\link{transition_classify}}
-#'       \item \code{\link{transition_classify_marginal}}
 #'       \item \code{\link{phase_infer}}
 #'     }
 #'   }
