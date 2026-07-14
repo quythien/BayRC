@@ -622,7 +622,7 @@ gsa.fisher <- function(x, background, pathway) {
 # Update 03/21
 
 
-# Fisher’s method for combining p-values
+# Fisher's method for combining p-values
 fisher <- function(x) {
   x <- x[!is.na(x)]
   if (length(x) == 0) return(NA)
@@ -632,7 +632,7 @@ fisher <- function(x) {
   return(1 - pchisq(Tf, 2 * n))
 }
 
-# Fisher’s Exact Test for circadian genes
+# Fisher's Exact Test for circadian genes
 gsa.fisher.circadian <- function(rhythmic_genes, arrhythmic_genes, background, pathway) {
   count_table <- matrix(0, 2, 2)
   pathway <- lapply(pathway, function(path) intersect(toupper(background), toupper(path)))
@@ -1374,7 +1374,7 @@ match_symbols <- function(input_df, BF, p_rhythmic = 0.5, ensemble = NULL) {
         filt <- "hgnc_symbol"
       }
       
-      getBM(
+      biomaRt::getBM(
         attributes = c("ensembl_gene_id", "hgnc_symbol"),
         filters = filt,
         values  = gene_ids,
@@ -1432,7 +1432,7 @@ match_symbols <- function(input_df, BF, p_rhythmic = 0.5, ensemble = NULL) {
   final_ens_ids  <- if (!already_symbols) gene_ids[data_filtered] else NULL
   G_final        <- length(final_symbols)
 
-  # Propagate symbols, RHYindex (and Ensembl IDs if applicable) to ALL G×K matrices.
+  # Propagate symbols, RHYindex (and Ensembl IDs if applicable) to ALL G x K matrices.
   # This ensures rownames and attributes survive downstream subsetting operations.
   for (mat_name in names(input_df_filtered)) {
     el <- input_df_filtered[[mat_name]]
@@ -1449,7 +1449,7 @@ match_symbols <- function(input_df, BF, p_rhythmic = 0.5, ensemble = NULL) {
   # Legacy duplicate-check kept for user transparency
   tryCatch({
     if (length(unique(final_symbols)) < G_final)
-      warning("Duplicate gene symbols found after deduplication — check BF threshold.")
+      warning("Duplicate gene symbols found after deduplication: check BF threshold.")
   })
   
   return(input_df_filtered)
@@ -1487,6 +1487,8 @@ match_symbols <- function(input_df, BF, p_rhythmic = 0.5, ensemble = NULL) {
 #' }
 # Matching homologs
 match_homologs <- function(input_dfs, species_from ,ref = "human") {
+  if (!requireNamespace("biomaRt", quietly = TRUE))
+    stop("Package 'biomaRt' is required. Install with: BiocManager::install('biomaRt')")
   if (length(input_dfs) != length(species_from)) {
     stop("The number of datasets must match the number of species provided.")
   }
@@ -1540,10 +1542,16 @@ match_homologs <- function(input_dfs, species_from ,ref = "human") {
     sp_ensembl <- species_map[sp]
     message("Retrieving homologs from ", ref_species_ensembl, " to ", sp_ensembl)
     
-    homologs <- getHomologs(
-      unique(ref_gene_ids),
-      species_from = ref_species_ensembl,
-      species_to   = sp_ensembl
+    biomart_dataset <- function(binomial_name) {
+      parts <- strsplit(binomial_name, "_")[[1]]
+      paste0(substr(parts[1], 1, 1), parts[2], "_gene_ensembl")
+    }
+    mart_from <- try_any_mirror(dataset = biomart_dataset(ref_species_ensembl))
+    mart_to   <- try_any_mirror(dataset = biomart_dataset(sp_ensembl))
+    homologs <- biomaRt::getLDS(
+      attributes  = "ensembl_gene_id", filters = "ensembl_gene_id",
+      values      = unique(ref_gene_ids), mart = mart_from,
+      attributesL = "ensembl_gene_id", martL = mart_to
     )
     if (nrow(homologs) == 0) {
       stop("No homolog mappings found from ", ref_species_ensembl, " to ", sp_ensembl)
@@ -1559,7 +1567,7 @@ match_homologs <- function(input_dfs, species_from ,ref = "human") {
   
   # ============= 2) Convert Each Dataset & Compute Intersection =============
   #
-  # Map each dataset’s gene IDs into reference space and collect unique reference IDs.
+  # Map each dataset's gene IDs into reference space and collect unique reference IDs.
   mapped_ids_list <- vector("list", length(input_dfs))
   
   for (i in seq_along(input_dfs)) {
@@ -1626,7 +1634,7 @@ match_homologs <- function(input_dfs, species_from ,ref = "human") {
     final_symbols  <- new_symbols[row_idx]
     final_ens_ids  <- new_ids[row_idx]
 
-    # Propagate gene symbols as rownames and set attributes on ALL G×K matrices.
+    # Propagate gene symbols as rownames and set attributes on ALL G x K matrices.
     # Downstream functions (pathSelect, detect_rhy, phase_infer) all use rownames
     # for gene-level matching; symbols must be consistent across rho, phi, A, M, etc.
     G_final <- length(final_symbols)
@@ -1780,7 +1788,7 @@ phase_difference <- function(phi1, phi2, units = "hours") {
     diff <- ((diff + 12) %% 24) - 12
   } else if (units == "radians") {
     diff <- phi2 - phi1
-    # Wrap to [-π, +π] range  
+    # Wrap to [-pi, +pi] range  
     diff <- ((diff + pi) %% (2*pi)) - pi
   }
   return(diff)
@@ -1921,13 +1929,13 @@ congruence <- function(matrix1, matrix2, delta = 3, units = "hours") {
   loss_index <- expected_loss * union_inv
   gain_index <- expected_gain * union_inv
   
-  # Gain/Loss ratio — paper Eq. 4: GLR = Gain / Loss.
+  # Gain/Loss ratio: paper Eq. 4: GLR = Gain / Loss.
   # Inf when Loss=0 and Gain>0 is the mathematically correct value.
   gain_loss_ratio <- if (loss_index == 0) {
     if (gain_index == 0) {
-      NA_real_  # Both zero — ratio undefined
+      NA_real_  # Both zero: ratio undefined
     } else {
-      Inf       # Loss=0, Gain>0 — paper Eq. 4 gives +Inf
+      Inf       # Loss=0, Gain>0: paper Eq. 4 gives +Inf
     }
   } else {
     gain_index / loss_index
@@ -2014,13 +2022,15 @@ pairwise_concordance <- function(human_data, n_gene = NULL) {
 
 
 try_any_mirror <- function(biomart = "ENSEMBL_MART_ENSEMBL", dataset = "hsapiens_gene_ensembl") {
+  if (!requireNamespace("biomaRt", quietly = TRUE))
+    stop("Package 'biomaRt' is required. Install with: BiocManager::install('biomaRt')")
   mirrors <- c("useast", "www", "asia")  # List of mirrors to try
   ensembl <- NULL
-  
+
   for (mirror in mirrors) {
     message(paste("Trying", mirror, "mirror..."))
     try({
-      ensembl <- useEnsembl(biomart = biomart, dataset = dataset, mirror = mirror)
+      ensembl <- biomaRt::useEnsembl(biomart = biomart, dataset = dataset, mirror = mirror)
     }, silent = TRUE)
     
     if (!is.null(ensembl)) {
@@ -2051,7 +2061,7 @@ try_any_mirror <- function(biomart = "ENSEMBL_MART_ENSEMBL", dataset = "hsapiens
 #'
 #' @export
 summarize_bay <- function(input_df, BF, p_rhythmic = 0.2) {
-  # Default 0.2 matches CB_MCMC_single_rj_slice default (paper §2.1).
+  # Default 0.2 matches CB_MCMC_single_rj_slice default (paper Sec. 2.1).
   # BF = posterior_odds / prior_odds; using a different p_rhythmic here than
   # was passed to the MCMC will produce miscalibrated Bayes Factors.
   if (!isTRUE(all.equal(p_rhythmic, 0.2)))
@@ -2133,7 +2143,7 @@ phase_inf <- function(matrix1, matrix2,
   rho_matrix2 = matrix2$rho
   
   
-  # 1. Helper: circular median in [−P/2,P/2)
+  # 1. Helper: circular median in [-P/2,P/2)
   circular_median <- function(samples, P) {
     rad <- circular((samples / P) * 2 * pi, units = "radians")
     med <- median.circular(rad, type = "median")
@@ -2547,7 +2557,7 @@ plotHDIClockPolar <- function(phi_mat, gene_aliases, tissue_label, output_path,
 # Main BFDR function - calculates threshold from posterior probabilities
 ################################################################################
 # Bayesian False Discovery Rate (BFDR) threshold estimation
-# Implements Eq. (25): τ_c = max{ τ : BFDR(τ) ≤ α }
+# Implements Eq. (25): tau_c = max{ tau : BFDR(tau) <= alpha }
 ################################################################################
 #' Estimate the Bayesian False Discovery Rate threshold from posterior probabilities
 #'
@@ -2585,7 +2595,7 @@ bfdr_from_posterior <- function(posterior_probs, alpha = 0.05) {
   discoveries <- seq_len(n)
   bfdr_values <- cumsum_false / discoveries
   
-  # Identify largest index satisfying BFDR ≤ α
+  # Identify largest index satisfying BFDR <= alpha
   valid_idx <- which(bfdr_values <= alpha)
   
   if (length(valid_idx) == 0) {
@@ -2657,7 +2667,7 @@ detect_rhy <- function(dat1, dat2, bfdr_alpha = 0.05) {
   if (is.null(gene_names))
     gene_names <- paste0("Gene_", seq_along(p_A_all))
   
-  # 3. Determine thresholds τ_A, τ_B via BFDR rule (Eq. 25)
+  # 3. Determine thresholds tau_A, tau_B via BFDR rule (Eq. 25)
   bfdr_A <- bfdr_from_posterior(p_A_all, alpha = bfdr_alpha)
   bfdr_B <- bfdr_from_posterior(p_B_all, alpha = bfdr_alpha)
   tau_A <- bfdr_A$threshold
@@ -2756,13 +2766,13 @@ transition_classify <- function(pA, pB, bfdr_alpha = 0.05) {
   p_loss <- pA * (1 - pB)   # lost rhythmicity
   p_cons <- pA * pB         # maintained rhythmicity
   
-  # 2. Condition-specific BFDR thresholds (paper §2.2, τ_A and τ_B)
+  # 2. Condition-specific BFDR thresholds (paper Sec. 2.2, tau_A and tau_B)
   bfdr_A <- bfdr_from_posterior(pA, alpha = bfdr_alpha)
   bfdr_B <- bfdr_from_posterior(pB, alpha = bfdr_alpha)
   tau_rhythmic_A <- bfdr_A$threshold
   tau_rhythmic_B <- bfdr_B$threshold
 
-  # 3. Apply BFDR to each transition type (paper §2.2, τ_gain, τ_loss, τ_cons)
+  # 3. Apply BFDR to each transition type (paper Sec. 2.2, tau_gain, tau_loss, tau_cons)
   bfdr_gain <- bfdr_from_posterior(p_gain, alpha = bfdr_alpha)
   bfdr_loss <- bfdr_from_posterior(p_loss, alpha = bfdr_alpha)
   bfdr_cons <- bfdr_from_posterior(p_cons, alpha = bfdr_alpha)
@@ -2789,9 +2799,9 @@ transition_classify <- function(pA, pB, bfdr_alpha = 0.05) {
   
   
   cat("=== Transition-level BFDR results ===\n")
-  cat("τ_gain =", round(tau_gain, 3), "| n_gain =", n_gain, "\n")
-  cat("τ_loss =", round(tau_loss, 3), "| n_loss =", n_loss, "\n")
-  cat("τ_cons =", round(tau_cons, 3), "| n_cons =", n_cons, "\n\n")
+  cat("\u03c4_gain =", round(tau_gain, 3), "| n_gain =", n_gain, "\n")
+  cat("\u03c4_loss =", round(tau_loss, 3), "| n_loss =", n_loss, "\n")
+  cat("\u03c4_cons =", round(tau_cons, 3), "| n_cons =", n_cons, "\n\n")
   
   
   results_df <- data.frame(
@@ -2808,14 +2818,14 @@ transition_classify <- function(pA, pB, bfdr_alpha = 0.05) {
   
   
   list(
-    # Condition-specific thresholds (paper §2.2 τ_A, τ_B)
+    # Condition-specific thresholds (paper Sec. 2.2 tau_A, tau_B)
     tau_rhythmic_A = tau_rhythmic_A,
     tau_rhythmic_B = tau_rhythmic_B,
-    # Transition thresholds (paper §2.2 τ_gain, τ_loss, τ_cons)
+    # Transition thresholds (paper Sec. 2.2 tau_gain, tau_loss, tau_cons)
     tau_gain = tau_gain,
     tau_loss = tau_loss,
     tau_cons = tau_cons,
-    # Transition posterior vectors (paper §2.2 p_gain, p_loss, p_cons)
+    # Transition posterior vectors (paper Sec. 2.2 p_gain, p_loss, p_cons)
     p_gain = p_gain,
     p_loss = p_loss,
     p_cons = p_cons,
@@ -2889,8 +2899,8 @@ transition_classify_marginal <- function(pA, pB, bfdr_alpha = 0.05) {
   gain_loss_status[cons_genes] <- "Maintained"
 
   cat("=== Marginal BFDR results ===\n")
-  cat("τ_A =", round(tau_A, 3), "| n_rhythmic_A =", sum(rhythmic_A), "\n")
-  cat("τ_B =", round(tau_B, 3), "| n_rhythmic_B =", sum(rhythmic_B), "\n")
+  cat("\u03c4_A =", round(tau_A, 3), "| n_rhythmic_A =", sum(rhythmic_A), "\n")
+  cat("\u03c4_B =", round(tau_B, 3), "| n_rhythmic_B =", sum(rhythmic_B), "\n")
   cat("n_gain =", length(gain_genes),
       "| n_loss =", length(loss_genes),
       "| n_cons =", length(cons_genes), "\n\n")
@@ -2920,7 +2930,7 @@ transition_classify_marginal <- function(pA, pB, bfdr_alpha = 0.05) {
 }
 
 ################################################################################
-# Step 3: Phase inference (Δφ estimation, shift/conservation BFDR)
+# Step 3: Phase inference (Delta-phi estimation, shift/conservation BFDR)
 ################################################################################
 # phase_infer <- function(phi_matrix1, phi_matrix2, gain_loss_status,
 #                         P = 24, credMass = 0.95, shift = 4,
@@ -3010,7 +3020,7 @@ transition_classify_marginal <- function(pA, pB, bfdr_alpha = 0.05) {
 #   # summary print --------------------------------------------------------------
 #   cat("\n=== PHASE INFERENCE SUMMARY ===\n")
 #   cat("Maintained genes:", length(maintained_idx), "\n")
-#   cat("BFDR α =", bfdr_alpha, " | shift threshold =", shift, "h\n")
+#   cat("BFDR \u03b1 =", bfdr_alpha, " | shift threshold =", shift, "h\n")
 #   cat("Significant phase-shifted genes:", sum(flag_shift, na.rm = TRUE), "\n")
 #   cat("Significant phase-conserved genes:", sum(flag_cons, na.rm = TRUE), "\n\n")
 #   
@@ -3051,7 +3061,7 @@ transition_classify_marginal <- function(pA, pB, bfdr_alpha = 0.05) {
 #   gain_loss_status[trans$loss_genes] <- "Loss"
 #   gain_loss_status[trans$cons_genes] <- "Maintained"
 #   
-#   # updated call — rhy removed
+#   # updated call: rhy removed
 #   phase <- phase_infer(matrix1$phi, matrix2$phi, gain_loss_status,
 #                        P, credMass, shift, a, bfdr_alpha)
 #   
@@ -3206,7 +3216,7 @@ phase_infer <- function(phi_matrix1, phi_matrix2, gain_loss_status,
   # summary print --------------------------------------------------------------
   cat("\n=== PHASE INFERENCE SUMMARY ===\n")
   cat("Maintained genes:", length(maintained_idx), "\n")
-  cat("BFDR α =", bfdr_alpha, " | shift threshold =", shift, "h\n")
+  cat("BFDR \u03b1 =", bfdr_alpha, " | shift threshold =", shift, "h\n")
   cat("Significant phase-shifted genes:", sum(flag_shift, na.rm = TRUE), "\n")
   cat("Significant phase-conserved genes:", sum(flag_cons, na.rm = TRUE), "\n")
   cat("Undetermined genes:", sum(flag_undetermined, na.rm = TRUE), "\n")
@@ -3363,9 +3373,9 @@ phase_analysis <- function(matrix1, matrix2,
 #   n_cons <- length(cons_genes)
 #   
 #   cat("=== Transition-level BFDR results ===\n")
-#   cat("τ_gain =", round(tau_gain, 3), "| n_gain =", n_gain, "\n")
-#   cat("τ_loss =", round(tau_loss, 3), "| n_loss =", n_loss, "\n")
-#   cat("τ_cons =", round(tau_cons, 3), "| n_cons =", n_cons, "\n\n")
+#   cat("\u03c4_gain =", round(tau_gain, 3), "| n_gain =", n_gain, "\n")
+#   cat("tau_loss =", round(tau_loss, 3), "| n_loss =", n_loss, "\n")
+#   cat("tau_cons =", round(tau_cons, 3), "| n_cons =", n_cons, "\n\n")
 #   
 #   # posterior-based classification (replaces Venn-style classification)
 #   gain_loss_status <- rep("Non-rhythmic", n_genes)
@@ -3432,7 +3442,7 @@ phase_analysis <- function(matrix1, matrix2,
 #       # circular median of phase difference
 #       phi_est <- circ_med(vec, P)
 #       
-#       # posterior prob of shift ≥ user-specified "shift"
+#       # posterior prob of shift >= user-specified "shift"
 #       prob_shift[i]     <- mean(abs(vec) >= shift)
 #       prob_conserved[i] <- 1 - prob_shift[i]
 #       
@@ -3482,9 +3492,9 @@ phase_analysis <- function(matrix1, matrix2,
 #   # (6) print summary and return
 #   # ------------------------------------------------------------------
 #   cat("\n=== RHYTHMICITY SUMMARY ===\n")
-#   cat("BFDR α =", bfdr_alpha, "\n")
-#   cat("τ_A =", round(rhy$threshold_A, 3),
-#       "τ_B =", round(rhy$threshold_B, 3), "\n")
+#   cat("BFDR alpha =", bfdr_alpha, "\n")
+#   cat("tau_A =", round(rhy$threshold_A, 3),
+#       "tau_B =", round(rhy$threshold_B, 3), "\n")
 #   cat("Rhythmic (A):", rhy$n_rhythmic_A,
 #       "Rhythmic (B):", rhy$n_rhythmic_B,
 #       "Both:", rhy$n_rhythmic_both, "\n")
