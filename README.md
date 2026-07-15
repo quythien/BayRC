@@ -633,7 +633,7 @@ real signal rather than uncertainty from weak rhythmicity.
 |---|---|
 | `detect_rhy()` | Identify condition-specific rhythmic gene sets under BFDR control |
 | `transition_classify()` | Joint posterior BFDR classification of gain, loss, and conservation |
-| `phase_infer()` | Classify phase conservation vs. phase shift and compute a 95% circular HDI for `Delta phi` |
+| `phase_infer()` | Classify phase conservation vs. phase shift and compute a 95% circular HDI for phase difference|
 
 ### 3. Pathway-Level Rhythmic Enrichment and Directionality (paper §2.3)
 
@@ -751,4 +751,4 @@ along with a permutation p-value and bootstrap confidence interval.
 
 ## Citation
 
-Pham TQ., et al. *BayesRC: a comparative Bayesian multilevel framework for evaluating circadian synchrony across conditions.* (manuscript in preparation)
+Pham TQ, et al. *BayesRC: a comparative Bayesian multilevel framework for evaluating circadian synchrony across conditions.* (manuscript in preparation)
