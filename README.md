@@ -212,7 +212,7 @@ rhythm_OMF <- Cosinor_fit(list(data = log2(baboon$expr_OMF + 1),
 rhythm_OMF[rhythm_OMF$gname == "CRY2", c("pvalue", "qvalue")]
 ```
 
-![Cosinor fit examples by transition/phase category, baboon OMF vs THR](man/figures/cosinor_example.png)
+![Cosinor fit examples by transition/phase category, baboon OMF vs THR](man/figures/cosinor_examples.png)
 
 `CRY2`, a core clock repressor, illustrates Gain: it is not significant
 in OMF (`q = 0.44`) but is clearly rhythmic in THR (`q = 0.003`, `BF >
