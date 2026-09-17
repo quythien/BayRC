@@ -1421,7 +1421,8 @@ RJMCMC_single_slice = function(Y, t.c, t.s, N,
                         A_wb_beta2, #this applies to A~sq_expo(2, beta)
                         A_gm_shape, A_gm_rate,  
                         omega, G)
-    log.A.post = ifelse(A.post==0, 1e-7, log(A.post))
+    ## ifelse(x == 0, 1e-7, .) substituted a density of ~1 where -Inf was meant
+    log.A.post = log(pmax(A.post, 1e-300))
     A.prior = get_prior_A(Y, t.c, t.s, N, 
                          AcosPhi, AsinPhi, A, phi, 
                          M, sigma, 
@@ -1430,7 +1431,7 @@ RJMCMC_single_slice = function(Y, t.c, t.s, N,
                          A_wb_beta2, #this applies to A~sq_expo(2, beta)
                          A_gm_shape, A_gm_rate,  
                          omega)
-    log.A.prior = ifelse(A.prior==0, 1e-7, log(A.prior))
+    log.A.prior = log(pmax(A.prior, 1e-300))
   }else{
     log.A.prior = 1; log.A.post = 1
   }
