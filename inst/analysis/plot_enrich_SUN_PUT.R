@@ -16,6 +16,8 @@ if (!exists("phase_inner") || !exists("trans_outer")) {
 this.file <- sub("^--file=", "", grep("^--file=", commandArgs(), value = TRUE)[1])
 source(file.path(if (is.na(this.file)) getwd() else dirname(normalizePath(this.file)),
                  "config.R"))
+analysis.dir <- if (is.na(this.file)) getwd() else dirname(normalizePath(this.file))
+source(file.path(analysis.dir, "plots", "theme_bayrc.R"))
 
 output.dir <- BAYRC_OUTPUT_DIR
 plot_dir <- file.path(output.dir, "figure/baboon_brain")
@@ -89,21 +91,24 @@ save_dot_bar <- function(enr, prefix, title_text, show_n = 15) {
     enr@result$Description <- wrap_terms(enr@result$Description, width = 45)
   }
 
+  # clusterProfiler's dotplot/barplot return ggplots, so the shared theme
+  # applies; the term labels stay smaller than the base size because the
+  # pathway names are long.
   g1 <- dotplot(enr, showCategory = show_n) +
     ggtitle(title_text) +
-    theme(
-      axis.text.y = element_text(size = 8),
-      plot.title = element_text(hjust = 0.5)
-    )
+    scale_colour_gradientn(colours = bayrc_seq(256)) +
+    theme_bayrc() +
+    theme(axis.text.y = element_text(size = 8))
   g2 <- barplot(enr, showCategory = show_n) +
     ggtitle(title_text) +
-    theme(
-      axis.text.y = element_text(size = 8),
-      plot.title = element_text(hjust = 0.5)
-    )
+    scale_fill_gradientn(colours = bayrc_seq(256)) +
+    theme_bayrc() +
+    theme(axis.text.y = element_text(size = 8))
 
-  ggsave(file.path(plot_dir, paste0(prefix, "_dotplot.pdf")), g1, width = 9, height = 8)
-  ggsave(file.path(plot_dir, paste0(prefix, "_barplot.pdf")), g2, width = 9, height = 8)
+  bayrc_save(g1, file.path(plot_dir, paste0(prefix, "_dotplot")),
+             width = 9, height = 8)
+  bayrc_save(g2, file.path(plot_dir, paste0(prefix, "_barplot")),
+             width = 9, height = 8)
 
   # Save table
   write.csv(as.data.frame(enr), file.path(plot_dir, paste0(prefix, ".csv")), row.names = FALSE)

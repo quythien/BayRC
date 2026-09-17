@@ -187,7 +187,7 @@ p <- ggplot(plot_df, aes(
     labels = sprintf("ZT%+d", seq(-6, 18, 6))
   ) +
   
-  theme_bw(base_size = 14) +
+  theme_bayrc(base_size = 14) +
   theme(
     plot.title = element_text(face = "bold", size = 16, hjust = 0.5),
     plot.subtitle = element_text(size = 13, hjust = 0.5, margin = margin(b = 10)),
