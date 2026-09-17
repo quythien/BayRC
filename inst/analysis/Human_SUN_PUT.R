@@ -3,14 +3,19 @@
 
 rm(list=ls())
 
-current_gtex <- "/home/qtp1/Projects/Collaborative"
-current_wd <- "/home/qtp1/Projects/Circadian"
-current_aging <- "/home/qtp1/Projects/Collaborative/Paper/Congruence/PNAS_aging"
+# Paths come from config.R; override any of them with the matching env var.
+this.file <- sub("^--file=", "", grep("^--file=", commandArgs(), value = TRUE)[1])
+source(file.path(if (is.na(this.file)) getwd() else dirname(normalizePath(this.file)),
+                 "config.R"))
 
-outdir = "/home/qtp1/Projects/Collaborative/Paper/Congruence/PNAS_aging/all_plots"
+current_gtex <- BAYRC_DATA_DIR
+current_wd <- BAYRC_WD_DIR
+current_aging <- BAYRC_AGING_DIR
 
-load(file = "/home/qtp1/Projects/Collaborative/GTEXdata/result/summary/hb/mcmc_rho_BF3.RData")
-load(file.path(current_gtex, "GTEXdata/result/summary/hb/phi/mcmc_phi_BF3.RData"))
+outdir = BAYRC_FIGURE_DIR
+
+load(file.path(BAYRC_SUMMARY_DIR, "mcmc_rho_BF3.RData"))
+load(file.path(BAYRC_SUMMARY_DIR, "phi", "mcmc_phi_BF3.RData"))
 
 # Objects from these:
 # "mcmc_data_baboon" "mcmc_data_human"  "mcmc_phi_baboon"  "mcmc_phi_human"
@@ -63,7 +68,7 @@ load(file.path(current_wd, "Kyle/Circadian-analysis-main/R/pathway_data/hw_orth.
 load(file.path(current_wd, "Kyle/Circadian-analysis-main/R/pathway_data/human.pathway.list.RData"))
 load(file.path(current_wd, "Kyle/Circadian-analysis-main/R/pathway_data/go.pathway.list_hsa.RData"))
 
-kegg.pathway.list_hsa <- readRDS("/home/qtp1/Projects/Circadian/Kyle/Circadian-analysis-main/R/pathway_data/kegg_pathway_list_hsa.rds")
+kegg.pathway.list_hsa <- readRDS(file.path(BAYRC_PATHWAY_DIR, "kegg_pathway_list_hsa.rds"))
 
 #── Source R scripts ─────────────────────────────────────────────────────────────
 WD <- "Kyle/Circadian-analysis-main/R/v1"
@@ -93,7 +98,7 @@ human_SUN <- list(
 
 #---------------------------------------------------------------------------------
 # Global concordance score
-output.dir <- "/home/qtp1/Projects/Collaborative/Paper/Congruence/PNAS_aging/results/human/output_final"
+output.dir <- file.path(BAYRC_AGING_DIR, "results", "human", "output_final")
 if (!dir.exists(output.dir)) {
   dir.create(output.dir, recursive = TRUE, showWarnings = FALSE)
 }
