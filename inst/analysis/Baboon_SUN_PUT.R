@@ -3,14 +3,21 @@
 
 rm(list=ls());
 
-current_gtex <- "/home/qtp1/Projects/Collaborative"
-current_wd <- "/home/qtp1/Projects/Circadian"
-current_aging <- "/home/qtp1/Projects/Collaborative/Paper/Congruence/PNAS_aging"
+# Paths come from config.R; override any of them with the matching env var.
+this.file <- sub("^--file=", "", grep("^--file=", commandArgs(), value = TRUE)[1])
+source(file.path(if (is.na(this.file)) getwd() else dirname(normalizePath(this.file)),
+                 "config.R"))
+analysis.dir <- if (is.na(this.file)) getwd() else dirname(normalizePath(this.file))
+source(file.path(analysis.dir, "pathway_summary.R"))
 
-outdir = "/home/qtp1/Projects/Collaborative/Paper/Congruence/PNAS_aging/all_plots"
+current_gtex <- BAYRC_DATA_DIR
+current_wd <- BAYRC_WD_DIR
+current_aging <- BAYRC_AGING_DIR
 
-load(file = "/home/qtp1/Projects/Collaborative/GTEXdata/result/summary/hb/mcmc_rho_BF3.RData")
-load(file.path(current_gtex, "GTEXdata/result/summary/hb/phi/mcmc_phi_BF3.RData"))  
+outdir = BAYRC_FIGURE_DIR
+
+load(file.path(BAYRC_SUMMARY_DIR, "mcmc_rho_BF3.RData"))
+load(file.path(BAYRC_SUMMARY_DIR, "phi", "mcmc_phi_BF3.RData"))
 
 
 
@@ -38,7 +45,7 @@ require(dplyr)
 require(pROC)
 require(edgeR)
 
-thien_dir <- file.path(current_wd, "Kyle/Circadian-analysis-main/R/v1/BayRC/Thien")
+thien_dir <- BAYRC_THIEN_DIR
 source(file.path(thien_dir, "pathwaySelect.R"))
 source(file.path(thien_dir, "multi_pathway.R"))
 source(file.path(thien_dir, "multi_global.R"))
@@ -54,16 +61,16 @@ source(file.path(thien_dir, "plots/heatmap.R"))
 
 #load(file.path(current_wd, "Kyle/Circadian-analysis-main/R/pathway_data/kegg.pathway.list_hsa.RData"))
 #load(file.path(current_wd, "Kyle/Circadian-analysis-main/R/pathway_data/kegg.pathway.list_cel_GeneNames.RData"))
-load(file.path(current_wd, "Kyle/Circadian-analysis-main/R/pathway_data/hw_orth.RData"))
-load(file.path(current_wd, "Kyle/Circadian-analysis-main/R/pathway_data/human.pathway.list.RData"))
-load(file.path(current_wd, "Kyle/Circadian-analysis-main/R/pathway_data/go.pathway.list_hsa.RData"))
+load(file.path(BAYRC_PATHWAY_DIR, "hw_orth.RData"))
+load(file.path(BAYRC_PATHWAY_DIR, "human.pathway.list.RData"))
+load(file.path(BAYRC_PATHWAY_DIR, "go.pathway.list_hsa.RData"))
 
-kegg.pathway.list_hsa <- readRDS("/home/qtp1/Projects/Circadian/Kyle/Circadian-analysis-main/R/pathway_data/kegg_pathway_list_hsa.rds")
+kegg.pathway.list_hsa <- readRDS(file.path(BAYRC_PATHWAY_DIR, "kegg_pathway_list_hsa.rds"))
 
 #── Source R scripts ─────────────────────────────────────────────────────────────
-WD <- "Kyle/Circadian-analysis-main/R/v1"
-setwd(file.path(current_wd, WD))
-scripts <- list.files("BayRC", pattern="\\.R$", full.names = TRUE)
+WD <- dirname(BAYRC_PACKAGE_DIR)
+setwd(WD)
+scripts <- list.files(file.path(BAYRC_PACKAGE_DIR, "R"), pattern = "[.]R$", full.names = TRUE)
 sapply(scripts, source)
 
 # Reset wd
@@ -86,12 +93,12 @@ baboon_SUN <- list(
 
 #---------------------------------------------------------------------------------
 # Global concordance score 
-output.dir <- "/home/qtp1/Projects/Collaborative/Paper/Congruence/PNAS_aging/results/baboon/output_final"
+output.dir <- BAYRC_OUTPUT_DIR
 if (!dir.exists(output.dir)) {
   dir.create(output.dir, recursive = TRUE, showWarnings = FALSE)
 }
 cat("Directory ready:", output.dir, "\n")
-thien_dir <- file.path(current_wd, "Kyle/Circadian-analysis-main/R/v1/BayRC/Thien")
+thien_dir <- BAYRC_THIEN_DIR
 if (file.exists(file.path(thien_dir, "pathwaySelect.R"))) {
   source(file.path(thien_dir, "pathwaySelect.R"))
 }
@@ -466,13 +473,13 @@ stage1_pval_cut <- 0.05  # Stage 1 p-value filter for active pathways
 
 # Load compact KEGG list for enrichment (229 pathways, tighter gene sets)
 kegg_compact_env <- new.env()
-load("/home/qtp1/Projects/Circadian/Kyle/Circadian-analysis-main/R/pathway_data/kegg_pathway_list_hsa_compact.RData", envir = kegg_compact_env)
+load(file.path(BAYRC_PATHWAY_DIR, "kegg_pathway_list_hsa_compact.RData"), envir = kegg_compact_env)
 kegg_compact <- kegg_compact_env$kegg.pathway.list_hsa
 # NOTE: Full KEGG (354 pathways, kegg.pathway.list_hsa) is used for heatmaps
 # Compact KEGG (229 pathways) is used for enrichment (fewer comparisons, stronger signal)
 
 # Set output directory
-output.dir <- "/home/qtp1/Projects/Collaborative/Paper/Congruence/PNAS_aging/results/baboon/output_final"
+output.dir <- BAYRC_OUTPUT_DIR
 dir.create(output.dir, recursive = TRUE, showWarnings = FALSE)
 
 ################################################################################
@@ -632,17 +639,17 @@ result_multiconservation <- multi_conservation(
 ################################################################################
 
 cat("\n\n################################################################################\n")
-cat("# GO ENRICHMENT WORKFLOW: Baboon Lung vs Human Lung\n")
+cat("# GO ENRICHMENT WORKFLOW: Baboon PUT vs Baboon SUN\n")
 cat("################################################################################\n")
-load("/home/qtp1/Projects/Circadian/Kyle/Circadian-analysis-main/R/v1/BayRC/Thien/pathway/go.pathway.list_hsa.RData")
-output.dir <- "/home/qtp1/Projects/Collaborative/Paper/Congruence/PNAS_aging/results/baboon/output_final"
-go_output.dir <- file.path(output.dir, "go_enrichment_lung")
+load(file.path(BAYRC_THIEN_DIR, "pathway", "go.pathway.list_hsa.RData"))
+output.dir <- BAYRC_OUTPUT_DIR
+go_output.dir <- file.path(output.dir, "go_enrichment_SUN_PUT")
 dir.create(go_output.dir, recursive = TRUE, showWarnings = FALSE)
 
 result_gain_go <- pathSelect(
-  mcmc.merge.list = list(Human_LUN = human_LUN, Baboon_LUN = baboon_LUN),
+  mcmc.merge.list = list(PUT = baboon_PUT, SUN = baboon_SUN),
   pathway.list = go.pathway.list_hsa,
-  dataset.names = c("Human_LUN", "Baboon_LUN"),
+  dataset.names = c("PUT", "SUN"),
   ranking.method = "gain",
   score_type = "pos",
   qvalue.cut = 0.25,
@@ -658,9 +665,9 @@ top_gain_go <- result_gain_go$results %>%
   dplyr::select(pathway, pval, padj, Top_Gain_Genes)
 
 result_loss_go <- pathSelect(
-  mcmc.merge.list = list(Human_LUN = human_LUN, Baboon_LUN = baboon_LUN),
+  mcmc.merge.list = list(PUT = baboon_PUT, SUN = baboon_SUN),
   pathway.list = go.pathway.list_hsa,
-  dataset.names = c("Human_LUN", "Baboon_LUN"),
+  dataset.names = c("PUT", "SUN"),
   ranking.method = "loss",
   score_type = "pos",
   qvalue.cut = 0.20,
@@ -678,9 +685,9 @@ top_loss_go <- result_loss_go$results %>%
 # 27 
 
 result_cons_go <- pathSelect(
-  mcmc.merge.list = list(Human_LUN = human_LUN, Baboon_LUN = baboon_LUN),
+  mcmc.merge.list = list(PUT = baboon_PUT, SUN = baboon_SUN),
   pathway.list = go.pathway.list_hsa,
-  dataset.names = c("Human_LUN", "Baboon_LUN"),
+  dataset.names = c("PUT", "SUN"),
   ranking.method = "conserved",
   score_type = "pos",
   qvalue.cut = 0.20,
@@ -702,13 +709,15 @@ print_pathway_summary(result_cons_go, filter_by = "q", cutoff = 0.05)
 
 cat("Descriptive metrics calculated for", nrow(result_multiconservation), "pathways\n")
 
+## multi_conservation() names its columns in the order it was given the
+## datasets, which is PUT then SUN in the Stage 4 call above.
 result_multiconservation_filtered <- result_multiconservation %>%
   select(
     Pathway,
-    SUN_vs_PUT_AdjustedConcordance,
-    SUN_vs_PUT_PValue,
-    SUN_vs_PUT_QValue,
-    SUN_vs_PUT_GainLossRatio,
+    PUT_vs_SUN_AdjustedConcordance,
+    PUT_vs_SUN_PValue,
+    PUT_vs_SUN_QValue,
+    PUT_vs_SUN_GainLossRatio,
   )
 
 relevant_pathways <- result_multiconservation_filtered$Pathway

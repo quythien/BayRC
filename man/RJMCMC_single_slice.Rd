@@ -2,7 +2,7 @@
 % Please edit documentation in R/mcmc.R
 \name{RJMCMC_single_slice}
 \alias{RJMCMC_single_slice}
-\title{RJMCMC between-model move for rhythmicity indicator}
+\title{One reversible-jump birth/death sweep over the rhythmicity indicators}
 \usage{
 RJMCMC_single_slice(
   Y,
@@ -30,56 +30,71 @@ RJMCMC_single_slice(
   mu_A,
   sigma_A,
   A.min,
-  A_wb_beta2,
-  A_gm_shape,
-  A_gm_rate,
+  A.max,
   omega,
   G,
   P,
-  save.file2
+  NP = 64
 )
 }
 \arguments{
 \item{Y}{G x N expression matrix.}
 
-\item{t.c, t.s}{Length-N cos/sin time vectors.}
+\item{t.c, t.s}{Length-N vectors of cos and sin of omega * t.}
 
 \item{N}{Integer; number of samples.}
 
-\item{t.c.sum, t.s.sum}{Numeric scalars; sum of t.c and t.s.}
+\item{t.c.sum, t.s.sum}{Numeric; column sums of \code{t.c} and \code{t.s}.}
 
-\item{c.t, s.t, cs.t}{Numeric scalars; sum of squares/cross-products.}
+\item{c.t, s.t, cs.t}{Precomputed cross-products of \code{t.c} and \code{t.s}.}
 
-\item{y.t.c.sum.num, y.t.s.sum.num}{Length-G inner products of Y with t.c/t.s.}
+\item{y.t.c.sum.num, y.t.s.sum.num}{Length-G vectors of Y-weighted sums.}
 
-\item{AcosPhi, AsinPhi, A, phi}{Current amplitude/phase vectors (length G).}
+\item{AcosPhi, AsinPhi}{Length-G vectors A * cos and A * sin of omega * phi.}
 
-\item{M, sigma, rho}{Current MESOR/variance/indicator vectors (length G).}
+\item{A, phi}{Length-G amplitude and acrophase vectors.}
 
-\item{p.vec}{Length-G prior rhythmicity probability vector.}
+\item{M, sigma}{Length-G MESOR and residual-variance vectors.}
 
-\item{A_prior}{Character; amplitude prior name.}
+\item{p.vec}{Length-G prior probability of rhythmicity.}
 
-\item{mu_A, sigma_A, A.min}{Numeric; truncated-Normal amplitude prior params.}
+\item{rho}{Length-G current rhythmicity indicator in \{0, 1\}.}
 
-\item{A_wb_beta2, A_gm_shape, A_gm_rate}{Numeric; alternative prior params.}
+\item{propose.phi, propose.A}{Logical; include phase and amplitude in the
+jump proposal.}
 
-\item{omega, G, P}{Numeric; angular frequency, number of genes, period.}
+\item{A_prior}{Character; amplitude prior, as in
+\code{CB_MCMC_single_rj_slice}.}
 
-\item{rj.phi, rj.A}{Logical; whether to jointly propose phi/A in the jump.}
+\item{mu_A, sigma_A}{Numeric; truncated-Normal amplitude prior parameters.}
 
-\item{save.file}{Character; path for emergency save on error.}
+\item{A.min, A.max}{Numeric; amplitude truncation bounds. \code{A.max} may
+be one value or one per gene.}
+
+\item{omega}{Numeric; angular frequency 2*pi/P.}
+
+\item{G}{Integer; number of genes.}
+
+\item{P}{Numeric; period in hours.}
+
+\item{NP}{Integer; quadrature nodes for the phi marginal.}
 }
 \value{
-List with \code{rho} (updated indicator), \code{log.r1},
-  \code{log.r1.SS}, \code{log.r3_A}, \code{log.r3_phi} (diagnostic
-  log-ratio components).
+A list with the updated \code{rho}, the normalising constant
+  \code{logZ1}, the diagnostic \code{Z1_check}, and the components of the
+  log acceptance ratio.
 }
 \description{
-Proposes a model-space jump for rho (0->1 birth or 1->0 death) for each
-gene, computing the RJMCMC acceptance ratio that accounts for the prior
-odds (log.r1), the integrated likelihood ratio (log.r1.SS), and the
-proposal Jacobian for amplitude (log.r3_A) and phase (log.r3_phi) as
-described in the BayRC paper.
+Proposes a model switch for every gene at once -- birth for genes currently
+at rho = 0, death for genes at rho = 1 -- and accepts or rejects each
+independently. The acceptance ratio is assembled from the likelihood term
+(\code{log.r1}), the prior odds on rhythmicity (\code{log.r2}) and the
+proposal/prior terms for amplitude and phase (\code{log.r3}).
+
+The phase half of \code{log.r3} uses the MARGINAL posterior of phi,
+\code{log h(phi) - log Z1}, with \code{Z1} from
+\code{get_logZ1_single()}. Pairing a conditional in A with a conditional in
+phi would not give a joint density in (A, phi); the factorization has to be
+J(A, phi) = J(phi) J(A | phi).
 }
 \keyword{internal}

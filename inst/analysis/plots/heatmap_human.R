@@ -1,15 +1,21 @@
 # Heatmap for concordance of Human tissues (pairwise)
 library(pheatmap)
-current_gtex <- "/home/qtp1/Projects/Collaborative"
-current_wd <- "/home/qtp1/Projects/Circadian"
-current_aging <- "/home/qtp1/Projects/Collaborative/Paper/Congruence/PNAS_aging"
-output.dir <- "/home/qtp1/Projects/Collaborative/Paper/Congruence/PNAS_aging/results/baboon/output_final"
+# Paths come from inst/analysis/config.R; override any of them with the
+# matching env var.
+this.file <- sub("^--file=", "", grep("^--file=", commandArgs(), value = TRUE)[1])
+source(file.path(if (is.na(this.file)) dirname(getwd()) else
+                   dirname(dirname(normalizePath(this.file))), "config.R"))
 
-load(file = "/home/qtp1/Projects/Collaborative/GTEXdata/result/summary/hb/mcmc_rho_BF3.RData")
-load(file.path(current_gtex, "GTEXdata/result/summary/hb/phi/mcmc_phi_BF3.RData"))
+current_gtex <- BAYRC_DATA_DIR
+current_wd <- BAYRC_WD_DIR
+current_aging <- BAYRC_AGING_DIR
+output.dir <- BAYRC_OUTPUT_DIR
+
+load(file.path(BAYRC_SUMMARY_DIR, "mcmc_rho_BF3.RData"))
+load(file.path(BAYRC_SUMMARY_DIR, "phi", "mcmc_phi_BF3.RData"))
 
 # Thien functions
-thien_dir <- file.path(current_wd, "Kyle/Circadian-analysis-main/R/v1/BayRC/Thien")
+thien_dir <- BAYRC_THIEN_DIR
 source(file.path(thien_dir, "Permutation_Sim.R"))
 Rcpp::sourceCpp(file.path(thien_dir, "congruence.cpp"))
 
@@ -107,7 +113,7 @@ col_fun <- colorRampPalette(c(
   "#FF0000"
 ))(200)
 
-outdir <- "/home/qtp1/Projects/Collaborative/Paper/Congruence/PNAS_aging/all_plots"
+outdir <- BAYRC_FIGURE_DIR
 dir.create(outdir, recursive = TRUE, showWarnings = FALSE)
 
 ACI_dissim <- 1 - ACI_mat

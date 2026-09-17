@@ -19,8 +19,8 @@ gene_names <- names(phase_inner$peak1)
 # Create dataframe from phase_inner
 maintained_df <- data.frame(
   Gene = gene_names,
-  Peak_Young = phase_inner$peak1,
-  Peak_Old = phase_inner$peak2,
+  Peak_HIP = phase_inner$peak1,
+  Peak_SCN = phase_inner$peak2,
   deltaPhi = phase_inner$deltaPhi.Est,
   prob_shift = phase_inner$prob_shift,
   prob_conserved = phase_inner$prob_conserved,
