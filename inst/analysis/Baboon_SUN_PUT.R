@@ -709,13 +709,15 @@ print_pathway_summary(result_cons_go, filter_by = "q", cutoff = 0.05)
 
 cat("Descriptive metrics calculated for", nrow(result_multiconservation), "pathways\n")
 
+## multi_conservation() names its columns in the order it was given the
+## datasets, which is PUT then SUN in the Stage 4 call above.
 result_multiconservation_filtered <- result_multiconservation %>%
   select(
     Pathway,
-    SUN_vs_PUT_AdjustedConcordance,
-    SUN_vs_PUT_PValue,
-    SUN_vs_PUT_QValue,
-    SUN_vs_PUT_GainLossRatio,
+    PUT_vs_SUN_AdjustedConcordance,
+    PUT_vs_SUN_PValue,
+    PUT_vs_SUN_QValue,
+    PUT_vs_SUN_GainLossRatio,
   )
 
 relevant_pathways <- result_multiconservation_filtered$Pathway
