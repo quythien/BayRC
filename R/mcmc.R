@@ -205,7 +205,8 @@ CB_MCMC_single_rj_slice = function(Data.list, Init.value, P = 24,
     AsinPhi = csAphi$AsinPhi
     A = sqrt(AcosPhi^2+AsinPhi^2)
     phi = sapply(atan2(AsinPhi, AcosPhi), adjust.to.2pi)/omega
-    
+    stop_on_na(rho, AcosPhi, AsinPhi, iter = iter, stage = "burn-in")
+
     sigma = update_sigma_single(Y, t.c, t.s, N, AcosPhi, AsinPhi, M, rho,
                                 sigma_prior_v, sigma_prior_s, omega, G)
   }
@@ -292,8 +293,9 @@ CB_MCMC_single_rj_slice = function(Data.list, Init.value, P = 24,
     AsinPhi = csAphi$AsinPhi
     A = sqrt(AcosPhi^2+AsinPhi^2)
     phi = sapply(atan2(AsinPhi, AcosPhi), adjust.to.2pi)/omega
-    
-    AcosPhi.store = cbind(AcosPhi.store, AcosPhi); 
+    stop_on_na(rho, AcosPhi, AsinPhi, iter = iter, stage = "sampling")
+
+    AcosPhi.store = cbind(AcosPhi.store, AcosPhi);
     AsinPhi.store = cbind(AsinPhi.store, AsinPhi); 
     A.store = cbind(A.store, A)
     phi.store = cbind(phi.store, phi)
@@ -505,8 +507,13 @@ update_A_phi_slice = function(Y, X, XtX, beta_hat0,
       pnorm(-1*max_beta1, beta1_mean, sqrt(beta1_var))
     p2=pnorm(max_beta1, beta1_mean, sqrt(beta1_var))-
       pnorm(A.min, beta1_mean, sqrt(beta1_var))
-    p1=p1/(p1+p2)
-    beta1_new = ifelse(rbinom(rep(1, G), rep(1, G), p1), 
+    ## When the slice is narrow both tail probabilities underflow to 0 and
+    ## p1/(p1+p2) is 0/0; rbinom then draws NA and the NA spreads through the
+    ## whole sweep. Fall back to an even split, which is what the two equal
+    ## (zero) masses imply.
+    den = p1+p2
+    p1 = ifelse(den>0, p1/den, 0.5)
+    beta1_new = ifelse(rbinom(rep(1, G), rep(1, G), p1),
                        beta1_new_1, beta1_new_2)
     
     max_beta2 = sqrt(A_max^2-beta1_new^2)
@@ -522,8 +529,9 @@ update_A_phi_slice = function(Y, X, XtX, beta_hat0,
       pnorm(-1*max_beta2, beta2_mean, sqrt(beta2_var))
     p2=pnorm(max_beta2, beta2_mean, sqrt(beta2_var))-
       pnorm(A.min, beta2_mean, sqrt(beta2_var))
-    p1=p1/(p1+p2)
-    beta2_new = ifelse(rbinom(rep(1, G), rep(1, G), p1), 
+    den = p1+p2
+    p1 = ifelse(den>0, p1/den, 0.5)
+    beta2_new = ifelse(rbinom(rep(1, G), rep(1, G), p1),
                        beta2_new_1, beta2_new_2)
     
   }else if(A_prior=="trunc_Normal_ridge_condi"){
@@ -1193,6 +1201,22 @@ RJMCMC_single_slice = function(Y, t.c, t.s, N,
 
 
 # Other functions ---------------------------------------------------------
+
+## An NA anywhere in rho or in the (AcosPhi, AsinPhi) pair spreads through the
+## rest of the sweep and comes back as a chain of NAs hours later. Stop at the
+## iteration that produced it instead, and say which state went bad.
+stop_on_na = function(rho, AcosPhi, AsinPhi, iter, stage){
+  bad = c(rho = anyNA(rho),
+          AcosPhi = anyNA(AcosPhi),
+          AsinPhi = anyNA(AsinPhi))
+  if(any(bad))
+    stop("NA in ", paste(names(bad)[bad], collapse = ", "),
+         " at ", stage, " iteration ", iter,
+         " (", sum(is.na(rho)), " genes in rho); stopping the chain.",
+         call. = FALSE)
+  invisible(NULL)
+}
+
 adjust.to.2pi = function(x){
   d = x/(2*pi)
   d.abs = floor(abs(d))
