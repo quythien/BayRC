@@ -36,10 +36,10 @@ summaries every figure script loads. Build them in this order:
 4. assemble_figures.R                  panels -> Figure_2 ... Figure_6
 ```
 
-Step 2 used to be missing: the figure scripts all start with
-`load(.../mcmc_rho_BF3.RData)` but nothing wrote that file.
-`pipeline/summarize_rho_phi.R` now does, and `--validate` checks its output
-against an existing copy instead of overwriting it.
+Step 2 writes the file the figure scripts load. They all begin with
+`load(.../mcmc_rho_BF3.RData)`, which `pipeline/summarize_rho_phi.R` produces
+from the per-tissue chains; `--validate` compares its output against an
+existing copy instead of overwriting it.
 
 ---
 
