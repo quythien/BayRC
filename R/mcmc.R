@@ -72,8 +72,13 @@
 #'     \item{log.r1, log.r1.SS, log.r3_A, log.r3_phi}{RJMCMC log-ratio
 #'       components (for diagnostics).}
 #'     \item{if.accept.rj}{Binary matrix indicating accepted RJMCMC moves.}
+#'     \item{Z1_gap}{3 x K matrix, not G x K: the median, 99th percentile and
+#'       maximum across genes of \code{abs(Z1_check - logZ1)} at each stored
+#'       iteration. A birth proposal equal to pi_1 would make this zero; it
+#'       is not, and the gap does not shrink with \code{NP_Z1}, so it is not
+#'       quadrature error. Diagnostic only.}
 #'   }
-#'   All matrices have \code{rownames} equal to \code{Data.list$gname}.
+#'   All G x K matrices have \code{rownames} equal to \code{Data.list$gname}.
 #'   After calling \code{match_symbols()}, the attributes
 #'   \code{attr(rho, "symbols")} and \code{attr(rho, "RHYindex")} are set.
 #'
@@ -230,8 +235,18 @@ CB_MCMC_single_rj_slice = function(Data.list, Init.value, P = 24,
   log.r1.SS.store = rho.res$log.r1.SS
   log.r3_A.store = rho.res$log.r3_A
   log.r3_phi.store = rho.res$log.r3_phi
-  logZ1.store = rho.res$logZ1
-  Z1_check.store = rho.res$Z1_check
+  ## The two G x K diagnostic matrices cost 162 MB per tissue at paper scale
+  ## and nothing downstream reads them gene by gene, so only the spread of
+  ## the discrepancy is kept: three numbers per iteration instead of G.
+  Z1_gap = function(res) {
+    d = abs(res$Z1_check - res$logZ1)
+    d = d[is.finite(d)]
+    if (!length(d)) c(median = NA_real_, q99 = NA_real_, max = NA_real_)
+    else c(median = stats::median(d),
+           q99 = unname(stats::quantile(d, 0.99)),
+           max = max(d))
+  }
+  Z1_gap.store = Z1_gap(rho.res)
   if.accept.rj.store = if.accept.rj
   time0 = Sys.time()
 
@@ -250,8 +265,7 @@ CB_MCMC_single_rj_slice = function(Data.list, Init.value, P = 24,
       if.accept.rj = cbind(if.accept.rj, -1) 
       log.r1.store = cbind(log.r1.store, -99)
       log.r1.SS.store = cbind(log.r1.SS.store, -99) 
-      logZ1.store = cbind(logZ1.store, NA_real_)
-      Z1_check.store = cbind(Z1_check.store, NA_real_)
+      Z1_gap.store = cbind(Z1_gap.store, c(NA_real_, NA_real_, NA_real_))
     }else{
       rho.res = RJMCMC_single_slice(Y, t.c, t.s, N,
                                     t.c.sum, t.s.sum,
@@ -269,8 +283,7 @@ CB_MCMC_single_rj_slice = function(Data.list, Init.value, P = 24,
       log.r1.SS.store = cbind(log.r1.SS.store, rho.res$log.r1.SS) 
       log.r3_A.store = cbind(log.r3_A.store, rho.res$log.r3_A)
       log.r3_phi.store = cbind(log.r3_phi.store, rho.res$log.r3_phi)
-      logZ1.store = cbind(logZ1.store, rho.res$logZ1)
-      Z1_check.store = cbind(Z1_check.store, rho.res$Z1_check)
+      Z1_gap.store = cbind(Z1_gap.store, Z1_gap(rho.res))
       rho = rho.res$rho
       rho.store = cbind(rho.store, rho)
     }    
@@ -325,8 +338,7 @@ CB_MCMC_single_rj_slice = function(Data.list, Init.value, P = 24,
                 A = A.store, 
                 phi = phi.store,
                 sigma = sigma.store,
-                logZ1 = logZ1.store,
-                Z1_check = Z1_check.store,
+                Z1_gap = Z1_gap.store,
                 #log.r1 = log.r1.store,
                 #log.r3_A = log.r3_A.store,
                 #log.r3_phi = log.r3_phi.store,
@@ -1194,8 +1206,13 @@ RJMCMC_single_slice = function(Y, t.c, t.s, N,
 
   return(list(rho = a.rho,
               logZ1 = logZ1,
-                ## log.r1 + log.r3 == log Z1 identically when J = pi_1,
-                ## so Z1_check - logZ1 is pure phi-grid error.
+                ## log.r1 + log.r3 would equal log Z1 identically if the
+                ## birth proposal were exactly pi_1. It does not: the gap is
+                ## unchanged (to four decimals) at NP = 32, 64, 128 and 256,
+                ## so it is not phi-grid error. The single-tissue sampler
+                ## draws a proposal where the multi-tissue one draws none,
+                ## and that is the likeliest source. Kept as a diagnostic;
+                ## the sampler's decisions do not read it.
                 Z1_check = log.r1 + log.r3,
               log.r1 = log.r1*((-1)^rho),
               log.r1.SS = (log.lik_jump0-log.lik_cur0)*((-1)^rho),
