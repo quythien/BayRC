@@ -1,7 +1,5 @@
 test_that("normalize_angle is periodic, so adding P cannot reorder bounds", {
-  # This is why the old guard in get_t_phi_CI_est() was dead code: it added P
-  # to the upper bound to force Upper > Lower, but adding P is the identity
-  # after normalisation.
+  # adding P is the identity after normalisation
   expect_equal(BayRC:::normalize_angle(1.05 + 24), 1.05)
   expect_equal(BayRC:::normalize_angle(-10 + 24, a = -12), -10)
 })
@@ -11,7 +9,7 @@ test_that("circular_width is positive and wraps correctly", {
   # an arc from ZT 20.97 forward to ZT 1.05 crosses the seam
   expect_equal(circular_width(20.97, 1.05), 4.08, tolerance = 1e-8)
   expect_true(circular_width(20.97, 1.05) > 0)
-  # naive subtraction gets this badly wrong
+  # plain subtraction is negative across the seam
   expect_lt(1.05 - 20.97, 0)
 })
 
@@ -19,7 +17,7 @@ test_that("a phase posterior at ZT 0 gives an interval containing its estimate",
   set.seed(15213)
   P <- 24
   # samples tight around ZT 0, so roughly half land just below 24 and half
-  # just above 0 -- the case the dead guard was meant to handle
+  # just above 0
   samples <- (rnorm(4000, mean = 0, sd = 1)) %% P
   est <- BayRC:::get_t_phi_CI_est(samples, P = P, credMass = 0.95, burn = 1)
 
@@ -37,7 +35,7 @@ test_that("a phase posterior at ZT 0 gives an interval containing its estimate",
   expect_gt(w, 0)
   expect_lt(w, P)
 
-  # a naive interval test fails here, which is the whole point of the helper
+  # a plain range test does not apply across the seam
   expect_false(est[["phi.Est"]] >= est[["phi.Lower"]] &&
                est[["phi.Est"]] <= est[["phi.Upper"]])
 })
