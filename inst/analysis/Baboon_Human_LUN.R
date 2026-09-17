@@ -903,14 +903,21 @@ genome_wide_expected <- data.frame(
     Percentage = sprintf("%.2f%%", 100 * Expected_Count / n_total)
   )
 
-# Add thresholds
+# Add thresholds. transition_classify() and transition_classify_marginal()
+# name their thresholds differently, and c() quietly drops any that come back
+# empty, which leaves a column shorter than the table. Take one value per row
+# either way, and drop the gene names the thresholds carry.
+tau_of <- function(x, ...) {
+  for (nm in c(...)) if (!is.null(x[[nm]]) && length(x[[nm]])) return(unname(x[[nm]][1]))
+  NA_real_
+}
 genome_wide_expected$Threshold <- c(
-  NA,
-  trans_outer$tau_rhythmic_A,
-  trans_outer$tau_rhythmic_B,
-  trans_outer$tau_gain,
-  trans_outer$tau_loss,
-  trans_outer$tau_cons
+  NA_real_,
+  tau_of(trans_outer, "tau_rhythmic_A", "tau_A"),
+  tau_of(trans_outer, "tau_rhythmic_B", "tau_B"),
+  tau_of(trans_outer, "tau_gain"),
+  tau_of(trans_outer, "tau_loss"),
+  tau_of(trans_outer, "tau_cons")
 )
 
 cat("\n========================================\n")
