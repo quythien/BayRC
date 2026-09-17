@@ -72,11 +72,8 @@
 #'     \item{log.r1, log.r1.SS, log.r3_A, log.r3_phi}{RJMCMC log-ratio
 #'       components (for diagnostics).}
 #'     \item{if.accept.rj}{Binary matrix indicating accepted RJMCMC moves.}
-#'     \item{Z1_gap}{3 x K matrix, not G x K: the median, 99th percentile and
-#'       maximum across genes of \code{abs(Z1_check - logZ1)} at each stored
-#'       iteration. A birth proposal equal to pi_1 would make this zero; it
-#'       is not, and the gap does not shrink with \code{NP_Z1}, so it is not
-#'       quadrature error. Diagnostic only.}
+#'     \item{Z1_gap}{3 x K matrix: median, 99th percentile and maximum across
+#'       genes of \code{abs(Z1_check - logZ1)} at each stored iteration.}
 #'   }
 #'   All G x K matrices have \code{rownames} equal to \code{Data.list$gname}.
 #'   After calling \code{match_symbols()}, the attributes
@@ -130,10 +127,7 @@ CB_MCMC_single_rj_slice = function(Data.list, Init.value, P = 24,
   #observations
   omega = 2*pi/P
   Y = as.matrix(Data.list[[1]])
-  ## Default bound: half the observed range of each gene. Pass A.max = Inf for
-  ## the plain one-sided truncated-Normal amplitude prior on [A.min, Inf),
-  ## which is proper for A_prior = "trunc_Normal_OLS_condi" but improper for
-  ## "Jeffreys_OLS_condi" (get_logZ1_single refuses that combination).
+  ## default bound is half the observed range of each gene
   if(is.null(A.max))
     A.max = apply(Y, 1, function(x){(max(x)-min(x))/2})
   t = Data.list[[2]]
@@ -235,9 +229,7 @@ CB_MCMC_single_rj_slice = function(Data.list, Init.value, P = 24,
   log.r1.SS.store = rho.res$log.r1.SS
   log.r3_A.store = rho.res$log.r3_A
   log.r3_phi.store = rho.res$log.r3_phi
-  ## The two G x K diagnostic matrices cost 162 MB per tissue at paper scale
-  ## and nothing downstream reads them gene by gene, so only the spread of
-  ## the discrepancy is kept: three numbers per iteration instead of G.
+  ## keep the spread of the discrepancy, not the full G x K matrices
   Z1_gap = function(res) {
     d = abs(res$Z1_check - res$logZ1)
     d = d[is.finite(d)]
@@ -1321,13 +1313,7 @@ RJMCMC_single_slice = function(Y, t.c, t.s, N,
 
   return(list(rho = a.rho,
               logZ1 = logZ1,
-                ## log.r1 + log.r3 would equal log Z1 identically if the
-                ## birth proposal were exactly pi_1. It does not: the gap is
-                ## unchanged (to four decimals) at NP = 32, 64, 128 and 256,
-                ## so it is not phi-grid error. The single-tissue sampler
-                ## draws a proposal where the multi-tissue one draws none,
-                ## and that is the likeliest source. Kept as a diagnostic;
-                ## the sampler's decisions do not read it.
+                ## diagnostic only; the sampler does not read it
                 Z1_check = log.r1 + log.r3,
               log.r1 = log.r1*((-1)^rho),
               log.r1.SS = (log.lik_jump0-log.lik_cur0)*((-1)^rho),
