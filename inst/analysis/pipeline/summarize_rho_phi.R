@@ -66,6 +66,16 @@ load(file.path(BAYRC_GTEX_DIR, "data", "CAMO.bab.hum.RData"))
 tissues <- sort(intersect(names(gtex$CPM.large.clean),
                           names(baboon_withTOD$baboon)))
 
+# BAYRC_TISSUES restricts the run to a few tissues, which is how --validate is
+# usually exercised: the layout rule is the same for every tissue, so three of
+# them settle whether the builder reproduces the stored artifacts, without
+# holding 8 GB of chains in memory.
+if (nzchar(Sys.getenv("BAYRC_TISSUES"))) {
+  want <- strsplit(Sys.getenv("BAYRC_TISSUES"), "[ ,]+")[[1]]
+  if (!all(want %in% tissues)) stop("unknown tissue in BAYRC_TISSUES")
+  tissues <- want
+}
+
 ens.of <- list(
   human  = lapply(gtex$CPM.large.clean[tissues], rownames),
   baboon = lapply(baboon_withTOD$baboon[tissues], rownames)
