@@ -63,9 +63,7 @@ CB_getAllEst <- function(res, burn=100, CI=TRUE, credMass=0.95, P=24, rhythmic=F
     a.tab <- as.data.frame(a.tab)
     colnames(a.tab) <- paste0(a.param, c(".Est", ".Lower", ".Upper"))
 
-    # phi and t_p bounds are a circular arc, so their width is not
-    # Upper - Lower; give callers the right number rather than leaving them to
-    # subtract and get a negative interval for anything phased near ZT 0.
+    # phi and t_p bounds are a circular arc, so the width is not Upper - Lower.
     if (a.param %in% c("phi", "t_p")) {
       a.tab[[paste0(a.param, ".Width")]] <-
         circular_width(a.tab[[2]], a.tab[[3]], P = P)
@@ -250,15 +248,7 @@ get_t_phi_CI_est <- function(row_MCMC, P = 24, credMass = 0.95, burn = 1, rho = 
   phi.Lower <- hdi_bounds$lower
   phi.Upper <- hdi_bounds$upper
 
-  ## There used to be a guard here that added P to phi.Upper whenever it came
-  ## out below phi.Lower, to make the pair look like an ordinary interval. It
-  ## never did anything: normalize_angle(x + P, a, P) == normalize_angle(x, a, P),
-  ## so the branch fired and returned phi.Upper unchanged. The pair really is a
-  ## circular arc and phi.Upper < phi.Lower is the correct, meaningful encoding
-  ## of an arc that crosses the a/a+P seam -- which is where a large share of
-  ## circadian genes sit. Use circular_width() for its length and
-  ## in_circular_interval() to test containment; Upper - Lower and Lower <= x <=
-  ## Upper are both wrong for a wrapped arc.
+  ## phi.Upper < phi.Lower means the arc crosses the seam
 
   return(c(phi.Est = phi.Est, phi.Lower = phi.Lower, phi.Upper = phi.Upper))
 }
