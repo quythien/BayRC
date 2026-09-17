@@ -368,6 +368,28 @@ CB_MCMC_single_rj_slice = function(Data.list, Init.value, P = 24,
 #Gibbs sampling
 
 #should update rho, A, and phi together with a reversible jump procedure
+#' Gibbs update for MESOR
+#'
+#' @description
+#' Samples the MESOR (M) vector from its Gaussian full conditional given the
+#' current amplitude, phase, residual variance, and rhythmicity indicators.
+#'
+#' @param Y G x N expression matrix.
+#' @param t.c Length-N vector of cos(omega * t).
+#' @param t.s Length-N vector of sin(omega * t).
+#' @param N Integer; number of samples.
+#' @param AcosPhi Length-G vector A * cos(omega * phi).
+#' @param AsinPhi Length-G vector A * sin(omega * phi).
+#' @param sigma Length-G residual variance vector.
+#' @param rho Length-G rhythmicity indicator vector in \{0, 1\}.
+#' @param sigma_M Numeric; prior variance on M.
+#' @param mu_M Numeric; prior mean on M.
+#' @param omega Numeric; angular frequency 2*pi/P.
+#' @param G Integer; number of genes.
+#'
+#' @return Length-G numeric vector of updated MESOR samples.
+#'
+#' @keywords internal
 update_M_single = function(Y, t.c, t.s, N,
                            #Y.list, t.c.list, t.s.list, N.vec, 
                            AcosPhi, AsinPhi, sigma, rho, 
@@ -385,6 +407,28 @@ update_M_single = function(Y, t.c, t.s, N,
   a.M = stats::rnorm(G, a.mean, sqrt(a.var))
 }
 
+#' Gibbs update for residual variance
+#'
+#' @description
+#' Samples the gene-wise residual variance vector (sigma) from its
+#' inverse-gamma full conditional.
+#'
+#' @param Y G x N expression matrix.
+#' @param t.c Length-N vector of cos(omega * t).
+#' @param t.s Length-N vector of sin(omega * t).
+#' @param a.N Integer; number of samples.
+#' @param AcosPhi Length-G vector A * cos(omega * phi).
+#' @param AsinPhi Length-G vector A * sin(omega * phi).
+#' @param M.vec Length-G MESOR vector.
+#' @param rho Length-G rhythmicity indicator vector.
+#' @param sigma_prior_v Numeric; degrees-of-freedom hyperparameter.
+#' @param sigma_prior_s Numeric; scale hyperparameter.
+#' @param omega Numeric; angular frequency.
+#' @param G Integer; number of genes.
+#'
+#' @return Length-G numeric vector of updated residual variance samples.
+#'
+#' @keywords internal
 update_sigma_single = function(Y, t.c, t.s, a.N,
                                # Y.list, t.c.list, t.s.list, N.vec,
                                AcosPhi, AsinPhi, M.vec, rho, 
@@ -404,7 +448,35 @@ update_sigma_single = function(Y, t.c, t.s, a.N,
   return(a.sigma)
 }
 
-update_A_phi_slice = function(Y, X, XtX, beta_hat0, 
+#' Slice-sampling update for amplitude and phase
+#'
+#' @description
+#' Updates the pair (A, phi) within the current model by slice sampling the
+#' Cartesian coordinates \code{AcosPhi} and \code{AsinPhi}, one conditional on
+#' the other. The slice height sets a per-gene radius \code{A_max}, and each
+#' coordinate is then drawn from a truncated Normal on the two arcs the radius
+#' allows.
+#'
+#' @param Y G x N expression matrix.
+#' @param X N x 2 design matrix of cos and sin terms.
+#' @param XtX Crossproduct of \code{X}.
+#' @param beta_hat0 Precomputed OLS projection matrix.
+#' @param beta_cov0_11,beta_cov0_22,beta_cov0_rho Prior covariance terms for
+#'   the two coordinates.
+#' @param beta_mean0_1,beta_mean0_2 Conditional-mean coefficients.
+#' @param M,sigma Length-G MESOR and residual-variance vectors.
+#' @param omega Numeric; angular frequency 2*pi/P.
+#' @param AcosPhi,AsinPhi Length-G current coordinates.
+#' @param G Integer; number of genes.
+#' @param P Numeric; period in hours.
+#' @param A_prior Character; amplitude prior.
+#' @param A.min,A.max Numeric; amplitude truncation bounds.
+#' @param mu_A,sigma_A Numeric; truncated-Normal amplitude prior parameters.
+#'
+#' @return A list with the updated \code{AcosPhi} and \code{AsinPhi}.
+#'
+#' @keywords internal
+update_A_phi_slice = function(Y, X, XtX, beta_hat0,
                               beta_cov0_11, beta_cov0_22, beta_cov0_rho, 
                               beta_mean0_1, beta_mean0_2, 
                               M, sigma, omega, 
@@ -1114,7 +1186,50 @@ get_logZ1_single = function(Y, t.c, t.s, M, sigma, A_prior,
   out
 }
 
-RJMCMC_single_slice = function(Y, t.c, t.s, N, 
+#' One reversible-jump birth/death sweep over the rhythmicity indicators
+#'
+#' @description
+#' Proposes a model switch for every gene at once -- birth for genes currently
+#' at rho = 0, death for genes at rho = 1 -- and accepts or rejects each
+#' independently. The acceptance ratio is assembled from the likelihood term
+#' (\code{log.r1}), the prior odds on rhythmicity (\code{log.r2}) and the
+#' proposal/prior terms for amplitude and phase (\code{log.r3}).
+#'
+#' The phase half of \code{log.r3} uses the MARGINAL posterior of phi,
+#' \code{log h(phi) - log Z1}, with \code{Z1} from
+#' \code{get_logZ1_single()}. Pairing a conditional in A with a conditional in
+#' phi would not give a joint density in (A, phi); the factorization has to be
+#' J(A, phi) = J(phi) J(A | phi).
+#'
+#' @param Y G x N expression matrix.
+#' @param t.c,t.s Length-N vectors of cos and sin of omega * t.
+#' @param N Integer; number of samples.
+#' @param t.c.sum,t.s.sum Numeric; column sums of \code{t.c} and \code{t.s}.
+#' @param c.t,s.t,cs.t Precomputed cross-products of \code{t.c} and \code{t.s}.
+#' @param y.t.c.sum.num,y.t.s.sum.num Length-G vectors of Y-weighted sums.
+#' @param AcosPhi,AsinPhi Length-G vectors A * cos and A * sin of omega * phi.
+#' @param A,phi Length-G amplitude and acrophase vectors.
+#' @param M,sigma Length-G MESOR and residual-variance vectors.
+#' @param p.vec Length-G prior probability of rhythmicity.
+#' @param rho Length-G current rhythmicity indicator in \{0, 1\}.
+#' @param propose.phi,propose.A Logical; include phase and amplitude in the
+#'   jump proposal.
+#' @param A_prior Character; amplitude prior, as in
+#'   \code{CB_MCMC_single_rj_slice}.
+#' @param mu_A,sigma_A Numeric; truncated-Normal amplitude prior parameters.
+#' @param A.min,A.max Numeric; amplitude truncation bounds. \code{A.max} may
+#'   be one value or one per gene.
+#' @param omega Numeric; angular frequency 2*pi/P.
+#' @param G Integer; number of genes.
+#' @param P Numeric; period in hours.
+#' @param NP Integer; quadrature nodes for the phi marginal.
+#'
+#' @return A list with the updated \code{rho}, the normalising constant
+#'   \code{logZ1}, the diagnostic \code{Z1_check}, and the components of the
+#'   log acceptance ratio.
+#'
+#' @keywords internal
+RJMCMC_single_slice = function(Y, t.c, t.s, N,
                                t.c.sum, t.s.sum, 
                                c.t, s.t, cs.t, 
                                y.t.c.sum.num, y.t.s.sum.num,
@@ -1279,6 +1394,21 @@ adjust.to.2pi = function(x){
   }
 }
 
+#' Sample from a truncated gamma distribution
+#'
+#' @description
+#' Draws \code{n} samples from a Gamma(shape, rate) distribution truncated
+#' to the interval (a, b) using the inverse-CDF method on the log scale.
+#'
+#' @param n Integer; number of samples.
+#' @param a Numeric; lower truncation bound (must be < b).
+#' @param b Numeric; upper truncation bound.
+#' @param shape Numeric; gamma shape parameter.
+#' @param rate Numeric; gamma rate parameter.
+#'
+#' @return Length-n numeric vector of truncated-gamma samples.
+#'
+#' @keywords internal
 rtruncgamma = function(n, a, b, shape, rate){
   if(a>=b){
     stop( "argument a is greater than or equal to b" )
