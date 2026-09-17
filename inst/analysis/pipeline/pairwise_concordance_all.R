@@ -106,6 +106,13 @@ cat(mode, ":", length(pairs), "pairs on", cores, "cores",
     if (infer) "with permutation and bootstrap inference" else
                "adjusted concordance only", "\n")
 
+blank_row <- function(p, err = NA_character_)
+  data.frame(tissue1 = p$a, tissue2 = p$b, raw = NA_real_, adjusted = NA_real_,
+             gain = NA_real_, loss = NA_real_, gain_loss_ratio = NA_real_,
+             ci_lower = NA_real_, ci_upper = NA_real_, p_value = NA_real_,
+             z_score = NA_real_, null_mean = NA_real_, null_sd = NA_real_,
+             error = err, stringsAsFactors = FALSE)
+
 one_pair <- function(p) {
   res <- try(multi_conservation(
     mcmc.merge.list     = list(p$da, p$db),
@@ -115,20 +122,31 @@ one_pair <- function(p) {
     output.dir = tempdir(), save_output = FALSE,
     use_cpp = TRUE,
     compute_pvalue = infer, compute_ci = infer), silent = TRUE)
-  if (inherits(res, "try-error"))
-    return(data.frame(tissue1 = p$a, tissue2 = p$b, raw = NA_real_,
-                      adjusted = NA_real_, ci_lower = NA_real_,
-                      ci_upper = NA_real_, p_value = NA_real_,
-                      z_score = NA_real_, null_mean = NA_real_,
-                      null_sd = NA_real_, error = as.character(res),
-                      stringsAsFactors = FALSE))
-  r <- res[[1]]
-  data.frame(tissue1 = p$a, tissue2 = p$b,
-             raw = r[1, "Conservation"], adjusted = r[1, "Adjusted"],
-             ci_lower = r[1, "CI_lower_adj"], ci_upper = r[1, "CI_upper_adj"],
-             p_value = r[1, "PValue"], z_score = r[1, "ZScore"],
-             null_mean = r[1, "Null_mean"], null_sd = r[1, "Null_sd"],
-             error = NA_character_, stringsAsFactors = FALSE)
+  if (inherits(res, "try-error")) return(blank_row(p, as.character(res)))
+
+  # multi_conservation() returns a bare data.frame when the inference is
+  # switched off and a list of them when it is on, and its columns are named
+  # "<a>_vs_<b>_<quantity>" rather than by quantity alone. Pull them by
+  # suffix so both shapes work and a missing inference column is just NA.
+  r <- if (is.data.frame(res)) res else res[[1]]
+  if (!is.data.frame(r)) return(blank_row(p, "unexpected result shape"))
+  grab <- function(suffix) {
+    j <- grep(paste0("_", suffix, "$"), names(r))
+    if (!length(j)) NA_real_ else as.numeric(r[1, j[1]])
+  }
+  out <- blank_row(p)
+  out$raw             <- grab("Concordance")
+  out$adjusted        <- grab("AdjustedConcordance")
+  out$gain            <- grab("GainIndex")
+  out$loss            <- grab("LossIndex")
+  out$gain_loss_ratio <- grab("GainLossRatio")
+  out$ci_lower        <- grab("CI_lower_adj")
+  out$ci_upper        <- grab("CI_upper_adj")
+  out$p_value         <- grab("PValue")
+  out$z_score         <- grab("ZScore")
+  out$null_mean       <- grab("Null_mean")
+  out$null_sd         <- grab("Null_sd")
+  out
 }
 
 t0 <- Sys.time()
