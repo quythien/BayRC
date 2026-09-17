@@ -37,6 +37,12 @@ args  <- commandArgs(trailingOnly = TRUE)
 mode  <- if (length(args) >= 1) args[1] else "within_baboon"
 cores <- if (length(args) >= 2) as.integer(args[2]) else
   max(1L, parallel::detectCores() - 4L)
+# "infer" adds the permutation p-value and bootstrap CI. Figure 2 does not use
+# them -- plots/heatmap_baboon.R calls multi_conservation() with
+# compute_pvalue = FALSE and compute_ci = FALSE and plots the adjusted
+# concordance alone -- and they cost about three orders of magnitude more time
+# per pair, so they are off unless asked for.
+infer <- length(args) >= 3 && args[3] == "infer"
 
 N_PERM <- 1000
 N_BOOT <- 1000
@@ -96,7 +102,9 @@ if (mode == "within_baboon") rm(human)
 if (mode == "within_human")  rm(baboon)
 invisible(gc())
 
-cat(mode, ":", length(pairs), "pairs on", cores, "cores\n")
+cat(mode, ":", length(pairs), "pairs on", cores, "cores",
+    if (infer) "with permutation and bootstrap inference" else
+               "adjusted concordance only", "\n")
 
 one_pair <- function(p) {
   res <- try(multi_conservation(
@@ -105,7 +113,8 @@ one_pair <- function(p) {
     select.pathway.list = "global",
     n_perm = N_PERM, n_boot = N_BOOT,
     output.dir = tempdir(), save_output = FALSE,
-    use_cpp = TRUE), silent = TRUE)
+    use_cpp = TRUE,
+    compute_pvalue = infer, compute_ci = infer), silent = TRUE)
   if (inherits(res, "try-error"))
     return(data.frame(tissue1 = p$a, tissue2 = p$b, raw = NA_real_,
                       adjusted = NA_real_, ci_lower = NA_real_,
