@@ -7,6 +7,8 @@ rm(list=ls());
 this.file <- sub("^--file=", "", grep("^--file=", commandArgs(), value = TRUE)[1])
 source(file.path(if (is.na(this.file)) getwd() else dirname(normalizePath(this.file)),
                  "config.R"))
+analysis.dir <- if (is.na(this.file)) getwd() else dirname(normalizePath(this.file))
+source(file.path(analysis.dir, "pathway_summary.R"))
 
 current_gtex <- BAYRC_DATA_DIR
 current_wd <- BAYRC_WD_DIR
@@ -609,17 +611,17 @@ result_multiconservation <- multi_conservation(
 ################################################################################
 
 cat("\n\n################################################################################\n")
-cat("# GO ENRICHMENT WORKFLOW: Baboon Lung vs Human Lung\n")
+cat("# GO ENRICHMENT WORKFLOW: Baboon SCN vs Baboon HIP\n")
 cat("################################################################################\n")
 load(file.path(BAYRC_THIEN_DIR, "pathway", "go.pathway.list_hsa.RData"))
 output.dir <- BAYRC_OUTPUT_DIR
-go_output.dir <- file.path(output.dir, "go_enrichment_lung")
+go_output.dir <- file.path(output.dir, "go_enrichment_SCN_HIP")
 dir.create(go_output.dir, recursive = TRUE, showWarnings = FALSE)
 
 result_gain_go <- pathSelect(
-  mcmc.merge.list = list(Human_LUN = human_LUN, Baboon_LUN = baboon_LUN),
+  mcmc.merge.list = list(SCN = baboon_SCN, HIP = baboon_HIP),
   pathway.list = go.pathway.list_hsa,
-  dataset.names = c("Human_LUN", "Baboon_LUN"),
+  dataset.names = c("SCN", "HIP"),
   ranking.method = "gain",
   score_type = "pos",
   qvalue.cut = 0.25,
@@ -635,9 +637,9 @@ top_gain_go <- result_gain_go$results %>%
   dplyr::select(pathway, pval, padj, Top_Gain_Genes)
 
 result_loss_go <- pathSelect(
-  mcmc.merge.list = list(Human_LUN = human_LUN, Baboon_LUN = baboon_LUN),
+  mcmc.merge.list = list(SCN = baboon_SCN, HIP = baboon_HIP),
   pathway.list = go.pathway.list_hsa,
-  dataset.names = c("Human_LUN", "Baboon_LUN"),
+  dataset.names = c("SCN", "HIP"),
   ranking.method = "loss",
   score_type = "pos",
   qvalue.cut = 0.20,
@@ -655,9 +657,9 @@ top_loss_go <- result_loss_go$results %>%
 # 27 
 
 result_cons_go <- pathSelect(
-  mcmc.merge.list = list(Human_LUN = human_LUN, Baboon_LUN = baboon_LUN),
+  mcmc.merge.list = list(SCN = baboon_SCN, HIP = baboon_HIP),
   pathway.list = go.pathway.list_hsa,
-  dataset.names = c("Human_LUN", "Baboon_LUN"),
+  dataset.names = c("SCN", "HIP"),
   ranking.method = "conserved",
   score_type = "pos",
   qvalue.cut = 0.20,
