@@ -13,8 +13,12 @@
 #
 #   within_baboon   choose(26, 2) = 325 pairs
 #   within_human    choose(26, 2) = 325 pairs
-#   cross_species   26 x 26       = 676 pairs (every baboon-human tissue pair,
-#                                  not just matched tissues)
+#   cross_matched   26 pairs, baboon T against human T -- this is what the
+#                   paper reports; its stored table covers 23 of the 26,
+#                   leaving out MUA, SCN and VIC
+#   cross_species   26 x 26 = 676 pairs, every baboon-human combination. Not
+#                   what the paper reports; useful as a null for how special
+#                   the matched diagonal is.
 #
 # Writes <mode>_pairwise_concordance.csv and .rds to BAYRC_OUTPUT_DIR.
 ################################################################################
@@ -67,6 +71,12 @@ pairs <- switch(mode,
                                 da = human[[p[1]]], db = human[[p[2]]],
                                 la = paste0("hum_", p[1]), lb = paste0("hum_", p[2])))
   },
+  cross_matched = {
+    tis <- intersect(names(baboon), names(human))
+    lapply(tis, function(t)
+      list(a = t, b = t, da = baboon[[t]], db = human[[t]],
+           la = paste0("bab_", t), lb = paste0("hum_", t)))
+  },
   cross_species = {
     grid <- expand.grid(b = names(baboon), h = names(human),
                         stringsAsFactors = FALSE)
@@ -76,7 +86,7 @@ pairs <- switch(mode,
            la = paste0("bab_", b), lb = paste0("hum_", h))
     })
   },
-  stop("mode must be within_baboon, within_human or cross_species"))
+  stop("mode must be within_baboon, within_human, cross_matched or cross_species"))
 
 cat(mode, ":", length(pairs), "pairs on", cores, "cores\n")
 
