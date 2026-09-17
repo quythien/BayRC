@@ -88,6 +88,14 @@ pairs <- switch(mode,
   },
   stop("mode must be within_baboon, within_human, cross_matched or cross_species"))
 
+# Each pair already holds references to the two chains it needs, so the
+# species-level lists can go. They are ~4 GB each, and every forked worker
+# that touches them makes the kernel copy those pages -- with 18 workers that
+# was enough to fill the node.
+if (mode == "within_baboon") rm(human)
+if (mode == "within_human")  rm(baboon)
+invisible(gc())
+
 cat(mode, ":", length(pairs), "pairs on", cores, "cores\n")
 
 one_pair <- function(p) {
