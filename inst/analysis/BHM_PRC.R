@@ -585,6 +585,7 @@ print_pathway_summary(result_cons, filter_by = "q", cutoff = 0.2)
 
 cat("\n=== STAGE 3: Filtering Significant Pathways ===\n")
 
+library(tidyr)
 significance_table <- result_gain$results %>%
   select(pathway, gain_sig = Significant) %>%
   full_join(
