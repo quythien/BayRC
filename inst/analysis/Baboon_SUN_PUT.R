@@ -637,17 +637,17 @@ result_multiconservation <- multi_conservation(
 ################################################################################
 
 cat("\n\n################################################################################\n")
-cat("# GO ENRICHMENT WORKFLOW: Baboon Lung vs Human Lung\n")
+cat("# GO ENRICHMENT WORKFLOW: Baboon PUT vs Baboon SUN\n")
 cat("################################################################################\n")
 load(file.path(BAYRC_THIEN_DIR, "pathway", "go.pathway.list_hsa.RData"))
 output.dir <- BAYRC_OUTPUT_DIR
-go_output.dir <- file.path(output.dir, "go_enrichment_lung")
+go_output.dir <- file.path(output.dir, "go_enrichment_SUN_PUT")
 dir.create(go_output.dir, recursive = TRUE, showWarnings = FALSE)
 
 result_gain_go <- pathSelect(
-  mcmc.merge.list = list(Human_LUN = human_LUN, Baboon_LUN = baboon_LUN),
+  mcmc.merge.list = list(PUT = baboon_PUT, SUN = baboon_SUN),
   pathway.list = go.pathway.list_hsa,
-  dataset.names = c("Human_LUN", "Baboon_LUN"),
+  dataset.names = c("PUT", "SUN"),
   ranking.method = "gain",
   score_type = "pos",
   qvalue.cut = 0.25,
@@ -663,9 +663,9 @@ top_gain_go <- result_gain_go$results %>%
   dplyr::select(pathway, pval, padj, Top_Gain_Genes)
 
 result_loss_go <- pathSelect(
-  mcmc.merge.list = list(Human_LUN = human_LUN, Baboon_LUN = baboon_LUN),
+  mcmc.merge.list = list(PUT = baboon_PUT, SUN = baboon_SUN),
   pathway.list = go.pathway.list_hsa,
-  dataset.names = c("Human_LUN", "Baboon_LUN"),
+  dataset.names = c("PUT", "SUN"),
   ranking.method = "loss",
   score_type = "pos",
   qvalue.cut = 0.20,
@@ -683,9 +683,9 @@ top_loss_go <- result_loss_go$results %>%
 # 27 
 
 result_cons_go <- pathSelect(
-  mcmc.merge.list = list(Human_LUN = human_LUN, Baboon_LUN = baboon_LUN),
+  mcmc.merge.list = list(PUT = baboon_PUT, SUN = baboon_SUN),
   pathway.list = go.pathway.list_hsa,
-  dataset.names = c("Human_LUN", "Baboon_LUN"),
+  dataset.names = c("PUT", "SUN"),
   ranking.method = "conserved",
   score_type = "pos",
   qvalue.cut = 0.20,

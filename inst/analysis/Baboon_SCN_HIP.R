@@ -560,7 +560,7 @@ cat("  Conservation-enriched:", sum(result_cons$results$Significant), "\n")
 ################################################################################
 
 cat("\n=== STAGE 3: Filtering Significant Pathways ===\n")
-
+library(tidyr)
 significance_table <- result_gain$results %>%
   select(pathway, gain_sig = Significant) %>%
   full_join(
