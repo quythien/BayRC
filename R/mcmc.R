@@ -1227,6 +1227,31 @@ RJMCMC_single_slice = function(Y, t.c, t.s, N,
 
 # Other functions ---------------------------------------------------------
 
+#' Evaluate expression with fallback save on error
+#'
+#' @description
+#' Wraps an expression in a \code{try()} call.  If the expression throws an
+#' error, the current \code{out} object is serialised to \code{save.file}
+#' and the error is re-thrown, preserving progress on disk.
+#'
+#' The single-tissue sampler no longer uses this -- it stops at the iteration
+#' that goes wrong instead of saving a partial chain -- but the time-course
+#' sampler in \code{mcmc_time.R} still does.
+#'
+#' @param expr Expression to evaluate.
+#' @param out Object to save on failure.
+#' @param save.file Character; file path for the emergency \code{saveRDS}.
+#'
+#' @return Result of \code{expr} on success.
+#'
+#' @keywords internal
+try_save = function(expr, out, save.file){
+  tryCatch(expr, error = function(e) {
+    saveRDS(out, save.file)
+    stop(e)
+  })
+}
+
 ## An NA anywhere in rho or in the (AcosPhi, AsinPhi) pair spreads through the
 ## rest of the sweep and comes back as a chain of NAs hours later. Stop at the
 ## iteration that produced it instead, and say which state went bad.
@@ -1348,21 +1373,8 @@ rootsMinMax = function(f, roots, range){
 ####################################################
 ####################################################
 
-#' @export
 ####################################################
 ####################################################
-
-#' @export
-####################################################
-####################################################
-
-#install.packages('Rmpfr')
-#' @export
-####################################################
-####################################################
-
-#' @export
-
 
 #' Post-hoc MCMC convergence diagnostics
 #'
