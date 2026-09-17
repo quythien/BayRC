@@ -7,6 +7,8 @@ rm(list = ls())
 this.file <- sub("^--file=", "", grep("^--file=", commandArgs(), value = TRUE)[1])
 source(file.path(if (is.na(this.file)) getwd() else dirname(normalizePath(this.file)),
                  "config.R"))
+analysis.dir <- if (is.na(this.file)) getwd() else dirname(normalizePath(this.file))
+source(file.path(analysis.dir, "plots", "theme_bayrc.R"))
 
 current_gtex   <- BAYRC_DATA_DIR
 current_wd     <- BAYRC_WD_DIR
@@ -385,7 +387,7 @@ p <- ggplot(plot_df, aes(
     labels = sprintf("ZT%+d", seq(-6, 18, 6))
   ) +
   coord_cartesian(xlim = c(-8, 20), ylim = c(-8, 20)) +
-  theme_bw(base_size = 14) +
+  theme_bayrc(base_size = 14) +
   theme(
     plot.title    = element_text(face = "bold", size = 16, hjust = 0.5),
     plot.subtitle = element_text(size = 13, hjust = 0.5, margin = margin(b = 10)),
@@ -1025,7 +1027,7 @@ p <- ggplot(plot_data) +
     title = "Circadian Peak Timing of Phase-Conserved Genes",
     subtitle = "Posterior phase estimates (ZT) ± SD"
   ) +
-  theme_minimal(base_size = 13) +
+  theme_bayrc(base_size = 13) +
   theme(
     plot.title = element_text(face = "bold", hjust = 0.5, size = 18),
     plot.subtitle = element_text(hjust = 0.5, size = 11, color = "gray40"),
@@ -1388,7 +1390,7 @@ p <- ggplot(plot_df, aes(
   scale_x_continuous(breaks = seq(-6, 18, 6), labels = sprintf("ZT%+d", seq(-6, 18, 6))) +
   scale_y_continuous(breaks = seq(-6, 18, 6), labels = sprintf("ZT%+d", seq(-6, 18, 6))) +
   coord_cartesian(xlim = c(-8, 20), ylim = c(-8, 20)) +
-  theme_bw(base_size = 14) +
+  theme_bayrc(base_size = 14) +
   theme(
     plot.title    = element_text(face = "bold", size = 16, hjust = 0.5),
     plot.subtitle = element_text(size = 13, hjust = 0.5, margin = margin(b = 10)),
