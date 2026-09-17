@@ -1458,6 +1458,10 @@ RJMCMC_single_slice = function(Y, t.c, t.s, N,
   log.r2 = log((p.vec+1e-5)/(1-p.vec+1e-5))#*((-1)^rho) #already taken care below
   log.r3 = log.A.prior+log.phi.prior-log.A.post-log.phi.post
   log.r = log.r1+(log.r2+log.r3)*((-1)^rho) #if rho.mat = 1, then reverse
+  ## Without this, a single non-finite log.r makes ifelse() return NA, rho
+  ## becomes NA, and the NA propagates into update_M_single and kills the sweep
+  ## at iteration 1. Treat a non-finite ratio as "reject".
+  log.r[!is.finite(log.r)] = -Inf
   # gene.idx = 5; log.r1[gene.idx]; log.r2[gene.idx]; log.r3[gene.idx]; log.r[gene.idx]; rho.mat[gene.idx, a]
   # hist(log.r3[1:39]*((-1)^rho.mat[1:39, a]))
   # hist((log.r3[40:72]*((-1)^rho.mat[40:72, a]))[rho.mat[40:72, a]==0])
