@@ -12,7 +12,12 @@ if (!exists("phase_inner") || !exists("trans_outer")) {
   stop("phase_inner and trans_outer must exist in the session before running this script.")
 }
 
-output.dir <- "/home/qtp1/Projects/Collaborative/Paper/Congruence/PNAS_aging/results/baboon/output_final"
+# Paths come from config.R; override any of them with the matching env var.
+this.file <- sub("^--file=", "", grep("^--file=", commandArgs(), value = TRUE)[1])
+source(file.path(if (is.na(this.file)) getwd() else dirname(normalizePath(this.file)),
+                 "config.R"))
+
+output.dir <- BAYRC_OUTPUT_DIR
 plot_dir <- file.path(output.dir, "figure/baboon_brain")
 dir.create(plot_dir, recursive = TRUE, showWarnings = FALSE)
 

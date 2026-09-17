@@ -2,7 +2,7 @@
 % Please edit documentation in R/mcmc.R
 \name{update_A_phi_slice}
 \alias{update_A_phi_slice}
-\title{Slice update for amplitude and phase}
+\title{Slice-sampling update for amplitude and phase}
 \usage{
 update_A_phi_slice(
   Y,
@@ -22,53 +22,50 @@ update_A_phi_slice(
   G,
   P,
   A_prior,
+  A.min,
+  A.max,
   mu_A,
-  sigma_A,
-  A_wb_beta2,
-  A_gm_shape,
-  A_gm_rate
+  sigma_A
 )
 }
 \arguments{
 \item{Y}{G x N expression matrix.}
 
-\item{X}{N x 2 design matrix of cos and sin columns.}
+\item{X}{N x 2 design matrix of cos and sin terms.}
 
-\item{XtX}{2 x 2 matrix t(X) \%*\% X.}
+\item{XtX}{Crossproduct of \code{X}.}
 
-\item{beta_hat0}{N x 2 OLS projection matrix.}
+\item{beta_hat0}{Precomputed OLS projection matrix.}
 
-\item{beta_cov0_11, beta_cov0_22, beta_cov0_rho, beta_mean0_1, beta_mean0_2}{Pre-computed OLS covariance scalars used by the Jeffreys prior.}
+\item{beta_cov0_11, beta_cov0_22, beta_cov0_rho}{Prior covariance terms for
+the two coordinates.}
 
-\item{M}{Length-G MESOR vector.}
+\item{beta_mean0_1, beta_mean0_2}{Conditional-mean coefficients.}
 
-\item{sigma}{Length-G residual variance vector.}
+\item{M, sigma}{Length-G MESOR and residual-variance vectors.}
 
-\item{omega}{Numeric; angular frequency.}
+\item{omega}{Numeric; angular frequency 2*pi/P.}
 
-\item{AcosPhi, AsinPhi}{Length-G current values of A*cos(phi) and
-A*sin(phi).}
+\item{AcosPhi, AsinPhi}{Length-G current coordinates.}
 
 \item{G}{Integer; number of genes.}
 
-\item{P}{Numeric; period.}
+\item{P}{Numeric; period in hours.}
 
-\item{A_prior}{Character; amplitude prior name.}
+\item{A_prior}{Character; amplitude prior.}
 
-\item{mu_A, sigma_A}{Numeric; truncated-Normal prior parameters.}
+\item{A.min, A.max}{Numeric; amplitude truncation bounds.}
 
-\item{A_wb_beta2}{Numeric; squared-exponential prior parameter.}
-
-\item{A_gm_shape, A_gm_rate}{Numeric; gamma prior parameters.}
+\item{mu_A, sigma_A}{Numeric; truncated-Normal amplitude prior parameters.}
 }
 \value{
-List with elements \code{AcosPhi} and \code{AsinPhi}
-  (updated length-G vectors).
+A list with the updated \code{AcosPhi} and \code{AsinPhi}.
 }
 \description{
-Jointly updates amplitude (A) and acrophase (phi) for each gene using a
-slice sampler in the (A*cos(phi), A*sin(phi)) parameterisation.  The
-Jeffreys-OLS-conditional prior conditions on the OLS beta-hat to set a
-data-adaptive amplitude prior.
+Updates the pair (A, phi) within the current model by slice sampling the
+Cartesian coordinates \code{AcosPhi} and \code{AsinPhi}, one conditional on
+the other. The slice height sets a per-gene radius \code{A_max}, and each
+coordinate is then drawn from a truncated Normal on the two arcs the radius
+allows.
 }
 \keyword{internal}

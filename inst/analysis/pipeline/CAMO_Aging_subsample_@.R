@@ -18,8 +18,8 @@ library(Rcpp)
 library(dplyr)
 
 #── Source dependencies ─────────────────────────────────────────────────────────
-WD <- "Kyle/Circadian-analysis-main/R/v1"
-setwd(file.path(current_wd, WD))
+WD <- dirname(BAYRC_PACKAGE_DIR)
+setwd(WD)
 scripts <- list.files("R", full.names=TRUE)
 sapply(scripts, source)
 

@@ -62,7 +62,13 @@ CB_getAllEst <- function(res, burn=100, CI=TRUE, credMass=0.95, P=24, rhythmic=F
     # Convert to DataFrame and set column names
     a.tab <- as.data.frame(a.tab)
     colnames(a.tab) <- paste0(a.param, c(".Est", ".Lower", ".Upper"))
-    
+
+    # phi and t_p bounds are a circular arc, so the width is not Upper - Lower.
+    if (a.param %in% c("phi", "t_p")) {
+      a.tab[[paste0(a.param, ".Width")]] <-
+        circular_width(a.tab[[2]], a.tab[[3]], P = P)
+    }
+
     # Assign row names
     if (!is.null(symbols)) rownames(a.tab) <- symbols
     
@@ -168,6 +174,24 @@ normalize_angle <- function(x, a = 0, P = 24) {
   return(((x - a) %% P) + a)
 }
 
+#' Length of a circular arc
+#'
+#' @description
+#' Width of the arc that runs from \code{lower} forward to \code{upper} on a
+#' circle of circumference \code{P}. Unlike \code{upper - lower} this is
+#' always in \[0, P) and stays correct when the arc crosses the seam, which
+#' is the case whenever \code{upper < lower} -- common for phases near ZT 0.
+#'
+#' @param lower,upper Numeric; arc endpoints in hours.
+#' @param P Numeric; period (default 24).
+#'
+#' @return Numeric; arc width in hours, in \[0, P).
+#'
+#' @export
+circular_width <- function(lower, upper, P = 24) {
+  (upper - lower) %% P
+}
+
 #' Recenter phase samples around their circular median
 #'
 #' @description
@@ -224,9 +248,7 @@ get_t_phi_CI_est <- function(row_MCMC, P = 24, credMass = 0.95, burn = 1, rho = 
   phi.Lower <- hdi_bounds$lower
   phi.Upper <- hdi_bounds$upper
 
-  if (phi.Upper < phi.Lower) {
-    phi.Upper <- normalize_angle(phi.Upper + P, a = a, P = P)
-  }
+  ## phi.Upper < phi.Lower means the arc crosses the seam
 
   return(c(phi.Est = phi.Est, phi.Lower = phi.Lower, phi.Upper = phi.Upper))
 }

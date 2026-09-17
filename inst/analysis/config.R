@@ -22,10 +22,31 @@ BAYRC_PACKAGE_DIR <- Sys.getenv("BAYRC_PACKAGE_DIR",
 BAYRC_PATHWAY_DIR <- Sys.getenv("BAYRC_PATHWAY_DIR",
                        unset = file.path(BAYRC_WD_DIR,
                                          "Kyle/Circadian-analysis-main/R/pathway_data"))
+# The helper sources the analysis scripts pull in live beside the package, in
+# R/v1/R/Thien, not inside it. Several scripts used to point at
+# BAYRC_PACKAGE_DIR/Thien, which has never existed.
 BAYRC_THIEN_DIR   <- Sys.getenv("BAYRC_THIEN_DIR",
-                       unset = file.path(BAYRC_PACKAGE_DIR, "Thien"))
+                       unset = file.path(dirname(BAYRC_PACKAGE_DIR),
+                                         "R", "Thien"))
 BAYRC_GTEX_DIR    <- Sys.getenv("BAYRC_GTEX_DIR",
                        unset = file.path(BAYRC_DATA_DIR, "GTEXdata"))
+
+# Per-tissue MCMC output, and the rho/phi summaries built from it by
+# pipeline/summarize_rho_phi.R. Point BAYRC_RESULT_DIR at result_fixed/ to run
+# the downstream analysis on the corrected sampler instead of the 2025 run.
+BAYRC_RESULT_DIR  <- Sys.getenv("BAYRC_RESULT_DIR",
+                       unset = file.path(BAYRC_GTEX_DIR, "result"))
+BAYRC_SUMMARY_DIR <- Sys.getenv("BAYRC_SUMMARY_DIR",
+                       unset = file.path(BAYRC_RESULT_DIR, "summary", "hb"))
+
+# Where figures, tables and intermediate analysis output are written. The
+# analysis scripts used to reassign output.dir several times per file; they now
+# take it from here and build sub-directories underneath.
+BAYRC_OUTPUT_DIR  <- Sys.getenv("BAYRC_OUTPUT_DIR",
+                       unset = file.path(BAYRC_AGING_DIR, "results", "baboon",
+                                         "output_final"))
+BAYRC_FIGURE_DIR  <- Sys.getenv("BAYRC_FIGURE_DIR",
+                       unset = file.path(BAYRC_AGING_DIR, "all_plots"))
 
 # Validate that critical directories exist and warn if not
 .check_dir <- function(path, name) {
@@ -36,6 +57,13 @@ BAYRC_GTEX_DIR    <- Sys.getenv("BAYRC_GTEX_DIR",
 .check_dir(BAYRC_DATA_DIR,    "BAYRC_DATA_DIR")
 .check_dir(BAYRC_WD_DIR,      "BAYRC_WD_DIR")
 .check_dir(BAYRC_PATHWAY_DIR, "BAYRC_PATHWAY_DIR")
+.check_dir(BAYRC_RESULT_DIR,  "BAYRC_RESULT_DIR")
 rm(.check_dir)
+
+# Output directories are created rather than warned about, since a fresh
+# checkout will not have them yet.
+for (.d in c(BAYRC_OUTPUT_DIR, BAYRC_FIGURE_DIR))
+  dir.create(.d, recursive = TRUE, showWarnings = FALSE)
+rm(.d)
 
 message("BayRC config loaded. Override paths via environment variables (see config.R).")

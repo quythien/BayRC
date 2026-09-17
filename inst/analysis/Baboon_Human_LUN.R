@@ -3,14 +3,19 @@
 
 rm(list = ls())
 
-current_gtex   <- "/home/qtp1/Projects/Collaborative"
-current_wd     <- "/home/qtp1/Projects/Circadian"
-current_aging  <- "/home/qtp1/Projects/Collaborative/Paper/Congruence/PNAS_aging"
+# Paths come from config.R; override any of them with the matching env var.
+this.file <- sub("^--file=", "", grep("^--file=", commandArgs(), value = TRUE)[1])
+source(file.path(if (is.na(this.file)) getwd() else dirname(normalizePath(this.file)),
+                 "config.R"))
 
-outdir <- "/home/qtp1/Projects/Collaborative/Paper/Congruence/PNAS_aging/all_plots"
+current_gtex   <- BAYRC_DATA_DIR
+current_wd     <- BAYRC_WD_DIR
+current_aging  <- BAYRC_AGING_DIR
 
-load(file = "/home/qtp1/Projects/Collaborative/GTEXdata/result/summary/hb/mcmc_rho_BF3.RData")
-load(file.path(current_gtex, "GTEXdata/result/summary/hb/phi/mcmc_phi_BF3.RData"))
+outdir <- BAYRC_FIGURE_DIR
+
+load(file.path(BAYRC_SUMMARY_DIR, "mcmc_rho_BF3.RData"))
+load(file.path(BAYRC_SUMMARY_DIR, "phi", "mcmc_phi_BF3.RData"))
 
 # Objects from these:
 # "mcmc_data_baboon" "mcmc_data_human"  "mcmc_phi_baboon"  "mcmc_phi_human"
@@ -35,7 +40,7 @@ require(dplyr)
 require(pROC)
 require(edgeR)
 
-thien_dir <- file.path(current_wd, "Kyle/Circadian-analysis-main/R/v1/BayRC/Thien")
+thien_dir <- BAYRC_THIEN_DIR
 source(file.path(thien_dir, "pathwaySelect.R"))
 source(file.path(thien_dir, "multi_pathway.R"))
 source(file.path(thien_dir, "multi_global.R"))
@@ -49,18 +54,18 @@ source(file.path(thien_dir, "plots/heatmap.R"))
 }
 
 
-load(file.path(current_wd, "Kyle/Circadian-analysis-main/R/pathway_data/hw_orth.RData"))
-load(file.path(current_wd, "Kyle/Circadian-analysis-main/R/pathway_data/human.pathway.list.RData"))
-load(file.path(current_wd, "Kyle/Circadian-analysis-main/R/pathway_data/go.pathway.list_hsa.RData"))
+load(file.path(BAYRC_PATHWAY_DIR, "hw_orth.RData"))
+load(file.path(BAYRC_PATHWAY_DIR, "human.pathway.list.RData"))
+load(file.path(BAYRC_PATHWAY_DIR, "go.pathway.list_hsa.RData"))
 
 kegg.pathway.list_hsa <- readRDS(
-  "/home/qtp1/Projects/Circadian/Kyle/Circadian-analysis-main/R/pathway_data/kegg_pathway_list_hsa.rds"
+  file.path(BAYRC_PATHWAY_DIR, "kegg_pathway_list_hsa.rds")
 )
 
 #── Source R scripts ─────────────────────────────────────────────────────────────
-WD <- "Kyle/Circadian-analysis-main/R/v1"
-setwd(file.path(current_wd, WD))
-scripts <- list.files("BayRC", pattern="\\.R$", full.names = TRUE)
+WD <- dirname(BAYRC_PACKAGE_DIR)
+setwd(WD)
+scripts <- list.files(file.path(BAYRC_PACKAGE_DIR, "R"), pattern = "[.]R$", full.names = TRUE)
 sapply(scripts, source)
 
 # Reset wd
@@ -96,7 +101,7 @@ human_LUN <- list(
 save(
   baboon_LUN,
   human_LUN,
-  file = "/home/qtp1/Projects/Collaborative/Paper/Congruence/PNAS_aging/data/HB_lung.RData"
+  file = file.path(BAYRC_AGING_DIR, "data", "HB_lung.RData")
 )
 
 
@@ -104,13 +109,13 @@ save(
 #---------------------------------------------------------------------------------
 # Global concordance score 
 #---------------------------------------------------------------------------------
-output.dir <- "/home/qtp1/Projects/Collaborative/Paper/Congruence/PNAS_aging/results/baboon/output_final"
+output.dir <- BAYRC_OUTPUT_DIR
 if (!dir.exists(output.dir)) {
   dir.create(output.dir, recursive = TRUE, showWarnings = FALSE)
 }
 cat("Directory ready:", output.dir, "\n")
 
-thien_dir <- file.path(current_wd, "Kyle/Circadian-analysis-main/R/v1/BayRC/Thien")
+thien_dir <- BAYRC_THIEN_DIR
 if (file.exists(file.path(thien_dir, "pathwaySelect.R"))) {
   source(file.path(thien_dir, "pathwaySelect.R"))
 }
@@ -423,7 +428,7 @@ pathway_size_min <- 10
 pathway_size_max <- 300
 
 # Set output directory
-output.dir <- "/home/qtp1/Projects/Collaborative/Paper/Congruence/PNAS_aging/results/baboon/output_final"
+output.dir <- BAYRC_OUTPUT_DIR
 dir.create(output.dir, recursive = TRUE, showWarnings = FALSE)
 
 ################################################################################
@@ -578,6 +583,7 @@ print_pathway_summary(result_cons, filter_by = "q", cutoff = 0.2)
 
 cat("\n=== STAGE 3: Filtering Significant Pathways ===\n")
 
+library(tidyr)
 significance_table <- result_gain$results %>%
   select(pathway, gain_sig = Significant) %>%
   full_join(
@@ -628,8 +634,8 @@ result_multiconservation <- multi_conservation(
 cat("\n\n################################################################################\n")
 cat("# GO ENRICHMENT WORKFLOW: Baboon Lung vs Human Lung\n")
 cat("################################################################################\n")
-load("/home/qtp1/Projects/Circadian/Kyle/Circadian-analysis-main/R/v1/BayRC/Thien/pathway/go.pathway.list_hsa.RData")
-output.dir <- "/home/qtp1/Projects/Collaborative/Paper/Congruence/PNAS_aging/results/baboon/output_final"
+load(file.path(BAYRC_THIEN_DIR, "pathway", "go.pathway.list_hsa.RData"))
+output.dir <- BAYRC_OUTPUT_DIR
 go_output.dir <- file.path(output.dir, "go_enrichment_lung")
 dir.create(go_output.dir, recursive = TRUE, showWarnings = FALSE)
 
@@ -897,14 +903,21 @@ genome_wide_expected <- data.frame(
     Percentage = sprintf("%.2f%%", 100 * Expected_Count / n_total)
   )
 
-# Add thresholds
+# Add thresholds. transition_classify() and transition_classify_marginal()
+# name their thresholds differently, and c() quietly drops any that come back
+# empty, which leaves a column shorter than the table. Take one value per row
+# either way, and drop the gene names the thresholds carry.
+tau_of <- function(x, ...) {
+  for (nm in c(...)) if (!is.null(x[[nm]]) && length(x[[nm]])) return(unname(x[[nm]][1]))
+  NA_real_
+}
 genome_wide_expected$Threshold <- c(
-  NA,
-  trans_outer$tau_rhythmic_A,
-  trans_outer$tau_rhythmic_B,
-  trans_outer$tau_gain,
-  trans_outer$tau_loss,
-  trans_outer$tau_cons
+  NA_real_,
+  tau_of(trans_outer, "tau_rhythmic_A", "tau_A"),
+  tau_of(trans_outer, "tau_rhythmic_B", "tau_B"),
+  tau_of(trans_outer, "tau_gain"),
+  tau_of(trans_outer, "tau_loss"),
+  tau_of(trans_outer, "tau_cons")
 )
 
 cat("\n========================================\n")

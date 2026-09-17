@@ -9,7 +9,7 @@ CB_MCMC_single_rj_slice(
   Init.value,
   P = 24,
   iteration = 3000,
-  thin = 20,
+  thin = 1,
   n.burn = 1000,
   seed = 15213,
   diagnostics = TRUE,
@@ -19,17 +19,14 @@ CB_MCMC_single_rj_slice(
   mu_A = 1,
   sigma_A = 10^2,
   A.min = 0,
-  A_wb_beta2 = 2,
-  A_gm_shape = 1.99,
-  A_gm_rate = 0.5,
+  A.max = NULL,
   rj.phi = TRUE,
   rj.A = TRUE,
   mu_M = 0,
   sigma_M = 10^2,
   sigma_prior_v = 4,
   sigma_prior_s = 1,
-  save.file = "MCMC_save.rds",
-  save.file2 = "MCMC_save.rds"
+  NP_Z1 = 64
 )
 }
 \arguments{
@@ -84,14 +81,10 @@ between-model move (staying in the current model) at each iteration
 
 \item{A.min}{Numeric; lower truncation bound for amplitude (default 0).}
 
-\item{A_wb_beta2}{Numeric; beta parameter for the squared-exponential
-amplitude prior \code{sq_expo} (default 2).}
-
-\item{A_gm_shape}{Numeric; shape parameter for the gamma amplitude prior;
-values <= 2 give a flatter prior (default 1.99).}
-
-\item{A_gm_rate}{Numeric; rate parameter for the gamma amplitude prior;
-smaller values give a flatter prior (default 0.5).}
+\item{A.max}{Numeric; upper truncation bound for amplitude, either one
+value or one per gene. \code{NULL} (the default) uses half the observed
+range of each gene; \code{Inf} leaves the amplitude prior one-sided on
+\code{[A.min, Inf)}.}
 
 \item{rj.phi}{Logical; if \code{TRUE}, phase phi is jointly proposed in
 the RJMCMC birth/death step (default \code{TRUE}).}
@@ -109,11 +102,7 @@ inverse-gamma prior on residual variance (default 4).}
 \item{sigma_prior_s}{Numeric; scale hyperparameter of the inverse-gamma
 prior on residual variance (default 1).}
 
-\item{save.file}{Character; path for saving intermediate MCMC output
-(default \code{"MCMC_save.rds"}).}
-
-\item{save.file2}{Character; secondary save path used inside the RJMCMC
-helper (default \code{"MCMC_save.rds"}).}
+\item{NP_Z1}{Integer; quadrature nodes for the phi marginal (default 64).}
 }
 \value{
 A named list of G x K matrices (K = floor(iteration / thin)):
@@ -126,8 +115,13 @@ A named list of G x K matrices (K = floor(iteration / thin)):
     \item{log.r1, log.r1.SS, log.r3_A, log.r3_phi}{RJMCMC log-ratio
       components (for diagnostics).}
     \item{if.accept.rj}{Binary matrix indicating accepted RJMCMC moves.}
+    \item{Z1_gap}{3 x K matrix, not G x K: the median, 99th percentile and
+      maximum across genes of \code{abs(Z1_check - logZ1)} at each stored
+      iteration. A birth proposal equal to pi_1 would make this zero; it
+      is not, and the gap does not shrink with \code{NP_Z1}, so it is not
+      quadrature error. Diagnostic only.}
   }
-  All matrices have \code{rownames} equal to \code{Data.list$gname}.
+  All G x K matrices have \code{rownames} equal to \code{Data.list$gname}.
   After calling \code{match_symbols()}, the attributes
   \code{attr(rho, "symbols")} and \code{attr(rho, "RHYindex")} are set.
 }

@@ -52,6 +52,7 @@ Suggests:
     ConsensusClusterPlus,
     KEGGgraph,
     pathview,
-    Rmpfr
+    Rmpfr,
+    testthat (>= 3.0.0)
 VignetteBuilder: knitr
 RoxygenNote: 7.3.2
