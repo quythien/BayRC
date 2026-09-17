@@ -1,93 +1,129 @@
 # BayRC Paper Figures — Generating Scripts
 
-This file maps each figure in `paper/figures/` to the analysis script that produced it.
-All scripts are in `inst/analysis/`. Run each script from the BayRC root directory
-after sourcing `config.R` to set data paths.
+This file maps each figure to the script that produces it and the data that
+script needs. Everything lives under `inst/analysis/`.
 
-**Prerequisites:** All scripts require pre-computed MCMC `.RData` objects
-(not in the repository — deposit location to be added). Set paths via `config.R`.
+**Paths.** Every script now begins by sourcing `config.R`, which reads its
+directories from environment variables and falls back to the original
+`/home/qtp1/...` locations. Nothing else in the scripts hardcodes a path. To
+run elsewhere, set the variables before launching R:
 
----
+```
+export BAYRC_DATA_DIR=/path/to/Collaborative
+export BAYRC_WD_DIR=/path/to/Circadian
+export BAYRC_RESULT_DIR=/path/to/GTEXdata/result      # per-tissue MCMC output
+export BAYRC_SUMMARY_DIR=$BAYRC_RESULT_DIR/summary/hb # rho/phi summaries
+export BAYRC_OUTPUT_DIR=/path/to/analysis/output
+export BAYRC_FIGURE_DIR=/path/to/figure/output
+```
 
-## Figure 1 — BayRC Framework Overview (flowchart)
-
-**File:** `paper/figures/Figure_1.pdf`  
-**Source:** Manually created diagram (`paper/figures/flowchart_resized.jpeg`).  
-No generating R script. Created externally (illustration tool).
-
----
-
-## Figure 2 — Genome-Wide Concordance Heatmaps (26 baboon tissues)
-
-**File:** `paper/figures/Figure_2_concordance_heatmaps_combined_ward.D2.pdf`  
-**Script:** `inst/analysis/circa_concordance.plots.R`  
-**Inputs:** Multi-tissue MCMC outputs (26 baboon tissues from GTEx baboon data)  
-**Key output calls:** `ggsave()` producing concordance heatmaps (genome-wide + KEGG Circadian pathway)  
-**Required data:** `mcmc_rho_BF3.RData`, `mcmc_phi_BF3.RData` from `BAYRC_GTEX_DIR`
+Scripts in `inst/analysis/` find `config.R` next to themselves; scripts in
+`plots/` and `pipeline/` find it one directory up. Both work under `Rscript`
+and when sourced from the directory the script lives in.
 
 ---
 
-## Figure 3 — Within-Species Phase Concordance Scatter (SCN-HIP + SUN-PUT)
+## Order of operations
 
-**File:** `paper/figures/Figure_3_within_species_scatter.pdf`  
+The MCMC output is not in the repository, and neither are the two `.RData`
+summaries every figure script loads. Build them in this order:
+
+```
+1. CAMO_h_b.R                          per-tissue MCMC, 26 human + 26 baboon
+2. pipeline/summarize_rho_phi.R        -> mcmc_rho_BF3.RData
+                                       -> phi/mcmc_phi_BF3.RData
+3. the figure scripts below
+4. assemble_figures.R                  panels -> Figure_2 ... Figure_6
+```
+
+Step 2 used to be missing: the figure scripts all start with
+`load(.../mcmc_rho_BF3.RData)` but nothing wrote that file.
+`pipeline/summarize_rho_phi.R` now does, and `--validate` checks its output
+against an existing copy instead of overwriting it.
+
+---
+
+## Figure 1 — BayRC framework overview
+
+Hand-drawn flowchart (`flowchart_resized.jpeg`). No generating script.
+
+---
+
+## Figure 2 — Genome-wide and circadian concordance heatmaps (26 baboon tissues)
+
 **Scripts:**
-- SCN-HIP panel: `inst/analysis/Baboon_SCN_HIP.R` — saves `Baboon_SCN_HIP_Peak_Concordance_0.25_2h_new.pdf`
-- SUN-PUT panel: `inst/analysis/Baboon_SUN_PUT.R` — saves `Baboon_SUN_PUT_Peak_Concordance_0.25_2h_new.pdf`
+- Genome-wide panel: `plots/heatmap_baboon.R` — writes
+  `Baboon_Concordance_Heatmap_0.25_<method>.pdf` and
+  `Baboon_Concordance_Heatmap_Dissim_<method>.pdf` to `BAYRC_FIGURE_DIR`,
+  plus `Baboon_Concordance_Matrix.csv`.
+- KEGG Circadian panel: `plots/heatmap_circadian_pairs.R within_baboon` —
+  writes `*_Heatmap_<method>.pdf` under `BAYRC_OUTPUT_DIR/figure/`.
 
-Both panels are combined into Figure 3.  
-**Key parameter:** `shift = 2` (±2h phase concordance window)  
-**Required data:** `mcmc_rho_BF3.RData`, `mcmc_phi_BF3.RData`
+`heatmap_circadian_pairs.R` also takes `within_baboon_with_scn`,
+`within_human` and `cross_species`.
 
----
+**Required data:** `mcmc_rho_BF3.RData`, `mcmc_phi_BF3.RData`.
+**Pairs:** `choose(26, 2) = 325` within-species; cross-species is `26 x 26 = 676`.
 
-## Figure 4 — SUN-PUT Pathway Enrichment Dotplots
-
-**File:** `paper/figures/Figure_4_enrichment_combined.pdf`  
-**Script:** `inst/analysis/Baboon_SUN_PUT.R` and `inst/analysis/plot_enrich_SUN_PUT.R`  
-**Outputs:** `_barplot.pdf` and `_dotplot.pdf` files  
-Also produces: `paper/figures/SUN_PUT_shifted_GO_BP_dotplot.pdf` and  
-`paper/figures/SUN_PUT_shifted_KEGG_dotplot.pdf`  
-**Required data:** Stage 2 enrichment results from `Baboon_SUN_PUT.R`
-
----
-
-## Figure 5 — SUN-PUT Heatmaps
-
-**File:** `paper/figures/Figure_5_sunput_heatmaps.pdf`  
-**Script:** `inst/analysis/Baboon_SUN_PUT.R` (heatmap section)  
-**Required data:** `mcmc_rho_BF3.RData`, `mcmc_phi_BF3.RData`
+> Earlier versions of this file attributed Figure 2 to
+> `circa_concordance.plots.R`. That script does not draw the concordance
+> heatmaps — it draws the phase-concordance scatters that make up Figures 3
+> and 6, and it expects the objects from the case-study scripts to already be
+> in the environment. It is a plotting companion, not a standalone entry point.
 
 ---
 
-## Figure 6 — Cross-Species Lung Circadian Analysis
+## Figure 3 — Within-species phase concordance scatter
 
-**File:** `paper/figures/Figure_6_lung_circadian.pdf`  
-**Script:** `inst/analysis/Baboon_Human_LUN.R`  
-**Key output:** `Baboon_Human_LUN_Peak_Concordance_0.25_2h.pdf`  
-**Key parameter:** `shift = 2` (±2h phase concordance window)  
-**Required data:** Baboon lung MCMC output + Human lung MCMC output
+**Scripts:**
+- SCN-HIP panel: `Baboon_SCN_HIP.R` → `Baboon_SCN_HIP_Peak_Concordance_0.25_2h_new.pdf`
+- SUN-PUT panel: `Baboon_SUN_PUT.R` → `Baboon_SUN_PUT_Peak_Concordance_0.25_2h_new.pdf`
+
+**Key parameter:** `shift = 2` (the ±2h phase window, paper §2.2).
+**Required data:** `mcmc_rho_BF3.RData`, `mcmc_phi_BF3.RData`.
 
 ---
 
-## Recommended Execution Order
+## Figure 4 — SUN-PUT pathway enrichment dotplots
 
-```
-1. Baboon_SCN_HIP.R     → Figure 3 (panel A)
-2. Baboon_SUN_PUT.R     → Figures 3 (panel B), 4, 5
-3. plot_enrich_SUN_PUT.R → Figure 4 (finalized dotplots)
-4. Baboon_Human_LUN.R   → Figure 6
-5. circa_concordance.plots.R → Figure 2
-```
+**Scripts:** `Baboon_SUN_PUT.R` (stage-2 enrichment), then
+`plot_enrich_SUN_PUT.R` for the final dotplots
+(`SUN_PUT_shifted_GO_BP_dotplot.pdf`, `SUN_PUT_shifted_KEGG_dotplot.pdf`).
+**Required data:** the stage-2 enrichment results written by `Baboon_SUN_PUT.R`.
 
-Figure 1 requires no R script.
+---
+
+## Figure 5 — SUN-PUT heatmaps
+
+**Script:** `Baboon_SUN_PUT.R`, heatmap section.
+**Required data:** `mcmc_rho_BF3.RData`, `mcmc_phi_BF3.RData`.
+
+---
+
+## Figure 6 — Cross-species lung
+
+**Script:** `Baboon_Human_LUN.R` → `Baboon_Human_LUN_Peak_Concordance_0.25_2h.pdf`.
+**Key parameter:** `shift = 2`.
+**Required data:** baboon and human lung chains from `mcmc_rho_BF3.RData` and
+`mcmc_phi_BF3.RData`.
+
+---
+
+## Assembly
+
+`assemble_figures.R` collects every panel above into `paper/subfigures/` under
+a stable name and writes `paper/figures/Figure_N.pdf`. Figures 3 and 4 put two
+panels side by side; the script merges them into a two-page PDF and says so,
+since placing them side by side is the one step still done by hand.
 
 ---
 
 ## Notes
 
-- All scripts currently contain hardcoded paths (`/home/qtp1/Projects/...`).
-  Replace with `source("config.R")` at the top of each script and use
-  `BAYRC_DATA_DIR`, `BAYRC_WD_DIR` etc. from `config.R`.
-- Excel output sheet names in `multi_conservation` results are `"Results"` and
-  `"Column_Definitions"` — downstream `read.xlsx` calls should use `sheet = "Results"`.
-- Phase concordance threshold is `shift = 2` hours throughout (paper §2.2, "±2h").
+- `multi_conservation` writes Excel sheets named `"Results"` and
+  `"Column_Definitions"`, so `read.xlsx` calls need `sheet = "Results"`.
+- The phase concordance window is `shift = 2` hours throughout.
+- Two copies of these scripts exist: `inst/analysis/` (this one, the one with
+  `config.R`) and `R/v1/R/Thien/analysis/`. They have diverged;
+  `circa_concordance.plots.R` is identical between them, the case-study
+  scripts are not. Use this copy.
