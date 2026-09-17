@@ -42,7 +42,7 @@ require(dplyr)
 require(pROC)
 require(edgeR)
 
-thien_dir <- file.path(current_wd, "Kyle/Circadian-analysis-main/R/v1/BayRC/Thien")
+thien_dir <- BAYRC_THIEN_DIR
 source(file.path(thien_dir, "pathwaySelect.R"))
 source(file.path(thien_dir, "multi_pathway.R"))
 source(file.path(thien_dir, "multi_global.R"))
@@ -56,18 +56,18 @@ source(file.path(thien_dir, "plots/heatmap.R"))
 }
 
 
-load(file.path(current_wd, "Kyle/Circadian-analysis-main/R/pathway_data/hw_orth.RData"))
-load(file.path(current_wd, "Kyle/Circadian-analysis-main/R/pathway_data/human.pathway.list.RData"))
-load(file.path(current_wd, "Kyle/Circadian-analysis-main/R/pathway_data/go.pathway.list_hsa.RData"))
+load(file.path(BAYRC_PATHWAY_DIR, "hw_orth.RData"))
+load(file.path(BAYRC_PATHWAY_DIR, "human.pathway.list.RData"))
+load(file.path(BAYRC_PATHWAY_DIR, "go.pathway.list_hsa.RData"))
 
 kegg.pathway.list_hsa <- readRDS(
   file.path(BAYRC_PATHWAY_DIR, "kegg_pathway_list_hsa.rds")
 )
 
 #── Source R scripts ─────────────────────────────────────────────────────────────
-WD <- "Kyle/Circadian-analysis-main/R/v1"
-setwd(file.path(current_wd, WD))
-scripts <- list.files("BayRC", pattern="\\.R$", full.names = TRUE)
+WD <- dirname(BAYRC_PACKAGE_DIR)
+setwd(WD)
+scripts <- list.files(file.path(BAYRC_PACKAGE_DIR, "R"), pattern = "[.]R$", full.names = TRUE)
 sapply(scripts, source)
 
 # Reset wd
@@ -117,7 +117,7 @@ if (!dir.exists(output.dir)) {
 }
 cat("Directory ready:", output.dir, "\n")
 
-thien_dir <- file.path(current_wd, "Kyle/Circadian-analysis-main/R/v1/BayRC/Thien")
+thien_dir <- BAYRC_THIEN_DIR
 if (file.exists(file.path(thien_dir, "pathwaySelect.R"))) {
   source(file.path(thien_dir, "pathwaySelect.R"))
 }

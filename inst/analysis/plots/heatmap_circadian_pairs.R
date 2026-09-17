@@ -27,7 +27,7 @@ load(file.path(BAYRC_SUMMARY_DIR, "mcmc_rho_BF3.RData"))
 load(file.path(BAYRC_SUMMARY_DIR, "phi", "mcmc_phi_BF3.RData"))
 
 # Thien functions
-thien_dir <- file.path(current_wd, "Kyle/Circadian-analysis-main/R/v1/BayRC/Thien")
+thien_dir <- BAYRC_THIEN_DIR
 source(file.path(thien_dir, "Permutation_Sim.R"))
 Rcpp::sourceCpp(file.path(thien_dir, "congruence.cpp"))
 

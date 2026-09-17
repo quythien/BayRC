@@ -123,17 +123,17 @@ source(file.path(current_wd, "Kyle/Circadian-analysis-main/R/src/Thien/multi_ACS
 source(file.path(current_wd, "Kyle/Circadian-analysis-main/R/src/Thien/internal.R"))
 sourceCpp(file.path(current_wd, "Kyle/Circadian-analysis-main/R/src/Thien/ACS.cpp"))
 
-load(file.path(current_wd, "Kyle/Circadian-analysis-main/R/pathway_data/kegg.pathway.list_hsa.RData"))
-load(file.path(current_wd, "Kyle/Circadian-analysis-main/R/pathway_data/kegg.pathway.list_cel_GeneNames.RData"))
-load(file.path(current_wd, "Kyle/Circadian-analysis-main/R/pathway_data/hw_orth.RData"))
-load(file.path(current_wd, "Kyle/Circadian-analysis-main/R/pathway_data/human.pathway.list.RData"))
-load(file.path(current_wd, "Kyle/Circadian-analysis-main/R/pathway_data/go.pathway.list_hsa.RData"))
+load(file.path(BAYRC_PATHWAY_DIR, "kegg.pathway.list_hsa.RData"))
+load(file.path(BAYRC_PATHWAY_DIR, "kegg.pathway.list_cel_GeneNames.RData"))
+load(file.path(BAYRC_PATHWAY_DIR, "hw_orth.RData"))
+load(file.path(BAYRC_PATHWAY_DIR, "human.pathway.list.RData"))
+load(file.path(BAYRC_PATHWAY_DIR, "go.pathway.list_hsa.RData"))
 
 source("/home/qtp1/Projects/Pipeline/one_cosinor_OLS_new.R")
 
 #── Source R scripts ─────────────────────────────────────────────────────────────
-WD <- "Kyle/Circadian-analysis-main/R/v1"
-setwd(file.path(current_wd, WD))
+WD <- dirname(BAYRC_PACKAGE_DIR)
+setwd(WD)
 scripts <- list.files("R", full.names=TRUE)
 sapply(scripts, source)
 
