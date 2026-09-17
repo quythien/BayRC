@@ -71,6 +71,6 @@ bayrc_save <- function(plot, file, width = 7.1, height = 5.2, dpi = 600) {
             family = bayrc_family, bg = "transparent")
   print(plot); dev.off()
   ggsave(paste0(file, ".png"), plot, width = width, height = height,
-         dpi = dpi, bg = "transparent", type = "cairo")
+         dpi = dpi, bg = "transparent")
   invisible(file)
 }
