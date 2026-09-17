@@ -1,13 +1,18 @@
 # Heatmap for concordance of Baboon
 library(pheatmap)
-current_gtex <- "/home/qtp1/Projects/Collaborative"
-current_wd <- "/home/qtp1/Projects/Circadian"
-current_aging <- "/home/qtp1/Projects/Collaborative/Paper/Congruence/PNAS_aging"
+# Paths come from inst/analysis/config.R; override any of them with the
+# matching env var.
+this.file <- sub("^--file=", "", grep("^--file=", commandArgs(), value = TRUE)[1])
+source(file.path(if (is.na(this.file)) dirname(getwd()) else
+                   dirname(dirname(normalizePath(this.file))), "config.R"))
 
+current_gtex <- BAYRC_DATA_DIR
+current_wd <- BAYRC_WD_DIR
+current_aging <- BAYRC_AGING_DIR
+output.dir <- BAYRC_OUTPUT_DIR
 
-
-load(file = "/home/qtp1/Projects/Collaborative/GTEXdata/result/summary/hb/mcmc_rho_BF3.RData")
-load(file.path(current_gtex, "GTEXdata/result/summary/hb/phi/mcmc_phi_BF3.RData"))  
+load(file.path(BAYRC_SUMMARY_DIR, "mcmc_rho_BF3.RData"))
+load(file.path(BAYRC_SUMMARY_DIR, "phi", "mcmc_phi_BF3.RData"))
 
 ###############################################################################
 # 1. Build baboon MCMC objects
@@ -114,7 +119,7 @@ col_fun <- colorRampPalette(c(
   "#FF0000"    # pure red for diagonal
 ))(200)
 
-outdir <- "/home/qtp1/Projects/Collaborative/Paper/Congruence/PNAS_aging/all_plots"
+outdir <- BAYRC_FIGURE_DIR
 dir.create(outdir, recursive = TRUE, showWarnings = FALSE)
 
 # Convert concordance to dissimilarity

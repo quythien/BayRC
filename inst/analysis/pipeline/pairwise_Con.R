@@ -6,13 +6,19 @@ library(dplyr)
 library(ggplot2)
 
 # Load your data
-load("/home/qtp1/Projects/Collaborative/GTEXdata/result/summary/hb/mcmc_rho_BF3.RData")
+# Paths come from inst/analysis/config.R; override any of them with the
+# matching env var.
+this.file <- sub("^--file=", "", grep("^--file=", commandArgs(), value = TRUE)[1])
+source(file.path(if (is.na(this.file)) dirname(getwd()) else
+                   dirname(dirname(normalizePath(this.file))), "config.R"))
+
+load(file.path(BAYRC_SUMMARY_DIR, "mcmc_rho_BF3.RData"))
 
 ################################################################################
 # SETUP OUTPUT DIRECTORY
 ################################################################################
 
-output_dir <- "/home/qtp1/Projects/Collaborative/GTEXdata/result/summary/hb/human_pairwise_concordance"
+output_dir <- file.path(BAYRC_SUMMARY_DIR, "human_pairwise_concordance")
 dir.create(output_dir, showWarnings = FALSE, recursive = TRUE)
 
 cat("\nOutput directory:", output_dir, "\n")
