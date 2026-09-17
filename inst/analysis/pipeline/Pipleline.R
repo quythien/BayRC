@@ -62,16 +62,16 @@ sourceCpp(file.path(current_wd, "Kyle/Circadian-analysis-main/R/src/Thien/ACS.cp
 
 #load(file.path(current_wd, "Kyle/Circadian-analysis-main/R/pathway_data/kegg.pathway.list_hsa.RData"))
 #load(file.path(current_wd, "Kyle/Circadian-analysis-main/R/pathway_data/kegg.pathway.list_cel_GeneNames.RData"))
-load(file.path(current_wd, "Kyle/Circadian-analysis-main/R/pathway_data/hw_orth.RData"))
-load(file.path(current_wd, "Kyle/Circadian-analysis-main/R/pathway_data/human.pathway.list.RData"))
-load(file.path(current_wd, "Kyle/Circadian-analysis-main/R/pathway_data/go.pathway.list_hsa.RData"))
+load(file.path(BAYRC_PATHWAY_DIR, "hw_orth.RData"))
+load(file.path(BAYRC_PATHWAY_DIR, "human.pathway.list.RData"))
+load(file.path(BAYRC_PATHWAY_DIR, "go.pathway.list_hsa.RData"))
 
 kegg.pathway.list_hsa <- readRDS("/Users/thienpham/Library/CloudStorage/OneDrive-UniversityofPittsburgh/Projects/Collaborative/Paper/Congruence/PNAS_aging/kegg_pathway_list_hsa.rds")
 #kegg.pathway.list_hsa <- readRDS("/home/qtp1/Projects/Circadian/Kyle/Circadian-analysis-main/R/pathway_data/kegg_pathway_list_hsa.rds")
 
 #── Source R scripts ─────────────────────────────────────────────────────────────
-WD <- "Kyle/Circadian-analysis-main/R/v1"
-setwd(file.path(current_wd, WD))
+WD <- dirname(BAYRC_PACKAGE_DIR)
+setwd(WD)
 scripts <- list.files("R", full.names=TRUE)
 sapply(scripts, source)
 
