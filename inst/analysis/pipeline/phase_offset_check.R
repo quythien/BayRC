@@ -64,10 +64,13 @@ one_arm <- function(dir) {
                          compute_hdi = TRUE)
 
     keep <- names(trans$gain_loss_status)[trans$gain_loss_status == "Maintained"]
-    d  <- inner$deltaPhi.Est[keep]
-    # independent cross-check straight off the two peak vectors
+    # The published "within +/-2 h" count comes from the difference of the two
+    # peak estimates, not from deltaPhi.Est: for 3B the peak difference gives
+    # 116 of 553 (21.0%), which is the number in the caption, while
+    # deltaPhi.Est gives 118 (21.3%). They agree exactly for 3A.
     dp <- ((inner$peak1[keep] - inner$peak2[keep] + P/2) %% P) - P/2
-    within <- abs(d) < SHIFT
+    d  <- inner$deltaPhi.Est[keep]
+    within <- abs(dp) < SHIFT
 
     data.frame(
       panel = p$panel, pair = paste0(p$t2, " vs ", p$t1),
@@ -79,8 +82,9 @@ one_arm <- function(dir) {
       q75 = round(stats::quantile(d, 0.75, na.rm = TRUE), 2),
       IQR = round(stats::IQR(d, na.rm = TRUE), 2),
       median_peakdiff = round(stats::median(dp, na.rm = TRUE), 2),
-      frac_above = round(mean(d > 0, na.rm = TRUE), 3),
-      n_na = sum(is.na(d)),
+      # share of maintained genes sitting above the plotted diagonal
+      frac_above = round(mean(dp > 0, na.rm = TRUE), 3),
+      n_na = sum(is.na(dp)),
       stringsAsFactors = FALSE)
   })
   rm(e); invisible(gc())
