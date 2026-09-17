@@ -20,8 +20,10 @@
 #' @param iteration Integer; total number of MCMC iterations including
 #'   burn-in (default 3000).
 #' @param NP_Z1 Integer; quadrature nodes for the phi marginal (default 64).
-#' @param A.max Numeric vector; per-gene upper bound on amplitude. Defaults to
-#'   half the observed expression range.
+#' @param A.max Numeric; upper truncation bound for amplitude, either one
+#'   value or one per gene. \code{NULL} (the default) uses half the observed
+#'   range of each gene; \code{Inf} leaves the amplitude prior one-sided on
+#'   \code{[A.min, Inf)}.
 #' @param thin Integer; thinning interval; every \code{thin}-th
 #'   post-burn-in sample is stored (default 20).
 #' @param n.burn Integer; number of burn-in iterations discarded before
@@ -99,6 +101,7 @@ CB_MCMC_single_rj_slice = function(Data.list, Init.value, P = 24,
                                 # sq_expo: squared exponential p(A) \propto A*exp(-A^2/2)    
                                 # gamma: gamma prior p(A) \ propto A^(alpha-1)exp(-rate*A)
                                 mu_A = 1, sigma_A = 10^2, A.min = 0, # this applies to A~truncated normal
+                                A.max = NULL,
                                 rj.phi = TRUE, rj.A = TRUE,
                                 mu_M = 0, sigma_M = 10^2, 
                                 sigma_prior_v = 4, sigma_prior_s = 1,
@@ -122,7 +125,12 @@ CB_MCMC_single_rj_slice = function(Data.list, Init.value, P = 24,
   #observations
   omega = 2*pi/P
   Y = as.matrix(Data.list[[1]])
-  A.max = apply(Y, 1, function(x){(max(x)-min(x))/2})
+  ## Default bound: half the observed range of each gene. Pass A.max = Inf for
+  ## the plain one-sided truncated-Normal amplitude prior on [A.min, Inf),
+  ## which is proper for A_prior = "trunc_Normal_OLS_condi" but improper for
+  ## "Jeffreys_OLS_condi" (get_logZ1_single refuses that combination).
+  if(is.null(A.max))
+    A.max = apply(Y, 1, function(x){(max(x)-min(x))/2})
   t = Data.list[[2]]
   G = nrow(Y)
   N = ncol(Y)
