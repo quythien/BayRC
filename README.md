@@ -267,9 +267,9 @@ than lost between the two conditions; `GLR < 1` means more is lost than
 gained; and `GLR` close to 1 means gain and loss are roughly balanced.
 `multi_conservation()` reports GLR genome-wide: here, `GLR = 1.279`,
 meaning that across the transcriptome 28% more genes are expected to
-gain rhythmicity than to lose it. `pathSelect()`
-reports the same quantity at the pathway level (in the
-`Gain_Loss_Ratio_Arithmetic` column of its results table). For example,
+gain rhythmicity than to lose it. `pathSelect()` reports the same
+quantity at the pathway level (in the `Gain_Loss_Ratio_Arithmetic`
+column of its results table). For example,
 KEGG Long-term depression, the strongest loss-direction hit above, has
 `GLR = 1.83`, higher than the genome-wide value. This means that within
 this pathway, more genes are expected to gain rhythmicity than to lose
