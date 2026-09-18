@@ -204,10 +204,10 @@ c(rhythmic_OMF = detected$n_rhythmic_A, rhythmic_THR = detected$n_rhythmic_B,
 > error rate under `bfdr_alpha` (0.25 here). It calibrates on the shape
 > of the whole posterior-probability distribution, not a fixed cutoff,
 > so it depends on how many candidate genes it has to sort: with only
-> 60, it calls every gene in this panel rhythmic in both tissues, more
-> permissive than the full genome would give. `ARNTL` (BMAL1) tops the
-> ranking with an unbounded Bayes factor, exactly what a core clock gene
-> should look like.
+> 60, it calls 11 rhythmic in OMF and 14 in THR, more conservative than
+> the full genome would give. `ARNTL` (BMAL1) tops the ranking with an
+> unbounded Bayes factor, exactly what a core clock gene should look
+> like.
 
 ## Amplitude, phase, and credible intervals
 
@@ -275,13 +275,13 @@ c(n_gain = trans$n_gain, n_loss = trans$n_loss, n_cons = trans$n_cons)
 ```
 
 > **Interpretation:** `gain_loss_status` is the central annotation
-> vector; every function past this point reads it. On this panel,
-> nothing clears the gain or loss threshold, and 35 of 60 genes clear
-> the conservation threshold. That is the direct consequence of Step 2:
-> if BFDR already calls every gene rhythmic in both tissues, the joint
-> “maintained” probability (pA x pB) is high for most of them too, and
-> there is nothing left over to call gained or lost. p_gain and p_loss
-> are products of two marginal probabilities, so they run smaller and
+> vector; every function past this point reads it. On this panel, 2
+> genes clear the gain threshold, 2 clear the loss threshold, and 4 of
+> 60 clear the conservation threshold. That is the direct consequence of
+> Step 2: with BFDR calling only 11 and 14 of the 60 genes rhythmic, the
+> joint “maintained” probability (pA x pB) is high for few of them, and
+> little is left over to call gained or lost. p_gain and p_loss are
+> products of two marginal probabilities, so they run smaller and
 > noisier than either marginal alone, and need more candidate genes than
 > this panel has to calibrate well. The product formula also assumes a
 > gene’s rhythmicity call in one condition is conditionally independent
@@ -324,8 +324,8 @@ phase$deltaPhi.Est["ARNTL"]
 #> -2.953878
 ```
 
-> **Interpretation:** 34 of the 35 maintained genes are phase-shifted,
-> none phase-conserved. `ARNTL` shifts by about -3.1 hours (delta-phi is
+> **Interpretation:** 4 of the 4 maintained genes are phase-shifted,
+> none phase-conserved. `ARNTL` shifts by about -3.0 hours (delta-phi is
 > OMF minus THR, so a negative value means THR peaks later): the gene
 > keeps oscillating in both tissues, but the clock resets by roughly
 > three hours between them. A panel built mostly from two real KEGG hits
