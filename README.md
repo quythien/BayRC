@@ -180,19 +180,19 @@ head(bf_OMF[order(-bf_OMF$BayesF), c("RowAverage", "BayesF")], 5)
 #                                          # retained sample; BF diverges as posterior approaches 1
 
 detected <- detect_rhy(mcmc_OMF, mcmc_THR, bfdr_alpha = 0.20)
-# OMF rhythmic: 3,067 / 5,066   THR rhythmic: 3,460 / 5,066
+# OMF rhythmic: 2,652 / 5,066   THR rhythmic: 3,345 / 5,066
 
 pA <- rowMeans(mcmc_OMF$rho)
 pB <- rowMeans(mcmc_THR$rho)
 trans <- transition_classify(pA, pB, bfdr_alpha = 0.20)
-# tau_gain = 0.662, n_gain = 512 | tau_loss = 0.703, n_loss = 326 | n_cons = 1495
+# tau_gain = 0.672, n_gain = 529 | tau_loss = 0.727, n_loss = 205 | n_cons = 1104
 # Gain, loss, and conservation are all substantially represented, with
 # conservation the largest single group
 
 phase <- phase_infer(phi_matrix1 = mcmc_OMF$phi, phi_matrix2 = mcmc_THR$phi,
                      gain_loss_status = trans$gain_loss_status,
                      shift = 2, P = 24, bfdr_alpha = 0.20, compute_hdi = TRUE)
-# of the 1,495 conserved genes: 597 phase-conserved, 563 phase-shifted, 335 undetermined
+# of the 1,104 conserved genes: 535 phase-conserved, 372 phase-shifted, 197 undetermined
 
 ```
 To show what these categories look like in the raw data, the figure below
@@ -257,15 +257,15 @@ global <- multi_conservation(mcmc.merge.list = list(A = mcmc_OMF, B = mcmc_THR),
                              select.pathway.list = "global",
                              n_perm = 200, n_boot = 200, use_cpp = TRUE,
                              save_output = FALSE)
-# AdjustedConcordance = 0.069 (95% CI 0.058-0.079), p = 0.005
-# GainLossRatio = 1.129
+# AdjustedConcordance = 0.087 (95% CI 0.074-0.096), p = 0.005
+# GainLossRatio = 1.279
 
 ```
 The gain-loss ratio (GLR) is the expected number of genes gained divided
 by the expected number lost. `GLR > 1` means more rhythmicity is gained
 than lost between the two conditions; `GLR < 1` means more is lost than
 gained; and `GLR` close to 1 means gain and loss are roughly balanced.
-`multi_conservation()` reports GLR genome-wide: here, `GLR = 1.129`,
+`multi_conservation()` reports GLR genome-wide: here, `GLR = 1.279`,
 which is close to 1, indicating that gain and loss are broadly balanced
 across the transcriptome, with a slight lean toward gain. `pathSelect()`
 reports the same quantity at the pathway level (in the
@@ -317,12 +317,12 @@ rather than to one pathway at a time.
 ```r
 pA <- rowMeans(mcmc_OMF$rho)
 pB <- rowMeans(mcmc_THR$rho)
-sum(pA)                    # 2,869.9 of 5,066: expected rhythmic in OMF
-sum(pB)                    # 3,005.0 of 5,066: expected rhythmic in THR
-sum((1 - pA) * pB)         # 1,184.9: expected gain
-sum(pA * (1 - pB))         # 1,049.8: expected loss
-sum(pA * pB)               # 1,820.0: expected conserved
-sum((1 - pA) * (1 - pB))   # 1,011.2: expected non-rhythmic in both
+sum(pA)                    # 2,704.7 of 5,066: expected rhythmic in OMF
+sum(pB)                    # 2,974.5 of 5,066: expected rhythmic in THR
+sum((1 - pA) * pB)         # 1,297.4: expected gain
+sum(pA * (1 - pB))         # 1,027.6: expected loss
+sum(pA * pB)               # 1,677.1: expected conserved
+sum((1 - pA) * (1 - pB))   # 1,063.9: expected non-rhythmic in both
 
 ```
 
@@ -330,25 +330,25 @@ sum((1 - pA) * (1 - pB))   # 1,011.2: expected non-rhythmic in both
 
 | Condition | Genes tested | Expected rhythmic |
 |---|---|---|
-| OMF | 5,066 | 2,869.9 |
-| THR | 5,066 | 3,005.0 |
+| OMF | 5,066 | 2,704.7 |
+| THR | 5,066 | 2,974.5 |
 
 **Expected transition counts, genome-wide** (rows and columns sum to the
 totals above, and all four cells sum to 5,066):
 
 | | THR rhythmic | THR non-rhythmic | Row total |
 |---|---|---|---|
-| **OMF rhythmic** | 1,820.0 (conserved) | 1,049.8 (loss in THR) | 2,869.9 |
-| **OMF non-rhythmic** | 1,184.9 (gain in THR) | 1,011.2 (non-rhythmic in both) | 2,196.1 |
-| **Column total** | 3,005.0 | 2,061.0 | 5,066 |
+| **OMF rhythmic** | 1,677.1 (conserved) | 1,027.6 (loss in THR) | 2,704.7 |
+| **OMF non-rhythmic** | 1,297.4 (gain in THR) | 1,063.9 (non-rhythmic in both) | 2,361.3 |
+| **Column total** | 2,974.5 | 2,091.5 | 5,066 |
 
-The expected gain-loss ratio here (`1,184.9 / 1,049.8 = 1.13`) closely
-matches the `GainLossRatio` of 1.129 reported by
+The expected gain-loss ratio here (`1,297.4 / 1,027.6 = 1.263`) closely
+matches the `GainLossRatio` of 1.279 reported by
 `multi_conservation()`. Both are threshold-free, continuous quantities
 computed in the same way, but at different levels: a whole-transcriptome
 sum here versus the permutation-calibrated genome-wide summary from
 `multi_conservation()`. The discrete, BFDR-thresholded counts in the next
-section (512 gain, 326 loss, ratio 1.57) differ more because thresholding
+section (529 gain, 205 loss, ratio 2.58) differ more because thresholding
 at `α = 0.20` does not affect the gain and loss directions symmetrically
 for this tissue pair.
 
@@ -372,31 +372,31 @@ criteria differ):
 
 | Condition | Genes tested | Rhythmic (BFDR-controlled, `α = 0.20`) | BF ≥ 3 | BF ≥ 5 | BF ≥ 10 |
 |---|---|---|---|---|---|
-| OMF | 5,066 | 3,067 | 3,128 | 2,705 | 2,134 |
-| THR | 5,066 | 3,460 | 3,092 | 2,790 | 2,408 |
+| OMF | 5,066 | 2,652 | 2,981 | 2,525 | 1,857 |
+| THR | 5,066 | 3,345 | 3,122 | 2,763 | 2,308 |
 
 **Two-group comparison** (OMF vs. THR jointly):
 
 | Category | Genes | What it means |
 |---|---|---|
-| Conserved | 1,495 | Rhythmic in both tissues, confidently |
-| Gain in THR | 512 | Rhythmic in THR only |
-| Loss in THR | 326 | Rhythmic in OMF only |
-| Non-rhythmic | 2,733 | Neither tissue clears the threshold |
+| Conserved | 1,104 | Rhythmic in both tissues, confidently |
+| Gain in THR | 529 | Rhythmic in THR only |
+| Loss in THR | 205 | Rhythmic in OMF only |
+| Non-rhythmic | 3,228 | Neither tissue clears the threshold |
 
 The large conserved set suggests a shared core clock program between
 these tissues, while the substantial gain and loss sets indicate
 tissue-specific rhythmicity layered on top of it: genes whose oscillation
 is effectively switched on or off depending on the tissue.
 
-**Within the 1,495 conserved genes**, a further BFDR-controlled call is
+**Within the 1,104 conserved genes**, a further BFDR-controlled call is
 made on peak timing:
 
 | Phase category | Genes |
 |---|---|
-| Phase-conserved | 597 |
-| Phase-shifted | 563 |
-| Undetermined | 335 |
+| Phase-conserved | 535 |
+| Phase-shifted | 372 |
+| Undetermined | 197 |
 
 This is close to an even split between genes that retain their peak
 timing and genes whose timing shifts, with a substantial undetermined
@@ -428,20 +428,20 @@ same OMF/THR posterior results.
 bf_OMF <- summarize_bay(mcmc_OMF$rho, BF = 3, p_rhythmic = 0.2)
 bf_THR <- summarize_bay(mcmc_THR$rho, BF = 3, p_rhythmic = 0.2)
 
-sum(bf_OMF$BayesF >= 3, na.rm = TRUE)   # 3,128 of 5,066: "positive" evidence (Kass & Raftery 1995)
-sum(bf_OMF$BayesF >= 10, na.rm = TRUE)  # 2,134 of 5,066: "strong" evidence on the same scale
+sum(bf_OMF$BayesF >= 3, na.rm = TRUE)   # 2,981 of 5,066: "positive" evidence (Kass & Raftery 1995)
+sum(bf_OMF$BayesF >= 10, na.rm = TRUE)  # 1,857 of 5,066: "strong" evidence on the same scale
 
 d <- detect_rhy(mcmc_OMF, mcmc_THR, bfdr_alpha = 0.20)
-d$n_rhythmic_A  # 3,067 of 5,066
+d$n_rhythmic_A  # 2,652 of 5,066
 
 ```
 
 | Criterion | OMF rhythmic | THR rhythmic |
 |---|---|---|
-| Bayes factor ≥ 3 ("positive" evidence) | 3,128 / 5,066 | 3,092 / 5,066 |
-| Bayes factor ≥ 5 | 2,705 / 5,066 | 2,790 / 5,066 |
-| Bayes factor ≥ 10 ("strong" evidence) | 2,134 / 5,066 | 2,408 / 5,066 |
-| BFDR-controlled, `α = 0.20` | 3,067 / 5,066 | 3,460 / 5,066 |
+| Bayes factor ≥ 3 ("positive" evidence) | 2,981 / 5,066 | 3,122 / 5,066 |
+| Bayes factor ≥ 5 | 2,525 / 5,066 | 2,763 / 5,066 |
+| Bayes factor ≥ 10 ("strong" evidence) | 1,857 / 5,066 | 2,308 / 5,066 |
+| BFDR-controlled, `α = 0.20` | 2,652 / 5,066 | 3,345 / 5,066 |
 | BFDR-controlled, `α = 0.15` | 2,607 / 5,066 | 3,099 / 5,066 |
 | BFDR-controlled, `α = 0.10` | 2,061 / 5,066 | 2,701 / 5,066 |
 | BFDR-controlled, `α = 0.05` | 1,320 / 5,066 | 2,165 / 5,066 |
