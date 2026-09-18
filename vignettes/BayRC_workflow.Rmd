@@ -117,18 +117,14 @@ init_OMF <- CB_init_single(Data.list = data_list_OMF, P = 24)
 mcmc_OMF <- CB_MCMC_single_rj_slice(
   Data.list = data_list_OMF, Init.value = init_OMF, P = 24,
   iteration = 3000, n.burn = 500, thin = 10,          # short chain: vignette speed only
-  p_rhythmic = rep(0.2, n_genes),
-  save.file  = tempfile(fileext = ".rds"),             # keep intermediate saves out of the repo
-  save.file2 = tempfile(fileext = ".rds")
+  p_rhythmic = rep(0.2, n_genes)
 )
 
 init_THR <- CB_init_single(Data.list = data_list_THR, P = 24)
 mcmc_THR <- CB_MCMC_single_rj_slice(
   Data.list = data_list_THR, Init.value = init_THR, P = 24,
   iteration = 3000, n.burn = 500, thin = 10,
-  p_rhythmic = rep(0.2, n_genes),
-  save.file  = tempfile(fileext = ".rds"),
-  save.file2 = tempfile(fileext = ".rds")
+  p_rhythmic = rep(0.2, n_genes)
 )
 ```
 

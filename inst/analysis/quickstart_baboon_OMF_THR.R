@@ -19,7 +19,6 @@ run_mcmc <- function(dat, seed) {
     iteration = 2500, thin = 1, n.burn = 500, seed = seed,
     p_rhythmic = rep(0.2, n_genes), rj.p.stay = 0.5,
     A_prior = "trunc_Normal_OLS_condi", mu_A = 1, sigma_A = 10^2, A.min = 0,
-    A_wb_beta2 = 2, A_gm_shape = 1.99, A_gm_rate = 0.5,
     rj.phi = TRUE, rj.A = TRUE, mu_M = 0, sigma_M = 10^2,
     sigma_prior_v = 2, sigma_prior_s = 0
   )
