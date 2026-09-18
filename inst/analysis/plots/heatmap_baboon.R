@@ -140,8 +140,9 @@ for (method in methods) {
     cluster_cols = hclust(col_dist, method = method),
     color = col_fun,
     main = paste0("Baboon Rhythmicity Concordance Heatmap"),
-    fontsize = 10,
-    border_color = NA,
+    fontsize = bayrc_heat_args()$fontsize,
+    border_color = bayrc_heat_args()$border_color,
+    fontfamily = bayrc_family,
     legend = TRUE,
     legend_breaks = c(0, 0.25, 0.5, 0.75, 1),
     legend_labels = c("0", "0.25", "0.50", "0.75", "1.00")
@@ -189,8 +190,9 @@ for (method in methods) {
     color = col_fun,
     breaks = breaksList, 
     main = paste0("Baboon Rhythmicity Concordance"),
-    fontsize = 10,
-    border_color = NA,
+    fontsize = bayrc_heat_args()$fontsize,
+    border_color = bayrc_heat_args()$border_color,
+    fontfamily = bayrc_family,
     legend = TRUE,
     # Adjust legend labels to match the new scale
     legend_breaks = seq(0, max_val, length.out = 5),

@@ -5,6 +5,8 @@ library(pheatmap)
 this.file <- sub("^--file=", "", grep("^--file=", commandArgs(), value = TRUE)[1])
 source(file.path(if (is.na(this.file)) dirname(getwd()) else
                    dirname(dirname(normalizePath(this.file))), "config.R"))
+analysis.dir <- if (is.na(this.file)) dirname(getwd()) else dirname(dirname(normalizePath(this.file)))
+source(file.path(analysis.dir, "plots", "theme_bayrc.R"))
 
 current_gtex <- BAYRC_DATA_DIR
 current_wd <- BAYRC_WD_DIR
@@ -105,13 +107,7 @@ diag(ACI_mat) <- 1
 # 6. Save PDF heatmap
 ###############################################################################
 
-col_fun <- colorRampPalette(c(
-  "#0011FF",
-  "#3F00FF",
-  "#7F00FF",
-  "#FF4D4D",
-  "#FF0000"
-))(200)
+col_fun <- bayrc_seq(200)
 
 outdir <- BAYRC_FIGURE_DIR
 dir.create(outdir, recursive = TRUE, showWarnings = FALSE)
@@ -125,8 +121,8 @@ col_dist <- as.dist(ACI_dissim)
 methods <- c("ward.D2", "complete", "average")
 
 for (method in methods) {
-  pdf(file.path(outdir, paste0("Human_Concordance_Heatmap_Dissim_", method, ".pdf")),
-      width = 9, height = 8)
+  cairo_pdf(file.path(outdir, paste0("Human_Concordance_Heatmap_Dissim_", method, ".pdf")),
+            width = 9, height = 8, family = bayrc_family)
 
   pheatmap(
     ACI_mat,
@@ -134,8 +130,9 @@ for (method in methods) {
     cluster_cols = hclust(col_dist, method = method),
     color = col_fun,
     main = paste0("Human Rhythmicity Concordance Heatmap"),
-    fontsize = 10,
-    border_color = NA,
+    fontsize = bayrc_heat_args()$fontsize,
+    border_color = bayrc_heat_args()$border_color,
+    fontfamily = bayrc_family,
     legend = TRUE,
     legend_breaks = c(0, 0.25, 0.5, 0.75, 1),
     legend_labels = c("0", "0.25", "0.50", "0.75", "1.00")
