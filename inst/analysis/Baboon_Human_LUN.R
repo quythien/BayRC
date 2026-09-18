@@ -409,10 +409,8 @@ p
 save_dir <- file.path(output.dir, "figure/baboon_human_lung")
 dir.create(save_dir, recursive = TRUE, showWarnings = FALSE)
 
-ggsave(
-  file.path(save_dir, "Baboon_Human_LUN_Peak_Concordance_0.25_2h.pdf"),
-  plot = p, width = 9, height = 8
-)
+bayrc_save(p, file.path(save_dir, "Baboon_Human_LUN_Peak_Concordance_0.25_2h"),
+           width = 9, height = 8)
 
 #───────────────────────────────────────────────────────────────
 #───────────────────────────────────────────────────────────────
@@ -1052,8 +1050,8 @@ p <- ggplot(plot_data) +
   )
 save_dir <- file.path(output.dir, "figure/baboon_human_lung")
 dir.create(save_dir, recursive = TRUE, showWarnings = FALSE)
-ggsave(file.path(save_dir, "Baboon_Human_LUN_circular_phase_plot.pdf"), p, width = 12, height = 10, dpi = 800)
-ggsave(file.path(save_dir, "Baboon_Human_LUN_circular_phase_plot.png"), p, width = 12, height = 10, dpi = 800)
+bayrc_save(p, file.path(save_dir, "Baboon_Human_LUN_circular_phase_plot"),
+           width = 12, height = 10, dpi = 800)
 
 ##### Test new function
 
@@ -1404,8 +1402,8 @@ p <- ggplot(plot_df, aes(
 
 save_dir <- file.path(output.dir, "figure/baboon_human_lung")
 dir.create(save_dir, recursive = TRUE, showWarnings = FALSE)
-ggsave(file.path(save_dir, "Baboon_Human_LUN_Peak_Concordance_0.25_2h.pdf"),
-       plot = p, width = 9, height = 8)
+bayrc_save(p, file.path(save_dir, "Baboon_Human_LUN_Peak_Concordance_0.25_2h"),
+           width = 9, height = 8)
 cat("\nFigure saved to:", file.path(save_dir, "Baboon_Human_LUN_Peak_Concordance_0.25_2h.pdf"), "\n")
 
 # END_INLINE_PLOT_FROM_run_concordance_LUN.R
