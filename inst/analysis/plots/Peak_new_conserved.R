@@ -212,5 +212,5 @@ p
 #───────────────────────────────────────────────────────────────
 save_dir <- file.path(output.dir, "figure/baboon_brain")
 dir.create(save_dir, recursive = TRUE, showWarnings = FALSE)
-ggsave(file.path("Baboon_SCN_HIP_Peak_Concordance_0.15.pdf"),
-       plot = p, width = 9, height = 8)
+bayrc_save(p, file.path(save_dir, "Baboon_SCN_HIP_Peak_Concordance_0.15"),
+           width = 9, height = 8)

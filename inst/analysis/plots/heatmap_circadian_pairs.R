@@ -133,7 +133,8 @@ run_pairs_to_matrix <- function(tissues, data_list, label, out_prefix, subdir) {
   methods <- c("ward.D2", "complete", "average")
 
   for (method in methods) {
-    pdf(file.path(run_path, paste0(out_prefix, "_Heatmap_", method, ".pdf")), width = 9, height = 8)
+    cairo_pdf(file.path(run_path, paste0(out_prefix, "_Heatmap_", method, ".pdf")),
+              width = 9, height = 8, family = bayrc_family)
     pheatmap(
       ACI_mat,
       cluster_rows = hclust(row_dist, method = method),
@@ -195,7 +196,8 @@ run_cross_species <- function(baboon_tissues_x, human_tissues_x, subdir) {
   methods <- c("ward.D2", "complete", "average")
 
   for (method in methods) {
-    pdf(file.path(run_path, paste0("Cross_Circadian_Heatmap_", method, ".pdf")), width = 9, height = 8)
+    cairo_pdf(file.path(run_path, paste0("Cross_Circadian_Heatmap_", method, ".pdf")),
+              width = 9, height = 8, family = bayrc_family)
     pheatmap(
       ACI_cross,
       cluster_rows = hclust(row_dist, method = method),

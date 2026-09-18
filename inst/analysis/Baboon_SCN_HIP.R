@@ -448,12 +448,8 @@ p
 #───────────────────────────────────────────────────────────────
 save_dir <- file.path(output.dir, "figure/baboon_brain")
 dir.create(save_dir, recursive = TRUE, showWarnings = FALSE)
-ggsave(
-  filename = file.path(save_dir, "Baboon_SCN_HIP_Peak_Concordance_0.25_2h_new.pdf"),
-  plot = p,
-  width = 9,
-  height = 8
-)
+bayrc_save(p, file.path(save_dir, "Baboon_SCN_HIP_Peak_Concordance_0.25_2h_new"),
+           width = 9, height = 8)
 
 
 
@@ -1080,8 +1076,8 @@ p <- ggplot(plot_df, aes(
 
 save_dir <- file.path(output.dir, "figure/baboon_brain")
 dir.create(save_dir, recursive = TRUE, showWarnings = FALSE)
-ggsave(filename = file.path(save_dir, "Baboon_SCN_HIP_Peak_Concordance_0.25_2h_new.pdf"),
-       plot = p, width = 9, height = 8)
+bayrc_save(p, file.path(save_dir, "Baboon_SCN_HIP_Peak_Concordance_0.25_2h_new"),
+           width = 9, height = 8)
 cat("\nFigure saved to:", file.path(save_dir, "Baboon_SCN_HIP_Peak_Concordance_0.25_2h_new.pdf"), "\n")
 
 # END_INLINE_PLOT_FROM_run_concordance_SCN.R

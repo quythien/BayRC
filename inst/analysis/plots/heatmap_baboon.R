@@ -135,8 +135,8 @@ methods <- c("ward.D2", "complete", "average")
 
 # Generate a heatmap for each method using dissimilarity
 for (method in methods) {
-  pdf(file.path(outdir, paste0("Baboon_Concordance_Heatmap_Dissim_", method, ".pdf")),
-      width = 9, height = 8)
+  cairo_pdf(file.path(outdir, paste0("Baboon_Concordance_Heatmap_Dissim_", method, ".pdf")),
+            width = 9, height = 8, family = bayrc_family)
   
   pheatmap(
     ACI_mat,  # still display original concordance values
@@ -189,8 +189,8 @@ breaksList <- seq(0, max_val, length.out = 201)
 
 # Generate the heatmap
 for (method in methods) {
-  pdf(file.path(outdir, paste0("Baboon_Concordance_Heatmap_0.25_", method, ".pdf")),
-      width = 9, height = 8)
+  cairo_pdf(file.path(outdir, paste0("Baboon_Concordance_Heatmap_0.25_", method, ".pdf")),
+            width = 9, height = 8, family = bayrc_family)
   
   pheatmap(
     ACI_mat,
