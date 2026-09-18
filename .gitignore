@@ -51,3 +51,4 @@ paper/
 
 # knitr-generated vignette figures (regenerated at build time, not committed)
 vignettes/figure/
+MEMORY.md
