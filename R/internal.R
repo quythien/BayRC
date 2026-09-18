@@ -1419,8 +1419,12 @@ match_symbols <- function(input_df, BF, p_rhythmic = 0.5, ensemble = NULL) {
   data_filtered <- unlist(data_filtered)
   
   # Filter every element of input_df (if matrix or data.frame) using the selected indices.
+  # only the per-gene matrices are subset; the result also carries per-iteration
+  # summaries whose rows are not genes
+  n_genes_in <- length(symbols)
   input_df_filtered <- lapply(input_df, function(element) {
-    if (is.matrix(element) || is.data.frame(element)) {
+    if ((is.matrix(element) || is.data.frame(element)) &&
+        nrow(element) == n_genes_in) {
       return(element[data_filtered, , drop = FALSE])
     } else {
       return(element)
