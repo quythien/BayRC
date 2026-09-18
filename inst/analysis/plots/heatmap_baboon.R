@@ -5,6 +5,8 @@ library(pheatmap)
 this.file <- sub("^--file=", "", grep("^--file=", commandArgs(), value = TRUE)[1])
 source(file.path(if (is.na(this.file)) dirname(getwd()) else
                    dirname(dirname(normalizePath(this.file))), "config.R"))
+analysis.dir <- if (is.na(this.file)) dirname(getwd()) else dirname(dirname(normalizePath(this.file)))
+source(file.path(analysis.dir, "plots", "theme_bayrc.R"))
 
 current_gtex <- BAYRC_DATA_DIR
 current_wd <- BAYRC_WD_DIR
@@ -111,13 +113,7 @@ diag(ACI_mat) <- 1  # perfect concordance with itself
 library(pheatmap)
 
 # Your color palette
-col_fun <- colorRampPalette(c(
-  "#0011FF",   # electric blue
-  "#3F00FF",   # violet
-  "#7F00FF",   # deep purple
-  "#FF4D4D",   # soft red
-  "#FF0000"    # pure red for diagonal
-))(200)
+col_fun <- bayrc_seq(200)
 
 outdir <- BAYRC_FIGURE_DIR
 dir.create(outdir, recursive = TRUE, showWarnings = FALSE)
@@ -170,13 +166,7 @@ write.csv(
 library(pheatmap)
 
 # Your original color palette
-col_fun <- colorRampPalette(c(
-  "#0011FF",   # electric blue
-  "#3F00FF",   # violet
-  "#7F00FF",   # deep purple
-  "#FF4D4D",   # soft red
-  "#FF0000"    # pure red
-))(200)
+col_fun <- bayrc_seq(200)
 
 # 1. Determine a good upper limit for the color scale (e.g., 0.25 or the 95th percentile)
 # This ensures the colors are used for the off-diagonal variation.

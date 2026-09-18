@@ -18,6 +18,8 @@ if (!exists("mode", inherits = FALSE)) {
 this.file <- sub("^--file=", "", grep("^--file=", commandArgs(), value = TRUE)[1])
 source(file.path(if (is.na(this.file)) dirname(getwd()) else
                    dirname(dirname(normalizePath(this.file))), "config.R"))
+analysis.dir <- if (is.na(this.file)) dirname(getwd()) else dirname(dirname(normalizePath(this.file)))
+source(file.path(analysis.dir, "plots", "theme_bayrc.R"))
 
 current_gtex <- BAYRC_DATA_DIR
 current_wd <- BAYRC_WD_DIR
@@ -128,7 +130,7 @@ run_pairs_to_matrix <- function(tissues, data_list, label, out_prefix, subdir) {
   row_dist <- as.dist(ACI_dissim)
   col_dist <- as.dist(ACI_dissim)
 
-  col_fun <- colorRampPalette(c("#0011FF", "#3F00FF", "#7F00FF", "#FF4D4D", "#FF0000"))(200)
+  col_fun <- bayrc_seq(200)
   breaksList <- seq(0, 1, length.out = 201)
   methods <- c("ward.D2", "complete", "average")
 
@@ -191,7 +193,7 @@ run_cross_species <- function(baboon_tissues_x, human_tissues_x, subdir) {
   row_dist <- dist(ACI_dissim)
   col_dist <- dist(t(ACI_dissim))
 
-  col_fun <- colorRampPalette(c("#0011FF", "#3F00FF", "#7F00FF", "#FF4D4D", "#FF0000"))(200)
+  col_fun <- bayrc_seq(200)
   breaksList <- seq(0, 1, length.out = 201)
   methods <- c("ward.D2", "complete", "average")
 

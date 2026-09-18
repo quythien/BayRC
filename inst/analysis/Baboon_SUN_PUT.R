@@ -8,6 +8,7 @@ this.file <- sub("^--file=", "", grep("^--file=", commandArgs(), value = TRUE)[1
 source(file.path(if (is.na(this.file)) getwd() else dirname(normalizePath(this.file)),
                  "config.R"))
 analysis.dir <- if (is.na(this.file)) getwd() else dirname(normalizePath(this.file))
+source(file.path(analysis.dir, "plots", "theme_bayrc.R"))
 source(file.path(analysis.dir, "pathway_summary.R"))
 
 current_gtex <- BAYRC_DATA_DIR
@@ -424,7 +425,7 @@ p <- ggplot(plot_df, aes(
   ) +
   coord_cartesian(xlim = c(-8, 20), ylim = c(-8, 20)) +
 
-  theme_bw(base_size = 14) +
+  theme_bayrc(base_size = 14) +
   theme(
     plot.title = element_text(face = "bold", size = 16, hjust = 0.5),
     plot.subtitle = element_text(size = 13, hjust = 0.5, margin = margin(b = 10)),
@@ -1118,7 +1119,7 @@ p <- ggplot(plot_df, aes(
   ) +
   # coord_cartesian zooms without removing data points
   coord_cartesian(xlim = c(-8, 20), ylim = c(-8, 20)) +
-  theme_bw(base_size = 14) +
+  theme_bayrc(base_size = 14) +
   theme(
     plot.title = element_text(face = "bold", size = 16, hjust = 0.5),
     plot.subtitle = element_text(size = 13, hjust = 0.5, margin = margin(b = 10)),
