@@ -241,12 +241,12 @@ result_cons <- pathSelect(mcmc.merge.list = list(A = mcmc_OMF, B = mcmc_THR),
                           pathway.list = kegg, dataset.names = c("A", "B"),
                           ranking.method = "conserved", score_type = "pos",
                           qvalue.cut = 0.20, nperm = 500)
-# gain: 0 of 220 significant (padj < 0.20)
-# loss: 24 of 220 significant, top hit KEGG Long-term depression (Q = 0.0065);
+# gain: 1 of 220 significant (padj < 0.20)
+# loss: 13 of 220 significant, top hit KEGG Long-term depression (Q = 0.028);
 #       KEGG Circadian rhythm and KEGG Circadian entrainment also score in this
 #       direction, but do not clear the cutoff at this run's scale
-#       (Q = 0.29 and Q = 0.31)
-# conserved: 1 of 220 significant (KEGG DNA replication, Q = 0.17)
+#       (Q = 0.83 and Q = 0.75)
+# conserved: 1 of 220 significant (KEGG DNA replication, Q = 0.024)
 #
 # Loss is the only direction with a strong pathway-level signal here, even
 # though the gene-level results above show a substantial gain set as well:
@@ -271,7 +271,7 @@ across the transcriptome, with a slight lean toward gain. `pathSelect()`
 reports the same quantity at the pathway level (in the
 `Gain_Loss_Ratio_Arithmetic` column of its results table). For example,
 KEGG Long-term depression, the strongest loss-direction hit above, has
-`GLR = 1.35`, higher than the genome-wide value. This means that within
+`GLR = 1.83`, higher than the genome-wide value. This means that within
 this pathway, more genes are expected to gain rhythmicity than to lose
 it, even though the pathway is significantly enriched in the loss
 direction. A significant loss-enrichment result means that the genes in
