@@ -1,6 +1,6 @@
 # BayRC Workflow: Comparative Circadian Genomics
 
-2026-07-14
+2026-09-18
 
 - [Data and Setup](#data-and-setup)
   - [A fast gene panel for this
@@ -123,18 +123,14 @@ init_OMF <- CB_init_single(Data.list = data_list_OMF, P = 24)
 mcmc_OMF <- CB_MCMC_single_rj_slice(
   Data.list = data_list_OMF, Init.value = init_OMF, P = 24,
   iteration = 3000, n.burn = 500, thin = 10,          # short chain: vignette speed only
-  p_rhythmic = rep(0.2, n_genes),
-  save.file  = tempfile(fileext = ".rds"),             # keep intermediate saves out of the repo
-  save.file2 = tempfile(fileext = ".rds")
+  p_rhythmic = rep(0.2, n_genes)
 )
 
 init_THR <- CB_init_single(Data.list = data_list_THR, P = 24)
 mcmc_THR <- CB_MCMC_single_rj_slice(
   Data.list = data_list_THR, Init.value = init_THR, P = 24,
   iteration = 3000, n.burn = 500, thin = 10,
-  p_rhythmic = rep(0.2, n_genes),
-  save.file  = tempfile(fileext = ".rds"),
-  save.file2 = tempfile(fileext = ".rds")
+  p_rhythmic = rep(0.2, n_genes)
 )
 ```
 
@@ -189,16 +185,16 @@ bf_OMF <- summarize_bay(mcmc_OMF$rho, BF = 3, p_rhythmic = 0.2)
 head(bf_OMF[order(-bf_OMF$BayesF), c("RowAverage", "BayesF")], 5)
 #>                    RowAverage       BayesF
 #> ARNTL               1.0000000 4.000000e+20
-#> ENSPANG00000005723  1.0000000 4.000000e+20
-#> SLC38A1             0.9960159 1.000000e+03
 #> NR1D1               0.9920319 4.980000e+02
-#> CAMK2G              0.9880478 3.306667e+02
+#> SLC38A1             0.9760956 1.633333e+02
+#> CAMK2G              0.9362550 5.875000e+01
+#> ENSPANG00000005723  0.8844622 3.062069e+01
 
 detected <- detect_rhy(mcmc_OMF, mcmc_THR, bfdr_alpha = 0.25)
 c(rhythmic_OMF = detected$n_rhythmic_A, rhythmic_THR = detected$n_rhythmic_B,
   n_total = detected$n_total)
 #> rhythmic_OMF rhythmic_THR      n_total 
-#>           60           60           60
+#>           11           14           60
 ```
 
 > **Interpretation:** BFDR control sorts genes from most to least
@@ -228,11 +224,11 @@ est_OMF <- CB_getAllEst(mcmc_OMF, burn = 20)
 names(est_OMF) <- c("A", "phi", "M", "sigma")
 
 est_OMF$phi["ARNTL", ]
-#>        phi.Est phi.Lower phi.Upper RHYindex
-#> ARNTL 13.57517  12.47209  14.68265        1
+#>        phi.Est phi.Lower phi.Upper phi.Width RHYindex
+#> ARNTL 13.58672  12.56703  14.68189  2.114857        1
 est_OMF$A["ARNTL", ]
-#>          A.Est  A.Lower  A.Upper RHYindex
-#> ARNTL 1.767245 1.266125 2.238708        1
+#>          A.Est A.Lower  A.Upper RHYindex
+#> ARNTL 1.770124 1.31159 2.287439        1
 ```
 
 The same shortest-arc logic is available directly through
@@ -244,7 +240,7 @@ hdi_ARNTL <- circular_HDI(mcmc_OMF$phi["ARNTL", ], credMass = 0.95, P = 24)
 c(lower = round(hdi_ARNTL$lower, 2), upper = round(hdi_ARNTL$upper, 2),
   median = round(circular_median(mcmc_OMF$phi["ARNTL", ]), 2))
 #> lower.phi upper.phi    median 
-#>     12.47     14.63     13.56
+#>     12.59     14.68     13.59
 ```
 
 > **Interpretation:** `ARNTL`’s posterior peak time in omental fat is
@@ -270,12 +266,12 @@ circadian reprogramming has actually occurred (Pelikan et al. 2022).
 ``` r
 trans <- transition_classify(pA, pB, bfdr_alpha = 0.25)
 #> === Transition-level BFDR results ===
-#> τ_gain = 1 | n_gain = 0 
-#> τ_loss = 1 | n_loss = 0 
-#> τ_cons = 0.589 | n_cons = 35
+#> τ_gain = 0.675 | n_gain = 2 
+#> τ_loss = 0.735 | n_loss = 2 
+#> τ_cons = 0.68 | n_cons = 4
 c(n_gain = trans$n_gain, n_loss = trans$n_loss, n_cons = trans$n_cons)
 #> n_gain n_loss n_cons 
-#>      0      0     35
+#>      2      2      4
 ```
 
 > **Interpretation:** `gain_loss_status` is the central annotation
@@ -310,22 +306,22 @@ phase <- phase_infer(
 #> Computing phase metrics for maintained genes...
 #> 
 #> === PHASE INFERENCE SUMMARY ===
-#> Maintained genes: 35 
+#> Maintained genes: 4 
 #> BFDR α = 0.25  | shift threshold = 2 h
-#> Significant phase-shifted genes: 34 
+#> Significant phase-shifted genes: 4 
 #> Significant phase-conserved genes: 0 
-#> Undetermined genes: 1 
+#> Undetermined genes: 0 
 #> HDI computation: enabled
 
 c(shifted = sum(phase$flag_shift, na.rm = TRUE),
   conserved = sum(phase$flag_cons, na.rm = TRUE),
   undetermined = sum(phase$flag_undetermined, na.rm = TRUE))
 #>      shifted    conserved undetermined 
-#>           34            0            1
+#>            4            0            0
 
 phase$deltaPhi.Est["ARNTL"]
 #>     ARNTL 
-#> -3.112168
+#> -2.953878
 ```
 
 > **Interpretation:** 34 of the 35 maintained genes are phase-shifted,
@@ -372,15 +368,15 @@ result_union <- pathSelect(
 #> 
 #> Calculating posterior probabilities...
 #> Probabilistic rhythmic gene summary:
-#>   Expected rhythmic in A : 49 
-#>   Expected rhythmic in B : 47.6 
-#>   Expected gain: 8.5 
-#>   Expected loss: 9.8 
-#>   Expected conserved: 39.1 
-#>   Expected union: 57.5 
+#>   Expected rhythmic in A : 20.1 
+#>   Expected rhythmic in B : 22.2 
+#>   Expected gain: 13.7 
+#>   Expected loss: 11.6 
+#>   Expected conserved: 8.5 
+#>   Expected union: 33.8 
 #> 
 #> Ranking statistics:
-#>   Range: [ 3.918 , 13.8155 ]
+#>   Range: [ 0.4263 , 13.8155 ]
 #>   Interpretation: Fisher-like statistic (-2*log(prob))
 #> 
 #> Running fgsea...
@@ -392,8 +388,8 @@ result_union <- pathSelect(
 result_union$results[order(result_union$results$pval),
                       c("pathway", "pval", "padj", "size")]
 #>                       pathway      pval      padj size
-#> 1 KEGG GnRH signaling pathway 0.1048951 0.2097902   22
-#> 2   KEGG Long-term depression 0.3866134 0.3866134   16
+#> 1   KEGG Long-term depression 0.4465534 0.7492507   16
+#> 2 KEGG GnRH signaling pathway 0.7492507 0.7492507   22
 ```
 
 > **Interpretation:** Neither pathway clears Q \< 0.20 for the union
@@ -423,31 +419,26 @@ result_cons <- pathSelect(mcmc.merge.list = list(A = mcmc_OMF, B = mcmc_THR),
 #> 
 #> Calculating posterior probabilities...
 #> Probabilistic rhythmic gene summary:
-#>   Expected rhythmic in A : 49 
-#>   Expected rhythmic in B : 47.6 
-#>   Expected gain: 8.5 
-#>   Expected loss: 9.8 
-#>   Expected conserved: 39.1 
-#>   Expected union: 57.5 
+#>   Expected rhythmic in A : 20.1 
+#>   Expected rhythmic in B : 22.2 
+#>   Expected gain: 13.7 
+#>   Expected loss: 11.6 
+#>   Expected conserved: 8.5 
+#>   Expected union: 33.8 
 #> 
 #> Ranking statistics:
-#>   Range: [ 0.392 , 1.001 ]
+#>   Range: [ 0.0112 , 0.9377 ]
 #> 
 #> Running fgsea...
 #> Adding custom metrics...
 #> 
 #> === RESULTS SUMMARY ===
-#> Significant pathways (Q < 0.2 ): 1 
-#> 
-#> Top significant pathways:
-#>   KEGG GnRH signaling pathway: ES=0.363, NES=1.604, Q=0.1838
-#>            Geometric_Mean_Conserved=0.6511
-#>            Expected: Gain=2.8 (0.133), Loss=3.8 (0.181), Conserved=14.6 (0.686)
+#> Significant pathways (Q < 0.2 ): 0
 
 result_cons$results[, c("pathway", "pval", "padj", "Gain_Loss_Ratio_Arithmetic")]
-#>                       pathway       pval      padj Gain_Loss_Ratio_Arithmetic
-#> 1 KEGG GnRH signaling pathway 0.09190809 0.1838162                  0.7360673
-#> 2   KEGG Long-term depression 0.44355644 0.4435564                  1.0015984
+#>                       pathway      pval      padj Gain_Loss_Ratio_Arithmetic
+#> 1   KEGG Long-term depression 0.6123876 0.8401598                   1.591113
+#> 2 KEGG GnRH signaling pathway 0.8401598 0.8401598                   1.047593
 ```
 
 > **Gain-loss ratio (GLR):** `Gain_Loss_Ratio_Arithmetic` compares
@@ -487,9 +478,9 @@ round(global[, c("A_vs_B_AdjustedConcordance", "A_vs_B_PValue",
                   "A_vs_B_CI_Lower_Adj", "A_vs_B_CI_Upper_Adj",
                   "A_vs_B_GainLossRatio")], 3)
 #>   A_vs_B_AdjustedConcordance A_vs_B_PValue A_vs_B_CI_Lower_Adj
-#> 1                      0.022         0.049               0.001
+#> 1                      0.134         0.012               0.069
 #>   A_vs_B_CI_Upper_Adj A_vs_B_GainLossRatio
-#> 1               0.042                0.868
+#> 1               0.254                1.207
 ```
 
 > **Interpretation:** The adjusted concordance here is about 0.02 (95%
@@ -533,10 +524,10 @@ plot_heatmap(
     #> 
     #> === SUMMARY [ FULL ] ===
     #> Total genes:     22 
-    #> Phase Shifted:   15 
+    #> Phase Shifted:   0 
     #> Phase Conserved: 0 
     #> Gain in THR : 0 
-    #> Loss in THR : 0
+    #> Loss in THR : 1
 
 | Panel | Shows | How to read it |
 |----|----|----|
