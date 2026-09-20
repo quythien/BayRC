@@ -13,6 +13,14 @@ if (!exists("mode", inherits = FALSE)) {
   if (length(args) > 0) mode <- args[1]
 }
 
+# Every block below is gated on `mode`, so an unrecognised value would write
+# nothing and still reach the closing message. Reject it here instead.
+bayrc_modes <- c("all", "within_baboon", "within_baboon_with_scn",
+                 "within_human", "cross_species")
+if (!mode %in% bayrc_modes)
+  stop("mode must be one of: ", paste(bayrc_modes, collapse = ", "),
+       "; got '", mode, "'")
+
 # Paths come from inst/analysis/config.R; override any of them with the
 # matching env var.
 this.file <- sub("^--file=", "", grep("^--file=", commandArgs(), value = TRUE)[1])

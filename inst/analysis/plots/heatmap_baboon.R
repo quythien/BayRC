@@ -8,6 +8,7 @@ while (!file.exists(file.path(analysis.dir, "config.R")) &&
        dirname(analysis.dir) != analysis.dir) analysis.dir <- dirname(analysis.dir)
 source(file.path(analysis.dir, "config.R"))
 source(file.path(analysis.dir, "plots", "theme_bayrc.R"))
+source(file.path(analysis.dir, "plots", "palette_concordance.R"))
 
 current_gtex <- BAYRC_DATA_DIR
 current_wd <- BAYRC_WD_DIR
@@ -114,7 +115,7 @@ diag(ACI_mat) <- 1  # perfect concordance with itself
 library(pheatmap)
 
 # Your color palette
-col_fun <- bayrc_seq(200)
+col_fun <- concordance_colors
 
 outdir <- BAYRC_FIGURE_DIR
 dir.create(outdir, recursive = TRUE, showWarnings = FALSE)
@@ -168,11 +169,11 @@ write.csv(
 library(pheatmap)
 
 # Your original color palette
-col_fun <- bayrc_seq(200)
+col_fun <- concordance_colors
 
 # 1. Determine a good upper limit for the color scale (e.g., 0.25 or the 95th percentile)
 # This ensures the colors are used for the off-diagonal variation.
-max_val <- 0.25
+max_val <- 0.5
 # Alternatively, use: max_val <- quantile(ACI_mat[row(ACI_mat) != col(ACI_mat)], 0.99)
 
 # 2. Create breaks that focus on the 0 to max_val range
@@ -181,7 +182,7 @@ breaksList <- seq(0, max_val, length.out = 201)
 
 # Generate the heatmap
 for (method in methods) {
-  cairo_pdf(file.path(outdir, paste0("Baboon_Concordance_Heatmap_0.25_", method, ".pdf")),
+  cairo_pdf(file.path(outdir, paste0("Baboon_Concordance_Heatmap_0.5_", method, ".pdf")),
             width = 9, height = 8, family = bayrc_family)
   
   pheatmap(

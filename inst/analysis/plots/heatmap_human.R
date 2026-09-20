@@ -8,6 +8,7 @@ while (!file.exists(file.path(analysis.dir, "config.R")) &&
        dirname(analysis.dir) != analysis.dir) analysis.dir <- dirname(analysis.dir)
 source(file.path(analysis.dir, "config.R"))
 source(file.path(analysis.dir, "plots", "theme_bayrc.R"))
+source(file.path(analysis.dir, "plots", "palette_concordance.R"))
 
 current_gtex <- BAYRC_DATA_DIR
 current_wd <- BAYRC_WD_DIR
@@ -108,7 +109,7 @@ diag(ACI_mat) <- 1
 # 6. Save PDF heatmap
 ###############################################################################
 
-col_fun <- bayrc_seq(200)
+col_fun <- concordance_colors
 
 outdir <- BAYRC_FIGURE_DIR
 dir.create(outdir, recursive = TRUE, showWarnings = FALSE)
@@ -118,6 +119,10 @@ diag(ACI_dissim) <- 0
 
 row_dist <- as.dist(ACI_dissim)
 col_dist <- as.dist(ACI_dissim)
+
+# cap the scale so the off-diagonal trend is visible
+max_val <- 0.5
+breaksList <- seq(0, max_val, length.out = 201)
 
 methods <- c("ward.D2", "complete", "average")
 
@@ -130,13 +135,14 @@ for (method in methods) {
     cluster_rows = hclust(row_dist, method = method),
     cluster_cols = hclust(col_dist, method = method),
     color = col_fun,
+    breaks = breaksList,
     main = paste0("Human Rhythmicity Concordance Heatmap"),
     fontsize = bayrc_heat_args()$fontsize,
     border_color = bayrc_heat_args()$border_color,
     fontfamily = bayrc_family,
     legend = TRUE,
-    legend_breaks = c(0, 0.25, 0.5, 0.75, 1),
-    legend_labels = c("0", "0.25", "0.50", "0.75", "1.00")
+    legend_breaks = seq(0, max_val, length.out = 5),
+    legend_labels = format(seq(0, max_val, length.out = 5), digits = 2)
   )
 
   dev.off()
