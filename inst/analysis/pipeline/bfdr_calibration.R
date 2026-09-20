@@ -16,6 +16,36 @@ while (!file.exists(file.path(analysis.dir, "config.R")) &&
 source(file.path(analysis.dir, "config.R"))
 
 args <- commandArgs(trailingOnly = TRUE)
+
+## --summary pools the replicates already on disk instead of running another
+if ("--summary" %in% args) {
+  out.dir <- file.path(BAYRC_OUTPUT_DIR, "calibration")
+  f <- list.files(out.dir, "^bfdr_calibration_seed.*[.]rds$", full.names = TRUE)
+  if (!length(f)) stop("no replicates under ", out.dir)
+  reps <- lapply(f, readRDS)
+  g <- do.call(rbind, lapply(reps, `[[`, "grid"))
+  ## pooled over replicates: total false calls over total calls
+  pooled <- do.call(rbind, lapply(split(g, g$nominal), function(d)
+    data.frame(nominal = d$nominal[1],
+               replicates = nrow(d),
+               mean_called = round(mean(d$n_called), 1),
+               realised = round(sum(d$FP) / sum(d$TP + d$FP), 4),
+               se = round(sd(d$realised) / sqrt(nrow(d)), 4),
+               min = round(min(d$realised), 3),
+               max = round(max(d$realised), 3),
+               ratio = round((sum(d$FP) / sum(d$TP + d$FP)) / d$nominal[1], 2),
+               power = round(mean(d$power), 3))))
+  cat(sprintf("\n%d replicates, G = %d, N = %d, %d kept draws\n",
+              length(reps), reps[[1]]$grid$G[1], reps[[1]]$grid$N[1],
+              reps[[1]]$kept))
+  cat(sprintf("median simulated (max-min)/2 = %.2f\n",
+              median(sapply(reps, `[[`, "med_halfrange"))))
+  print(pooled, row.names = FALSE)
+  write.csv(pooled, file.path(out.dir, "bfdr_calibration_summary.csv"),
+            row.names = FALSE)
+  quit(save = "no")
+}
+
 seed <- if (length(args) >= 1) as.integer(args[1]) else 1L
 G    <- if (length(args) >= 2) as.integer(args[2]) else 2000L
 out.dir <- file.path(BAYRC_OUTPUT_DIR, "calibration")
