@@ -11,8 +11,18 @@
 rm(list = ls())
 
 # ── Paths ─────────────────────────────────────────────────────────────────────
-current_wd <- "/home/qtp1/Projects"
-outdir     <- "/home/qtp1/Projects/Collaborative/Paper/Congruence/PNAS_aging/all_plots"
+# Paths come from inst/analysis/config.R; override any of them with the
+# matching env var.
+this.file <- sub("^--file=", "", grep("^--file=", commandArgs(), value = TRUE)[1])
+analysis.dir <- if (is.na(this.file)) getwd() else dirname(normalizePath(this.file))
+while (!file.exists(file.path(analysis.dir, "config.R")) &&
+       dirname(analysis.dir) != analysis.dir) analysis.dir <- dirname(analysis.dir)
+source(file.path(analysis.dir, "config.R"))
+
+outdir <- BAYRC_FIGURE_DIR
+# one_cosinor_OLS lives beside the collaborative data rather than in the package
+BAYRC_PIPELINE_DIR <- Sys.getenv("BAYRC_PIPELINE_DIR",
+                        unset = file.path(dirname(BAYRC_DATA_DIR), "Pipeline"))
 
 # ── Libraries ─────────────────────────────────────────────────────────────────
 library(dplyr)
@@ -21,8 +31,8 @@ library(ggrepel)
 library(gridExtra)
 
 # ── Load Bayesian output (already run) ────────────────────────────────────────
-load("/home/qtp1/Projects/Collaborative/GTEXdata/result/summary/hb/mcmc_rho_BF3.RData")
-load("/home/qtp1/Projects/Collaborative/GTEXdata/result/summary/hb/phi/mcmc_phi_BF3.RData")
+load(file.path(BAYRC_SUMMARY_DIR, "mcmc_rho_BF3.RData"))
+load(file.path(BAYRC_SUMMARY_DIR, "phi", "mcmc_phi_BF3.RData"))
 # Objects: mcmc_data_baboon, mcmc_data_human, mcmc_phi_baboon, mcmc_phi_human
 
 rho_lun <- mcmc_data_baboon$LUN   # genes x MCMC iterations (binary 0/1)
@@ -50,9 +60,9 @@ phase_bayes_zt     <- to_zt(phase_bayes)
 names(phase_bayes_zt) <- gene_names_bay
 
 # ── Load expression data + run OLS cosinor ────────────────────────────────────
-source("/home/qtp1/Projects/Pipeline/one_cosinor_OLS_new.R")
+source(file.path(BAYRC_PIPELINE_DIR, "one_cosinor_OLS_new.R"))
 
-load(file.path(current_wd, "Collaborative/GTEXdata/data/CAMO.bab.hum.RData"))
+load(file.path(BAYRC_GTEX_DIR, "data", "CAMO.bab.hum.RData"))
 
 bab_raw  <- baboon_withTOD$baboon$LUN
 bab_cols <- grep("LUN\\.ZT", colnames(bab_raw))
@@ -240,7 +250,7 @@ p3 <- ggplot(both_rhy, aes(x = peak_cosinor_r, y = peak_bayes_r)) +
   scale_x_continuous(breaks = c(-6, 0, 6, 12, 18)) +
   scale_y_continuous(breaks = c(-6, 0, 6, 12, 18)) +
   annotate("text", x = -Inf, y = Inf,
-           label = sprintf("Pearson r = 0.99"),
+           label = sprintf("Pearson r = %.2f", corr3),
            hjust = -0.1, vjust = 1.6, size = 3.5, color = "black") +
   labs(
     tag      = "C",
@@ -253,6 +263,31 @@ p3 <- ggplot(both_rhy, aes(x = peak_cosinor_r, y = peak_bayes_r)) +
   theme(plot.tag      = element_text(face = "bold", size = 14),
         plot.title    = element_text(face = "bold", hjust = 0.5, size = 11),
         plot.subtitle = element_text(hjust = 0.5, size = 9))
+
+# ── Detection counts (supplementary table) ────────────────────────────────────
+bay_rhy  <- merged$BF_bayes > 3
+cos_rhy  <- merged$pval < 0.05
+s5_table <- data.frame(
+  category = c("Bayesian only (BF > 3, p >= 0.05)",
+               "Cosinor only (p < 0.05, BF <= 3)",
+               "Both methods",
+               "Neither",
+               "Bayesian total (BF > 3)",
+               "Cosinor total (p < 0.05)",
+               "Genes compared"),
+  genes = c(sum(bay_rhy & !cos_rhy), sum(!bay_rhy & cos_rhy),
+            sum(bay_rhy & cos_rhy), sum(!bay_rhy & !cos_rhy),
+            sum(bay_rhy), sum(cos_rhy), N_total))
+cat("\n=== detection counts ===\n")
+print(s5_table, row.names = FALSE)
+write.csv(s5_table, file.path(outdir, "S5_detection_counts.csv"), row.names = FALSE)
+
+cat("\n=== summary statistics ===\n")
+cat(sprintf("top 5%% cutoff k = %d of %d; overlap = %d (%.0f%%)\n",
+            top5_k, N_total, overlap_k[min(top5_k, MAX_K)],
+            100 * overlap_k[min(top5_k, MAX_K)] / top5_k))
+cat(sprintf("Spearman r (posterior vs p-value) = %.3f\n", corr2))
+cat(sprintf("Pearson r (phase, n = %d) = %.3f\n", nrow(both_rhy), corr3))
 
 # ── Save combined PDF ─────────────────────────────────────────────────────────
 out_file <- file.path(outdir, "S5_Bayes_Cosinor_Agreement_LUN.pdf")

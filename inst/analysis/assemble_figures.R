@@ -24,13 +24,17 @@ source(file.path(if (is.na(this.file)) getwd() else dirname(normalizePath(this.f
                  "config.R"))
 
 args <- commandArgs(trailingOnly = TRUE)
+dry.run <- "--dry-run" %in% args
+args <- setdiff(args, "--dry-run")
 paper.dir <- if (length(args) >= 1) args[1] else
   file.path(dirname(BAYRC_OUTPUT_DIR), "paper")
 
 sub.dir <- file.path(paper.dir, "subfigures")
 fig.dir <- file.path(paper.dir, "figures")
-dir.create(sub.dir, recursive = TRUE, showWarnings = FALSE)
-dir.create(fig.dir, recursive = TRUE, showWarnings = FALSE)
+if (!dry.run) {
+  dir.create(sub.dir, recursive = TRUE, showWarnings = FALSE)
+  dir.create(fig.dir, recursive = TRUE, showWarnings = FALSE)
+}
 
 fig.out <- file.path(BAYRC_OUTPUT_DIR, "figure")
 
@@ -38,49 +42,84 @@ fig.out <- file.path(BAYRC_OUTPUT_DIR, "figure")
 # The left-hand name is the file the generating script writes; the right-hand
 # name is what this script calls it in paper/subfigures/.
 
+# Panels are resolved by directory and pattern rather than by an exact file
+# name, so a panel still resolves when the generating script changes the cap in
+# a file name, or when a KEGG release spells a pathway differently.
+
+find_panel <- function(dir, pattern, recursive = FALSE) {
+  if (!dir.exists(dir)) return(NA_character_)
+  hits <- list.files(dir, pattern = pattern, full.names = TRUE,
+                     recursive = recursive)
+  if (!length(hits)) return(NA_character_)
+  ## a stale panel from an earlier run can match too, so take the newest
+  hits <- hits[order(file.info(hits)$mtime, decreasing = TRUE)]
+  if (length(hits) > 1) {
+    cat("  ", length(hits), "files match", pattern, "under", dir, "\n")
+    cat("     taking the newest:", basename(hits[1]), "\n")
+    cat("     also matched:", paste(basename(hits[-1]), collapse = ", "), "\n")
+  }
+  hits[1]
+}
+
+brain.dir <- file.path(fig.out, "baboon_brain")
+lung.dir  <- file.path(fig.out, "baboon_human_lung")
+sunput.heatmaps <- file.path(BAYRC_OUTPUT_DIR, "heatmap_baboon_SUN_PUT")
+circadian.dir <- file.path(BAYRC_OUTPUT_DIR, "heatmap_circadian_pairs",
+                           "within_baboon")
+
 panels <- list(
   # Figure 2: genome-wide and KEGG-circadian concordance heatmaps
-  list(from = file.path(BAYRC_FIGURE_DIR,
-                        "Baboon_Concordance_Heatmap_0.25_ward.D2.pdf"),
+  list(dir = BAYRC_FIGURE_DIR,
+       pattern = "^Baboon_Concordance_Heatmap_[0-9.]+_ward[.]D2[.]pdf$",
        to = "F2A_baboon_genomewide_concordance.pdf",
        script = "plots/heatmap_baboon.R"),
-  list(from = file.path(fig.out, "heatmap_circadian_pairs", "within_baboon",
-                        "Within_Baboon_Circadian_Heatmap_ward.D2.pdf"),
+  list(dir = circadian.dir,
+       pattern = "_Heatmap_ward[.]D2[.]pdf$",
        to = "F2B_baboon_circadian_concordance.pdf",
        script = "plots/heatmap_circadian_pairs.R within_baboon"),
 
   # Figure 3: within-species phase concordance scatters
-  list(from = file.path(fig.out, "baboon_brain",
-                        "Baboon_SCN_HIP_Peak_Concordance_0.25_2h_new.pdf"),
+  list(dir = brain.dir,
+       pattern = "^Baboon_SCN_HIP_Peak_Concordance_.*_2h_new[.]pdf$",
        to = "F3A_baboon_SCN_HIP_phase_concordance.pdf",
        script = "Baboon_SCN_HIP.R"),
-  list(from = file.path(fig.out, "baboon_brain",
-                        "Baboon_SUN_PUT_Peak_Concordance_0.25_2h_new.pdf"),
+  list(dir = brain.dir,
+       pattern = "^Baboon_SUN_PUT_Peak_Concordance_.*_2h_new[.]pdf$",
        to = "F3B_baboon_SUN_PUT_phase_concordance.pdf",
        script = "Baboon_SUN_PUT.R"),
 
   # Figure 4: SUN-PUT enrichment dotplots
-  list(from = file.path(fig.out, "baboon_brain",
-                        "SUN_PUT_shifted_GO_BP_dotplot.pdf"),
+  list(dir = brain.dir,
+       pattern = "^SUN_PUT_shifted_GO_BP_dotplot[.]pdf$",
        to = "F4A_SUN_PUT_shifted_GO_BP_dotplot.pdf",
        script = "plot_enrich_SUN_PUT.R"),
-  list(from = file.path(fig.out, "baboon_brain",
-                        "SUN_PUT_shifted_KEGG_dotplot.pdf"),
+  list(dir = brain.dir,
+       pattern = "^SUN_PUT_shifted_KEGG_dotplot[.]pdf$",
        to = "F4B_SUN_PUT_shifted_KEGG_dotplot.pdf",
        script = "plot_enrich_SUN_PUT.R"),
 
-  # Figure 5: SUN-PUT heatmaps
-  list(from = file.path(BAYRC_OUTPUT_DIR, "heatmap_baboon_SUN_PUT",
-                        "heatmap_SUN_PUT.pdf"),
-       to = "F5_SUN_PUT_heatmap.pdf",
+  # Figure 5: SUN-PUT pathway heatmaps. plot_heatmap() writes one file per
+  # pathway into its own sub-directory, and also a rhythmic-only version;
+  # the patterns take the full version of the two pathways the figure shows.
+  list(dir = sunput.heatmaps, recursive = TRUE,
+       pattern = "Parkinson.*_integrated[.]pdf$",
+       to = "F5A_SUN_PUT_KEGG_Parkinson_heatmap.pdf",
+       script = "Baboon_SUN_PUT.R (heatmap section)"),
+  list(dir = sunput.heatmaps, recursive = TRUE,
+       pattern = "Oxidative_phosphorylation_integrated[.]pdf$",
+       to = "F5B_SUN_PUT_KEGG_OxPhos_heatmap.pdf",
        script = "Baboon_SUN_PUT.R (heatmap section)"),
 
   # Figure 6: cross-species lung
-  list(from = file.path(fig.out, "baboon_human_lung",
-                        "Baboon_Human_LUN_Peak_Concordance_0.25_2h.pdf"),
+  list(dir = lung.dir,
+       pattern = "^Baboon_Human_LUN_Peak_Concordance_.*_2h[.]pdf$",
        to = "F6_baboon_human_LUN_phase_concordance.pdf",
        script = "Baboon_Human_LUN.R")
 )
+
+for (i in seq_along(panels))
+  panels[[i]]$from <- find_panel(panels[[i]]$dir, panels[[i]]$pattern,
+                                 isTRUE(panels[[i]]$recursive))
 
 # Which collected panels make up each numbered figure -------------------------
 
@@ -91,20 +130,39 @@ figures <- list(
                "F3B_baboon_SUN_PUT_phase_concordance.pdf"),
   Figure_4 = c("F4A_SUN_PUT_shifted_GO_BP_dotplot.pdf",
                "F4B_SUN_PUT_shifted_KEGG_dotplot.pdf"),
-  Figure_5 = "F5_SUN_PUT_heatmap.pdf",
+  Figure_5 = c("F5A_SUN_PUT_KEGG_Parkinson_heatmap.pdf",
+               "F5B_SUN_PUT_KEGG_OxPhos_heatmap.pdf"),
   Figure_6 = "F6_baboon_human_LUN_phase_concordance.pdf"
 )
 
 # Collect ---------------------------------------------------------------------
 
+if (dry.run) {
+  cat("resolved panels\n\n")
+  for (nm in names(figures)) {
+    cat(nm, "\n")
+    for (want in figures[[nm]]) {
+      p <- Filter(function(x) x$to == want, panels)[[1]]
+      cat("  ", want, "\n      ",
+          if (is.na(p$from)) paste0("not found: ", p$pattern, " under ", p$dir,
+                                    "  (run ", p$script, ")") else p$from,
+          "\n")
+    }
+  }
+  cat("\nFigure 1 is a hand-drawn flowchart and has no generating script.\n")
+  cat("\nnothing written; drop --dry-run to collect and merge\n")
+  quit(save = "no")
+}
+
 missing <- character(0)
 for (p in panels) {
   dest <- file.path(sub.dir, p$to)
-  if (file.exists(p$from)) {
+  if (!is.na(p$from) && file.exists(p$from)) {
     file.copy(p$from, dest, overwrite = TRUE)
     cat("collected", p$to, "\n")
   } else {
-    missing <- c(missing, sprintf("%s  (run %s)", p$to, p$script))
+    missing <- c(missing, sprintf("%s  (no %s under %s; run %s)",
+                                  p$to, p$pattern, p$dir, p$script))
   }
 }
 
