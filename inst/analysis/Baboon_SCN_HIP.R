@@ -703,7 +703,7 @@ phase_inner <- phase_infer(
   phi_matrix2 = baboon_HIP$phi,
   gain_loss_status = trans_outer$gain_loss_status,
   bfdr_alpha = 0.25,
-  shift = 3,
+  shift = 2,
   P = 24, compute_hdi = TRUE
 )
 
