@@ -9,7 +9,8 @@ files it writes. Start from the table; the sections below give the detail.
 | 2A | `plots/heatmap_baboon.R`, drawn by `plots/replot_figure2.R` | `BAYRC_FIGURE_DIR/figure2/` |
 | 2B | `plots/heatmap_circadian_pairs.R within_baboon`, drawn by `plots/replot_figure2.R` | `BAYRC_FIGURE_DIR/figure2/` |
 | 3A | `applications/Baboon_SCN_HIP.R` | `BAYRC_FIGURE_DIR/baboon_SCN_HIP/` |
-| 3B, 4, 5 | `applications/Baboon_SUN_PUT.R` | `BAYRC_FIGURE_DIR/baboon_SUN_PUT/` |
+| 3B, 4A, 5A | `applications/Baboon_PUT_SUN.R` | `BAYRC_FIGURE_DIR/baboon_PUT_SUN/` |
+| 3C, 4B, 5B | `applications/Baboon_PUT_VIC.R` | `BAYRC_FIGURE_DIR/baboon_PUT_VIC/` |
 | 6 | `applications/Baboon_Human_LUN.R` | `BAYRC_FIGURE_DIR/baboon_human_LUN/` |
 | S4 | `plots/Cosinor_residual_diagnostics_LUN*.R` | `BAYRC_FIGURE_DIR` |
 | S5 | `plots/S5_Bayes_Cosinor_Agreement_LUN.R` | `BAYRC_FIGURE_DIR` |
@@ -78,7 +79,7 @@ nperm          10000    fgsea permutations
 Stage 1 is deliberately the looser of the two: it screens for pathways with
 rhythmic signal in either tissue, and stage 2 carries the inference.
 
-The SUN-PUT scripts also print the phase offset over the whole maintained set
+The putamen scripts also print the phase offset over the whole maintained set
 rather than over the shifted class alone. The shifted class is selected for
 exceeding the phase window, so its mean is biased upward by the threshold that
 defined it.
@@ -94,17 +95,24 @@ and `plots/heatmap_circadian_pairs.R` compute the concordance matrices;
 `plots/heatmap_circadian_pairs.R` also takes `within_baboon_with_scn`,
 `within_human` and `cross_species`. 325 within-species pairs, 676 cross-species.
 
-**Figure 3** — within-species peak-phase concordance scatters, panel A from the
-SCN-HIP script and panel B from SUN-PUT. Both draw
-`<pair>_Peak_Concordance.pdf` through `plots/peak_concordance.R`.
+**Figure 3** — within-species peak-phase concordance scatters: panel A from the
+SCN-HIP script, panels B and C from the two putamen circuits. All three draw
+`<pair>_Peak_Concordance.pdf` through `plots/peak_concordance.R`, with
+condition A on the x axis and the same ±2 h band.
 
-**Figure 4** — SUN-PUT pathway transition enrichment, from the stage-2 output:
-`SUN_PUT_transition_enrichment.pdf`, with `stage1_union.csv` and
-`stage2_significant.csv` beside it.
+**Figure 4** — pathway transition enrichment in the two putamen circuits, from
+the stage-2 output: `PUT_SUN_transition_enrichment.pdf` and
+`PUT_VIC_transition_enrichment.pdf`, with `stage1_union.csv` and
+`stage2_significant.csv` beside each. The two panels fix the same colour and
+size limits through `q_limits` and `size_limits`, so a dot means the same thing
+in both, and both keep all three transition columns whether or not a dot falls
+in them.
 
-**Figure 5** — SUN-PUT pathway heatmaps for KEGG Parkinson disease and KEGG
-Oxidative phosphorylation. `plot_heatmap()` writes one file per pathway, plus a
-`_rhythmic_only` version that drops the genes rhythmic in neither tissue.
+**Figure 5** — KEGG Parkinson disease drawn for both circuits and stacked.
+`plot_heatmap()` writes one file per pathway, plus a `_rhythmic_only` version
+that drops the genes rhythmic in neither tissue. Panel A is drawn with
+`show_legend = FALSE`; panel B carries the legend for the pair along its
+bottom edge.
 
 **Figure 6** — cross-species lung: the concordance scatter and the KEGG
 Circadian rhythm heatmap.

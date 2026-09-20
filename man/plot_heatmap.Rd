@@ -18,6 +18,8 @@ plot_heatmap(
     "#fcae91", "#fb6a4a", "#ef3b2c")),
   col_phase1 = circlize::colorRamp2(c(0, 0.5, 1), c("white", "#6baed6", "#08519c")),
   col_phase2 = circlize::colorRamp2(c(0, 0.5, 1), c("white", "#fc9272", "#a50f15")),
+  show_legend = TRUE,
+  legend_side = "left",
   versions = c("full", "rhythmic_only", "both")
 )
 }
@@ -56,6 +58,13 @@ three-stop white-to-blue ramp over \[0, 1\].}
 
 \item{col_phase2}{Colour mapping for the second phase panel; defaults to a
 three-stop white-to-red ramp over \[0, 1\].}
+
+\item{show_legend}{Logical; draw the heatmap and annotation legends
+(default \code{TRUE}). Set \code{FALSE} for a panel that shares the
+legend of another panel in the same figure.}
+
+\item{legend_side}{Character; which side the legends sit on, passed to
+\code{ComplexHeatmap::draw} (default \code{"left"}).}
 
 \item{versions}{Character; which version to produce: \code{"full"},
 \code{"rhythmic_only"}, or \code{"both"} (default \code{"full"}).}

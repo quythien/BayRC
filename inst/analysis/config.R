@@ -7,7 +7,7 @@
 # Override any path by setting the corresponding environment variable
 # before launching R, e.g.:
 #   export BAYRC_DATA_DIR=/path/to/your/data
-#   Rscript inst/analysis/Baboon_SUN_PUT.R
+#   Rscript inst/analysis/applications/Baboon_PUT_SUN.R
 
 BAYRC_DATA_DIR    <- Sys.getenv("BAYRC_DATA_DIR",
                        unset = "/home/qtp1/Projects/Collaborative")

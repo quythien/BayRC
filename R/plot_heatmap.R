@@ -35,6 +35,11 @@
 #'   three-stop white-to-blue ramp over \[0, 1\].
 #' @param col_phase2 Colour mapping for the second phase panel; defaults to a
 #'   three-stop white-to-red ramp over \[0, 1\].
+#' @param show_legend Logical; draw the heatmap and annotation legends
+#'   (default \code{TRUE}). Set \code{FALSE} for a panel that shares the
+#'   legend of another panel in the same figure.
+#' @param legend_side Character; which side the legends sit on, passed to
+#'   \code{ComplexHeatmap::draw} (default \code{"left"}).
 #' @param versions Character; which version to produce: \code{"full"},
 #'   \code{"rhythmic_only"}, or \code{"both"} (default \code{"full"}).
 #'
@@ -53,6 +58,8 @@ plot_heatmap <- function(data1, data2,
                                                 c("#fff5f0", "#fee0d2", "#fcae91", "#fb6a4a", "#ef3b2c")),
                           col_phase1 = circlize::colorRamp2(c(0, 0.5, 1), c("white", "#6baed6", "#08519c")),
                           col_phase2 = circlize::colorRamp2(c(0, 0.5, 1), c("white", "#fc9272", "#a50f15")),
+                          show_legend = TRUE,
+                          legend_side = "left",
                           versions = c("full", "rhythmic_only", "both")) {
 
   versions <- match.arg(versions)
@@ -511,14 +518,18 @@ plot_heatmap <- function(data1, data2,
     filename <- paste0(save_path, "/", gsub("[^A-Za-z0-9]", "_", pathway_name), "_integrated", version_suffix, ".pdf")
     fig_height <- 4 + (n_genes * 0.15)
     fig_height <- max(6, min(fig_height, 20))
+    # legends laid out in a row below the heatmap need their own band
+    if (show_legend && legend_side == "bottom") fig_height <- fig_height + 1.2
     cat("Saving:", filename, "\n")
     pdf(filename, width = 10, height = fig_height)
 
     # Draw heatmap
     draw(ht_list,
-         heatmap_legend_side = "left",
-         annotation_legend_side = "left",
+         heatmap_legend_side = legend_side,
+         annotation_legend_side = legend_side,
          annotation_legend_list = list(delta_peak_legend),
+         show_heatmap_legend = show_legend,
+         show_annotation_legend = show_legend,
          merge_legend = TRUE,
          padding = unit(c(2, 2, 2, 2), "mm"))
 
@@ -554,9 +565,11 @@ plot_heatmap <- function(data1, data2,
     cat("Saved\n")
   } else {
     draw(ht_list,
-         heatmap_legend_side = "left",
-         annotation_legend_side = "left",
+         heatmap_legend_side = legend_side,
+         annotation_legend_side = legend_side,
          annotation_legend_list = list(delta_peak_legend),
+         show_heatmap_legend = show_legend,
+         show_annotation_legend = show_legend,
          merge_legend = TRUE,
          padding = unit(c(2, 2, 2, 2), "mm"))
 

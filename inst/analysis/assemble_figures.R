@@ -2,20 +2,19 @@
 # Collect the paper's figure panels and assemble the numbered figures.
 #
 # The analysis scripts each drop their panels somewhere under BAYRC_OUTPUT_DIR,
-# under names that describe the comparison rather than the figure. Until now
-# the step from those panels to Figure_2 ... Figure_6 was done by hand, which
-# is why no script in the repository produces a file called Figure_*.pdf. This
-# script does that step: it copies every panel to paper/subfigures/ under a
-# stable name and then merges the ones that are simple multi-panel stacks.
+# under names that describe the comparison rather than the figure. This script
+# takes the step from those panels to Figure_2 ... Figure_6: it copies every
+# panel to paper/subfigures/ under a stable name, then letters and merges them
+# into the numbered figure.
 #
 # Usage:
 #   Rscript assemble_figures.R [paper.dir]
 #
 # paper.dir defaults to <BAYRC_OUTPUT_DIR>/../paper.
 #
-# Figures 3 and 4 place two panels side by side. R has no dependency-free way
-# to do that with finished PDFs, so the script merges them into a two-page PDF
-# and says so; the side-by-side placement is the one remaining manual step.
+# Panels run along a row, or down the page for the figures named in
+# stacked.figures. Both layouts go through pdflatex and graphicx, so the whole
+# assembly is reproducible from the panels the analysis scripts write.
 ################################################################################
 
 # Paths come from config.R; override any of them with the matching env var.
@@ -65,7 +64,8 @@ find_panel <- function(dir, pattern, recursive = FALSE) {
 
 fig2.dir   <- file.path(BAYRC_FIGURE_DIR, "figure2")
 scnhip.dir <- file.path(BAYRC_FIGURE_DIR, "baboon_SCN_HIP")
-sunput.dir <- file.path(BAYRC_FIGURE_DIR, "baboon_SUN_PUT")
+putsun.dir <- file.path(BAYRC_FIGURE_DIR, "baboon_PUT_SUN")
+putvic.dir <- file.path(BAYRC_FIGURE_DIR, "baboon_PUT_VIC")
 lung.dir   <- file.path(BAYRC_FIGURE_DIR, "baboon_human_LUN")
 
 panels <- list(
@@ -81,24 +81,30 @@ panels <- list(
   list(dir = scnhip.dir, pattern = "^Baboon_SCN_HIP_Peak_Concordance[.]pdf$",
        to = "F3A_baboon_SCN_HIP_phase_concordance.pdf",
        script = "applications/Baboon_SCN_HIP.R"),
-  list(dir = sunput.dir, pattern = "^Baboon_SUN_PUT_Peak_Concordance[.]pdf$",
-       to = "F3B_baboon_SUN_PUT_phase_concordance.pdf",
-       script = "applications/Baboon_SUN_PUT.R"),
+  list(dir = putsun.dir, pattern = "^Baboon_PUT_SUN_Peak_Concordance[.]pdf$",
+       to = "F3B_baboon_PUT_SUN_phase_concordance.pdf",
+       script = "applications/Baboon_PUT_SUN.R"),
+  list(dir = putvic.dir, pattern = "^Baboon_PUT_VIC_Peak_Concordance[.]pdf$",
+       to = "F3C_baboon_PUT_VIC_phase_concordance.pdf",
+       script = "applications/Baboon_PUT_VIC.R"),
 
-  # Figure 4: SUN-PUT pathway transition enrichment, a single panel
-  list(dir = sunput.dir, pattern = "^SUN_PUT_transition_enrichment[.]pdf$",
-       to = "F4_SUN_PUT_transition_enrichment.pdf",
-       script = "applications/Baboon_SUN_PUT.R"),
+  # Figure 4: pathway transition enrichment in the two putamen circuits
+  list(dir = putsun.dir, pattern = "^PUT_SUN_transition_enrichment[.]pdf$",
+       to = "F4A_PUT_SUN_transition_enrichment.pdf",
+       script = "applications/Baboon_PUT_SUN.R"),
+  list(dir = putvic.dir, pattern = "^PUT_VIC_transition_enrichment[.]pdf$",
+       to = "F4B_PUT_VIC_transition_enrichment.pdf",
+       script = "applications/Baboon_PUT_VIC.R"),
 
-  # Figure 5: SUN-PUT pathway heatmaps, the rhythmic-only version
-  list(dir = sunput.dir,
-       pattern = "^KEGG_Pathways_of_neurodegeneration___multiple_diseases_integrated_rhythmic_only[.]pdf$",
-       to = "F5A_SUN_PUT_KEGG_neurodegeneration_heatmap.pdf",
-       script = "applications/Baboon_SUN_PUT.R"),
-  list(dir = sunput.dir,
-       pattern = "^KEGG_Oxidative_phosphorylation_integrated_rhythmic_only[.]pdf$",
-       to = "F5B_SUN_PUT_KEGG_OxPhos_heatmap.pdf",
-       script = "applications/Baboon_SUN_PUT.R"),
+  # Figure 5: KEGG Parkinson disease in both circuits, the rhythmic-only version
+  list(dir = putsun.dir,
+       pattern = "^KEGG_Parkinson_disease_integrated_rhythmic_only[.]pdf$",
+       to = "F5A_PUT_SUN_KEGG_Parkinson_heatmap.pdf",
+       script = "applications/Baboon_PUT_SUN.R"),
+  list(dir = putvic.dir,
+       pattern = "^KEGG_Parkinson_disease_integrated_rhythmic_only[.]pdf$",
+       to = "F5B_PUT_VIC_KEGG_Parkinson_heatmap.pdf",
+       script = "applications/Baboon_PUT_VIC.R"),
 
   # Figure 6: cross-species lung
   list(dir = lung.dir, pattern = "^Baboon_Human_LUN_Peak_Concordance[.]pdf$",
@@ -120,13 +126,19 @@ figures <- list(
   Figure_2 = c("F2A_baboon_genomewide_concordance.pdf",
                "F2B_baboon_circadian_concordance.pdf"),
   Figure_3 = c("F3A_baboon_SCN_HIP_phase_concordance.pdf",
-               "F3B_baboon_SUN_PUT_phase_concordance.pdf"),
-  Figure_4 = "F4_SUN_PUT_transition_enrichment.pdf",
-  Figure_5 = c("F5A_SUN_PUT_KEGG_neurodegeneration_heatmap.pdf",
-               "F5B_SUN_PUT_KEGG_OxPhos_heatmap.pdf"),
+               "F3B_baboon_PUT_SUN_phase_concordance.pdf",
+               "F3C_baboon_PUT_VIC_phase_concordance.pdf"),
+  Figure_4 = c("F4A_PUT_SUN_transition_enrichment.pdf",
+               "F4B_PUT_VIC_transition_enrichment.pdf"),
+  Figure_5 = c("F5A_PUT_SUN_KEGG_Parkinson_heatmap.pdf",
+               "F5B_PUT_VIC_KEGG_Parkinson_heatmap.pdf"),
   Figure_6 = c("F6A_baboon_human_LUN_phase_concordance.pdf",
                "F6B_baboon_human_LUN_circadian_heatmap.pdf")
 )
+
+# Figure 5's two heatmaps are each as wide as the text block, so they stack;
+# every other multi-panel figure runs its panels along a row.
+stacked.figures <- "Figure_5"
 
 # Collect ---------------------------------------------------------------------
 
@@ -160,9 +172,9 @@ for (p in panels) {
 }
 
 # Merge -----------------------------------------------------------------------
-# Panels are placed side by side and lettered, which pdflatex does through
-# graphicx. Each panel is scaled to the same width, so the page is as tall as
-# the tallest scaled panel.
+# Panels are lettered and placed by pdflatex through graphicx. Every panel is
+# scaled to one width, so a row is as tall as its tallest panel and a stack is
+# as tall as its panels together.
 
 page_size <- function(pdf) {
   info <- system2("pdfinfo", shQuote(pdf), stdout = TRUE, stderr = FALSE)
@@ -207,17 +219,57 @@ side_by_side <- function(inputs, output, labels = LETTERS[seq_along(inputs)],
   file.copy(built, output, overwrite = TRUE)
 }
 
+stacked <- function(inputs, output, labels = LETTERS[seq_along(inputs)],
+                    panel.width = 468, gap = 14, margin = 9,
+                    label.space = 22) {
+  if (!nzchar(Sys.which("pdflatex")) || !nzchar(Sys.which("pdfinfo")))
+    return(FALSE)
+  size <- lapply(inputs, page_size)
+  scaled.h <- vapply(size, function(d) panel.width * d[2] / d[1], numeric(1))
+  paper.w <- panel.width + 2 * margin
+  paper.h <- sum(scaled.h) + length(inputs) * label.space +
+             (length(inputs) - 1) * gap + 2 * margin
+
+  panel <- function(i) sprintf(
+    "\\textbf{\\sffamily\\large %s}\\\\[2bp]\n\\includegraphics[width=%.1fbp]{%s}",
+    labels[i], panel.width, inputs[i])
+
+  tex <- c("\\documentclass[11pt]{article}",
+    sprintf("\\usepackage[paperwidth=%.1fbp,paperheight=%.1fbp,margin=%.1fbp]{geometry}",
+            paper.w, paper.h, margin),
+    "\\usepackage{graphicx}", "\\pagestyle{empty}",
+    "\\setlength{\\parindent}{0pt}",
+    "\\begin{document}\\noindent",
+    paste(vapply(seq_along(inputs), panel, character(1)),
+          collapse = sprintf("\\\\[%.1fbp]\n", gap)),
+    "\\end{document}")
+
+  work <- file.path(tempdir(), "assemble")
+  dir.create(work, showWarnings = FALSE)
+  writeLines(tex, file.path(work, "fig.tex"))
+  system2("pdflatex", c("-interaction=batchmode", "-halt-on-error",
+                        "-output-directory", shQuote(work),
+                        shQuote(file.path(work, "fig.tex"))),
+          stdout = FALSE, stderr = FALSE)
+  built <- file.path(work, "fig.pdf")
+  if (!file.exists(built)) return(FALSE)
+  file.copy(built, output, overwrite = TRUE)
+}
+
 unassembled <- character(0)
 for (nm in names(figures)) {
   want <- file.path(sub.dir, figures[[nm]])
   have <- want[file.exists(want)]
   if (!length(have)) next
   out <- file.path(fig.dir, paste0(nm, ".pdf"))
+  down <- nm %in% stacked.figures
+  merge_panels <- if (down) stacked else side_by_side
   if (length(have) == 1L) {
     file.copy(have, out, overwrite = TRUE)
     cat("wrote", basename(out), "\n")
-  } else if (isTRUE(side_by_side(have, out))) {
-    cat("wrote", basename(out), "from", length(have), "panels side by side\n")
+  } else if (isTRUE(merge_panels(have, out))) {
+    cat("wrote", basename(out), "from", length(have),
+        if (down) "panels stacked\n" else "panels side by side\n")
   } else {
     unassembled <- c(unassembled, nm)
   }
