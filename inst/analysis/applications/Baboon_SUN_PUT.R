@@ -11,6 +11,7 @@ while (!file.exists(file.path(analysis.dir, "config.R")) &&
 source(file.path(analysis.dir, "config.R"))
 source(file.path(analysis.dir, "plots", "theme_bayrc.R"))
 source(file.path(analysis.dir, "plots", "peak_concordance.R"))
+source(file.path(analysis.dir, "plots", "palette_concordance.R"))
 source(file.path(analysis.dir, "pipeline", "run_record.R"))
 
 # frozen analysis parameters
@@ -131,7 +132,7 @@ fig4 <- ggplot(plot4[plot4$q < stage2_q, ],
                aes(x = direction, y = label, size = n_expected,
                    colour = -log10(q))) +
   geom_point() +
-  scale_colour_gradientn(colours = bayrc_seq(256), name = "q",
+  scale_colour_gradientn(colours = enrichment_colors, name = "q",
                          limits = c(-log10(stage2_q), NA),
                          breaks = -log10(q_breaks),
                          labels = format(q_breaks, drop0trailing = TRUE)) +
