@@ -13,8 +13,8 @@ while (!file.exists(file.path(analysis.dir, "config.R")) &&
 source(file.path(analysis.dir, "config.R"))
 suppressPackageStartupMessages({library(BayRC); library(dplyr)})
 
-STAGE1_Q <- 0.10
-STAGE2_Q <- 0.20
+STAGE1_Q <- 0.20
+STAGE2_Q <- 0.05
 NPERM    <- 10000
 MIN_MEASURED <- 15
 

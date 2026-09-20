@@ -16,8 +16,8 @@ source(file.path(analysis.dir, "pipeline", "run_record.R"))
 # frozen analysis parameters
 bfdr_alpha     <- 0.25
 shift          <- 2
-stage1_q       <- 0.10
-stage2_q       <- 0.20
+stage1_q       <- 0.20
+stage2_q       <- 0.05
 nperm          <- 10000
 min_measured   <- 15
 panel_pathways <- c("KEGG Parkinson disease", "KEGG Oxidative phosphorylation")
@@ -124,7 +124,7 @@ plot4$label <- wrap_label(sub(" - multiple diseases", "",
 best_q <- tapply(plot4$q, plot4$label, min)
 plot4$label <- factor(plot4$label, levels = names(sort(best_q, decreasing = TRUE)))
 
-q_breaks <- c(0.20, 0.05, 0.01)
+q_breaks <- c(0.05, 0.01, 0.001)
 fig4 <- ggplot(plot4[plot4$q < stage2_q, ],
                aes(x = direction, y = label, size = n_expected,
                    colour = -log10(q))) +

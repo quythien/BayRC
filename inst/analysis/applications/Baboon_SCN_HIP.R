@@ -16,8 +16,8 @@ source(file.path(analysis.dir, "pipeline", "run_record.R"))
 # frozen analysis parameters
 bfdr_alpha     <- 0.25
 shift          <- 2
-stage1_q       <- 0.10
-stage2_q       <- 0.20
+stage1_q       <- 0.20
+stage2_q       <- 0.05
 nperm          <- 10000
 min_measured   <- 15
 panel_pathways <- "KEGG Circadian rhythm"
