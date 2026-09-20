@@ -8,8 +8,7 @@ analysis.dir <- if (is.na(this.file)) getwd() else dirname(normalizePath(this.fi
 while (!file.exists(file.path(analysis.dir, "config.R")) &&
        dirname(analysis.dir) != analysis.dir) analysis.dir <- dirname(analysis.dir)
 source(file.path(analysis.dir, "config.R"))
-source(file.path(BAYRC_THIEN_DIR, "pathwaySelect.R"))
-suppressPackageStartupMessages({library(dplyr); library(fgsea)})
+suppressPackageStartupMessages({library(BayRC); library(dplyr); library(fgsea)})
 
 args  <- commandArgs(trailingOnly = TRUE)
 tA <- args[1]; tB <- args[2]
