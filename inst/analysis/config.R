@@ -70,14 +70,18 @@ rm(.d)
 # from, and nothing further down the pipeline names it. Report it and stop if
 # the rho summary is not there, so a run against the wrong tree cannot pass
 # unnoticed.
+# A script that only arranges existing files sets bayrc.needs.summary <- FALSE
+# before sourcing this, since it reports no numbers of its own.
 .rho <- file.path(BAYRC_SUMMARY_DIR, "mcmc_rho_BF3.RData")
-if (!file.exists(.rho))
+.needs <- !exists("bayrc.needs.summary") || isTRUE(bayrc.needs.summary)
+if (.needs && !file.exists(.rho))
   stop("config.R: no mcmc_rho_BF3.RData under BAYRC_SUMMARY_DIR: ",
        BAYRC_SUMMARY_DIR,
        "\n  Set BAYRC_RESULT_DIR (or BAYRC_SUMMARY_DIR) to the run you mean.")
 
 message("BayRC config loaded. Override paths via environment variables (see config.R).")
 message("  summaries: ", BAYRC_SUMMARY_DIR)
-message("  written:   ", format(file.info(.rho)$mtime, "%Y-%m-%d %H:%M"))
+if (file.exists(.rho))
+  message("  written:   ", format(file.info(.rho)$mtime, "%Y-%m-%d %H:%M"))
 message("  output:    ", BAYRC_OUTPUT_DIR)
-rm(.rho)
+rm(.rho, .needs)

@@ -19,6 +19,8 @@
 ################################################################################
 
 # Paths come from config.R; override any of them with the matching env var.
+# this script only arranges files that other scripts produced
+bayrc.needs.summary <- FALSE
 this.file <- sub("^--file=", "", grep("^--file=", commandArgs(), value = TRUE)[1])
 source(file.path(if (is.na(this.file)) getwd() else dirname(normalizePath(this.file)),
                  "config.R"))
@@ -158,23 +160,54 @@ for (p in panels) {
 }
 
 # Merge -----------------------------------------------------------------------
-# qpdf and pdftools are the usual ways to concatenate PDFs from R; pdfunite
-# from poppler does the same job from the shell. Whichever is present is used.
+# Panels are placed side by side and lettered, which pdflatex does through
+# graphicx. Each panel is scaled to the same width, so the page is as tall as
+# the tallest scaled panel.
 
-merge_pdf <- function(inputs, output) {
-  if (requireNamespace("qpdf", quietly = TRUE)) {
-    qpdf::pdf_combine(inputs, output); return(TRUE)
-  }
-  if (requireNamespace("pdftools", quietly = TRUE)) {
-    pdftools::pdf_combine(inputs, output); return(TRUE)
-  }
-  if (nzchar(Sys.which("pdfunite"))) {
-    system2("pdfunite", c(inputs, output)); return(file.exists(output))
-  }
-  FALSE
+page_size <- function(pdf) {
+  info <- system2("pdfinfo", shQuote(pdf), stdout = TRUE, stderr = FALSE)
+  d <- sub(".*: *", "", grep("^Page size", info, value = TRUE)[1])
+  as.numeric(strsplit(sub(" pts.*", "", d), " x ")[[1]])
 }
 
-no.merger <- character(0)
+side_by_side <- function(inputs, output, labels = LETTERS[seq_along(inputs)],
+                         panel.width = 324, gutter = 9, margin = 9,
+                         label.space = 22) {
+  if (!nzchar(Sys.which("pdflatex")) || !nzchar(Sys.which("pdfinfo")))
+    return(FALSE)
+  size <- lapply(inputs, page_size)
+  scaled.h <- vapply(size, function(d) panel.width * d[2] / d[1], numeric(1))
+  paper.w <- length(inputs) * panel.width +
+             (length(inputs) - 1) * gutter + 2 * margin
+  paper.h <- max(scaled.h) + label.space + 2 * margin
+
+  panel <- function(i) sprintf(
+    "\\begin{minipage}[t]{%.1fbp}\\raggedright\\textbf{\\sffamily\\large %s}\\\\[2bp]\n\\includegraphics[width=%.1fbp]{%s}\\end{minipage}",
+    panel.width, labels[i], panel.width, inputs[i])
+
+  tex <- c("\\documentclass[11pt]{article}",
+    sprintf("\\usepackage[paperwidth=%.1fbp,paperheight=%.1fbp,margin=%.1fbp]{geometry}",
+            paper.w, paper.h, margin),
+    "\\usepackage{graphicx}", "\\pagestyle{empty}",
+    "\\setlength{\\parindent}{0pt}",
+    "\\begin{document}\\noindent",
+    paste(vapply(seq_along(inputs), panel, character(1)),
+          collapse = sprintf("\\hspace{%.1fbp}\n", gutter)),
+    "\\end{document}")
+
+  work <- file.path(tempdir(), "assemble")
+  dir.create(work, showWarnings = FALSE)
+  writeLines(tex, file.path(work, "fig.tex"))
+  system2("pdflatex", c("-interaction=batchmode", "-halt-on-error",
+                        "-output-directory", shQuote(work),
+                        shQuote(file.path(work, "fig.tex"))),
+          stdout = FALSE, stderr = FALSE)
+  built <- file.path(work, "fig.pdf")
+  if (!file.exists(built)) return(FALSE)
+  file.copy(built, output, overwrite = TRUE)
+}
+
+unassembled <- character(0)
 for (nm in names(figures)) {
   want <- file.path(sub.dir, figures[[nm]])
   have <- want[file.exists(want)]
@@ -183,11 +216,10 @@ for (nm in names(figures)) {
   if (length(have) == 1L) {
     file.copy(have, out, overwrite = TRUE)
     cat("wrote", basename(out), "\n")
-  } else if (merge_pdf(have, out)) {
-    cat("wrote", basename(out), "as a", length(have),
-        "page PDF; panels still need side-by-side placement\n")
+  } else if (isTRUE(side_by_side(have, out))) {
+    cat("wrote", basename(out), "from", length(have), "panels side by side\n")
   } else {
-    no.merger <- c(no.merger, nm)
+    unassembled <- c(unassembled, nm)
   }
   if (length(have) < length(want))
     cat("  ", nm, "is incomplete:", length(have), "of", length(want), "panels\n")
@@ -199,9 +231,8 @@ if (length(missing)) {
   cat("\nPanels not found:\n")
   cat(paste0("  ", missing, collapse = "\n"), "\n")
 }
-if (length(no.merger)) {
-  cat("\nNo PDF merger available (install qpdf or pdftools, or put pdfunite",
-      "on the PATH). Multi-panel figures left unassembled:",
-      paste(no.merger, collapse = ", "), "\n")
+if (length(unassembled)) {
+  cat("\nSide-by-side assembly needs pdflatex and pdfinfo on the PATH.",
+      "Left unassembled:", paste(unassembled, collapse = ", "), "\n")
 }
 cat("\npanels:", sub.dir, "\nfigures:", fig.dir, "\n")
