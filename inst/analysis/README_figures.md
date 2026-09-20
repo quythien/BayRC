@@ -127,3 +127,29 @@ since placing them side by side is the one step still done by hand.
   `config.R`) and `R/v1/R/Thien/analysis/`. They have diverged;
   `circa_concordance.plots.R` is identical between them, the case-study
   scripts are not. Use this copy.
+
+---
+
+## Parameter search
+
+`pipeline/` holds the scripts that survey the tunable parameters behind
+Figures 3-5 before they are fixed. They read the same rho/phi summaries as the
+figure scripts and write under `BAYRC_OUTPUT_DIR/param_search/`.
+
+```
+sunput_cache.R            SUN and PUT rho/phi slices -> cache_PUT_SUN.rds
+sunput_phase_grid.R <a>   bfdr_alpha x phase window, one alpha per call,
+                          with the OxPhos, proteasome and Parkinson gene sets
+sunput_pathselect_grid.R  union/gain/loss/conserved enrichment per KEGG
+                          release, size filter opened up
+sunput_enrich_sweep.R     pathway list x size rule x stage-1 cut x stage-2 q
+                          applied to the stored pathSelect tables
+sunput_shifted_ora_grid.R over-representation of the shifted set per grid cell,
+                          with and without the measured-gene background
+case_study_counts.R a s   every gene-level count the Applications section
+                          reports, for all three case studies
+```
+
+`case_study_counts.R` takes the alpha and window on the command line, so
+pointing `BAYRC_RESULT_DIR` at one run or the other gives the same table for
+both and makes the comparison direct.

@@ -15,7 +15,9 @@ while (!file.exists(file.path(analysis.dir, "config.R")) &&
 source(file.path(analysis.dir, "config.R"))
 
 out.dir <- file.path(BAYRC_OUTPUT_DIR, "param_search")
-cells <- readRDS(file.path(out.dir, "phase_grid_genes_PUT_SUN.rds"))
+gene.files <- list.files(out.dir, "^phase_grid_genes_PUT_SUN.*[.]rds$",
+                         full.names = TRUE)
+cells <- unlist(lapply(gene.files, readRDS), recursive = FALSE)
 cache <- readRDS(file.path(out.dir, "cache_PUT_SUN.rds"))
 measured <- rownames(cache$A$rho)
 
