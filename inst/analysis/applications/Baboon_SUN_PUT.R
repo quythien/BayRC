@@ -105,19 +105,43 @@ if (is.null(stage2))
                        direction = character())
 sig <- stage2[stage2$q < stage2_q, ]
 
-# Figure 4
-sig$label <- sub("^KEGG ", "", sig$pathway)
+# Figure 4: a dot per pathway and transition that clears the stage-2 cut, sized
+# by the expected gene count for that transition and shaded by -log10(q)
+wrap_label <- function(x, width = 26)
+  vapply(x, function(s) paste(strwrap(s, width), collapse = "\n"), character(1),
+         USE.NAMES = FALSE)
+
 if (nrow(sig)) {
-fig4 <- ggplot(sig, aes(x = direction, y = reorder(label, -q),
-                        size = Expected_N_Conserved, color = q)) +
+plot4 <- stage2
+plot4$n_expected <- with(plot4,
+  ifelse(direction == "gain", Expected_N_Gain,
+  ifelse(direction == "loss", Expected_N_Loss, Expected_N_Conserved)))
+plot4$direction <- factor(plot4$direction, levels = c("gain", "loss", "conserved"))
+plot4$label <- wrap_label(sub(" - multiple diseases", "",
+                              sub("^KEGG ", "", plot4$pathway)))
+
+# best q across the transitions puts the strongest pathway at the top
+best_q <- tapply(plot4$q, plot4$label, min)
+plot4$label <- factor(plot4$label, levels = names(sort(best_q, decreasing = TRUE)))
+
+q_breaks <- c(0.20, 0.05, 0.01)
+fig4 <- ggplot(plot4[plot4$q < stage2_q, ],
+               aes(x = direction, y = label, size = n_expected,
+                   colour = -log10(q))) +
   geom_point() +
-  scale_color_gradientn(colours = bayrc_seq(256), name = expression(q)) +
-  scale_size_continuous(name = "E[conserved]") +
+  scale_colour_gradientn(colours = bayrc_seq(256), name = "q",
+                         limits = c(-log10(stage2_q), NA),
+                         breaks = -log10(q_breaks),
+                         labels = format(q_breaks, drop0trailing = TRUE)) +
+  scale_size_continuous(name = "expected genes", range = c(2.5, 9)) +
+  scale_x_discrete(drop = FALSE) +
+  scale_y_discrete(drop = FALSE) +
   labs(title = "Pathway transition enrichment: SUN versus PUT",
        x = "Transition", y = NULL) +
-  theme_bayrc(base_size = 13)
+  theme_bayrc(base_size = 12) +
+  theme(axis.text.y = element_text(size = 10))
 bayrc_save(fig4, file.path(fig.dir, "SUN_PUT_transition_enrichment"),
-           width = 8, height = 6)
+           width = 7.2, height = 3.9)
 }
 
 # pathway concordance metrics behind the enrichment table
