@@ -250,7 +250,7 @@ p3 <- ggplot(both_rhy, aes(x = peak_cosinor_r, y = peak_bayes_r)) +
   scale_x_continuous(breaks = c(-6, 0, 6, 12, 18)) +
   scale_y_continuous(breaks = c(-6, 0, 6, 12, 18)) +
   annotate("text", x = -Inf, y = Inf,
-           label = sprintf("Pearson r = %.2f", corr3),
+           label = sprintf("Pearson r = %.4f", corr3),
            hjust = -0.1, vjust = 1.6, size = 3.5, color = "black") +
   labs(
     tag      = "C",
@@ -287,7 +287,7 @@ cat(sprintf("top 5%% cutoff k = %d of %d; overlap = %d (%.0f%%)\n",
             top5_k, N_total, overlap_k[min(top5_k, MAX_K)],
             100 * overlap_k[min(top5_k, MAX_K)] / top5_k))
 cat(sprintf("Spearman r (posterior vs p-value) = %.3f\n", corr2))
-cat(sprintf("Pearson r (phase, n = %d) = %.3f\n", nrow(both_rhy), corr3))
+cat(sprintf("Pearson r (phase, n = %d) = %.4f\n", nrow(both_rhy), corr3))
 
 # ── Save combined PDF ─────────────────────────────────────────────────────────
 out_file <- file.path(outdir, "S5_Bayes_Cosinor_Agreement_LUN.pdf")
