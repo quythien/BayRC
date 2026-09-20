@@ -2,6 +2,10 @@
 ## Figure 5 panel: enough maintained genes, split across both phase-shifted and
 ## phase-conserved. The panel metric is min(n_shift, n_cons) within a pathway.
 ##
+## A pair also needs its phase differences to vary between pathways rather than
+## sitting at one global offset, so the per-pair summary records the spread of
+## pathway mean phase differences alongside the counts.
+##
 ## No enrichment is run here; this is the cheap pass over all pairs.
 ##
 ## Usage: Rscript pair_panel_screen.R [--time-one] [ncores]
@@ -52,15 +56,39 @@ screen_pair <- function(pr) {
                       shift = SHIFT, P = 24, compute_hdi = FALSE)))
   shifted <- names(ph$flag_shift)[ph$flag_shift]
   conserv <- names(ph$flag_cons)[ph$flag_cons]
-  do.call(rbind, lapply(names(kegg), function(nm) {
+  maint <- names(st)[st == "Maintained"]
+  delta <- ((ph$peak2 - ph$peak1 + 12) %% 24) - 12
+  dm <- delta[maint]
+
+  counts <- do.call(rbind, lapply(names(kegg), function(nm) {
     g <- kegg[[nm]]; s <- st[g]
+    gm <- intersect(g, maint)
     data.frame(pair = paste(tA, tB, sep = "-"), pathway = nm,
                measured = length(g),
-               n_maint = sum(s == "Maintained"), n_loss = sum(s == "Loss"),
+               n_maint = length(gm), n_loss = sum(s == "Loss"),
                n_gain = sum(s == "Gain"),
                n_shift = sum(g %in% shifted), n_cons = sum(g %in% conserv),
+               mean_delta = if (length(gm) >= 3) mean(delta[gm]) else NA_real_,
                stringsAsFactors = FALSE)
   }))
+
+  pm <- counts$mean_delta[!is.na(counts$mean_delta)]
+  n_tr <- c(Gain = sum(st == "Gain"), Loss = sum(st == "Loss"),
+            Maintained = length(maint))
+  summ <- data.frame(
+    pair = paste(tA, tB, sep = "-"),
+    maintained = length(maint), gain = n_tr[["Gain"]], loss = n_tr[["Loss"]],
+    dominant = names(n_tr)[which.max(n_tr)],
+    offset = if (length(dm)) mean(dm) else NA_real_,
+    offset_sd = if (length(dm) > 1) sd(dm) else NA_real_,
+    pct_sign = if (length(dm)) 100 * max(mean(dm > 0), mean(dm < 0)) else NA_real_,
+    n_pathways_scored = length(pm),
+    pathway_sd = if (length(pm) > 1) sd(pm) else NA_real_,
+    pathway_min = if (length(pm)) min(pm) else NA_real_,
+    pathway_max = if (length(pm)) max(pm) else NA_real_,
+    stringsAsFactors = FALSE)
+  summ$pathway_range <- summ$pathway_max - summ$pathway_min
+  list(counts = counts, summary = summ)
 }
 
 t0 <- Sys.time()
@@ -75,9 +103,10 @@ if (time.one) {
   quit(save = "no")
 }
 
-bad <- !vapply(res, is.data.frame, logical(1))
+bad <- !vapply(res, is.list, logical(1))
 if (any(bad)) cat("failed pairs:", sum(bad), "\n")
-tab <- do.call(rbind, res[!bad])
+tab <- do.call(rbind, lapply(res[!bad], `[[`, "counts"))
+summ <- do.call(rbind, lapply(res[!bad], `[[`, "summary"))
 tab$panel <- pmin(tab$n_shift, tab$n_cons)
 saveRDS(tab, file.path(out.dir, "pair_pathway_counts.rds"))
 
@@ -90,10 +119,14 @@ best <- do.call(rbind, lapply(split(tab, tab$pair), function(d) {
              densest_pathway = b$pathway, densest_maint = b$n_maint,
              densest_shift = b$n_shift, densest_cons = b$n_cons)
 }))
-best <- best[order(-best$panel, -best$panel_maint), ]
+best <- merge(best, summ, by = "pair")
+best <- best[order(-best$panel, -best$pathway_sd), ]
 write.csv(best, file.path(out.dir, "pair_panel_best.csv"), row.names = FALSE)
 
 cat(sprintf("\n%d pairs screened in %.1f min on %d cores\n",
             nrow(best), elapsed / 60, ncores))
 cat("\n=== top 20 by min(shift, conserved) within a pathway ===\n")
-print(head(best, 20), row.names = FALSE)
+print(head(best[, c("pair", "panel_pathway", "panel", "panel_maint",
+                    "panel_shift", "panel_cons", "dominant", "offset",
+                    "pct_sign", "pathway_sd", "pathway_range")], 20),
+      row.names = FALSE)
