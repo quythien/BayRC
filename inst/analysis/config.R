@@ -66,4 +66,18 @@ for (.d in c(BAYRC_OUTPUT_DIR, BAYRC_FIGURE_DIR))
   dir.create(.d, recursive = TRUE, showWarnings = FALSE)
 rm(.d)
 
+# The summary directory decides which MCMC run every downstream number comes
+# from, and nothing further down the pipeline names it. Report it and stop if
+# the rho summary is not there, so a run against the wrong tree cannot pass
+# unnoticed.
+.rho <- file.path(BAYRC_SUMMARY_DIR, "mcmc_rho_BF3.RData")
+if (!file.exists(.rho))
+  stop("config.R: no mcmc_rho_BF3.RData under BAYRC_SUMMARY_DIR: ",
+       BAYRC_SUMMARY_DIR,
+       "\n  Set BAYRC_RESULT_DIR (or BAYRC_SUMMARY_DIR) to the run you mean.")
+
 message("BayRC config loaded. Override paths via environment variables (see config.R).")
+message("  summaries: ", BAYRC_SUMMARY_DIR)
+message("  written:   ", format(file.info(.rho)$mtime, "%Y-%m-%d %H:%M"))
+message("  output:    ", BAYRC_OUTPUT_DIR)
+rm(.rho)

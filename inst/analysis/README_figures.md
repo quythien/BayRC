@@ -21,6 +21,13 @@ Scripts in `inst/analysis/` find `config.R` next to themselves; scripts in
 `plots/` and `pipeline/` find it one directory up. Both work under `Rscript`
 and when sourced from the directory the script lives in.
 
+`BAYRC_RESULT_DIR` decides which MCMC run every number below comes from, and
+no script names it again after `config.R` resolves it. `config.R` therefore
+prints the summary directory and the date its `mcmc_rho_BF3.RData` was
+written, and stops if that file is absent, so the run behind a set of figures
+can be read off the log. The default is still the 2025 `result/` tree; point
+`BAYRC_RESULT_DIR` at `result_fixed/` for the corrected sampler.
+
 ---
 
 ## Order of operations
