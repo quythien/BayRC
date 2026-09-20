@@ -6,6 +6,7 @@
 #   Rscript heatmap_circadian_pairs.R cross_species
 
 library(pheatmap)
+library(BayRC)
 
 if (!exists("mode", inherits = FALSE)) {
   mode <- "all"

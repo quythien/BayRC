@@ -1,5 +1,6 @@
 # Heatmap for concordance of Baboon
 library(pheatmap)
+library(BayRC)
 # Paths come from inst/analysis/config.R; override any of them with the
 # matching env var.
 this.file <- sub("^--file=", "", grep("^--file=", commandArgs(), value = TRUE)[1])
