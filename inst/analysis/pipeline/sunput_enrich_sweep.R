@@ -26,6 +26,8 @@ size.rules <- list("raw5-500"  = function(d) d$raw_size >= 5   & d$raw_size <= 5
                    "raw15-500" = function(d) d$raw_size >= 15  & d$raw_size <= 500,
                    "meas10+"   = function(d) d$measured >= 10,
                    "meas15+"   = function(d) d$measured >= 15,
+                   "raw5-500+meas15" = function(d) d$raw_size >= 5 &
+                     d$raw_size <= 500 & d$measured >= 15,
                    "none"      = function(d) rep(TRUE, nrow(d)))
 stage1.rules <- list("p<0.01" = function(u) u$pval < 0.01,
                      "p<0.05" = function(u) u$pval < 0.05,
