@@ -92,8 +92,8 @@ panels <- list(
 
   # Figure 5: SUN-PUT pathway heatmaps, the rhythmic-only version
   list(dir = sunput.dir,
-       pattern = "^KEGG_Parkinson_disease_integrated_rhythmic_only[.]pdf$",
-       to = "F5A_SUN_PUT_KEGG_Parkinson_heatmap.pdf",
+       pattern = "^KEGG_Pathways_of_neurodegeneration___multiple_diseases_integrated_rhythmic_only[.]pdf$",
+       to = "F5A_SUN_PUT_KEGG_neurodegeneration_heatmap.pdf",
        script = "applications/Baboon_SUN_PUT.R"),
   list(dir = sunput.dir,
        pattern = "^KEGG_Oxidative_phosphorylation_integrated_rhythmic_only[.]pdf$",
@@ -122,7 +122,7 @@ figures <- list(
   Figure_3 = c("F3A_baboon_SCN_HIP_phase_concordance.pdf",
                "F3B_baboon_SUN_PUT_phase_concordance.pdf"),
   Figure_4 = "F4_SUN_PUT_transition_enrichment.pdf",
-  Figure_5 = c("F5A_SUN_PUT_KEGG_Parkinson_heatmap.pdf",
+  Figure_5 = c("F5A_SUN_PUT_KEGG_neurodegeneration_heatmap.pdf",
                "F5B_SUN_PUT_KEGG_OxPhos_heatmap.pdf"),
   Figure_6 = c("F6A_baboon_human_LUN_phase_concordance.pdf",
                "F6B_baboon_human_LUN_circadian_heatmap.pdf")
