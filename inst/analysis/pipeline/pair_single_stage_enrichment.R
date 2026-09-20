@@ -32,7 +32,8 @@ for (rk in c("gain", "loss", "conserved")) {
   r <- pathSelect(mcmc.merge.list = setNames(list(datA, datB), c(tA, tB)),
                   pathway.list = kegg, dataset.names = c(tA, tB),
                   ranking.method = rk, score_type = "pos", qvalue.cut = 0.20,
-                  pathwaysize.lower.cut = 1, pathwaysize.upper.cut = 100000,
+                  pathwaysize.lower.cut = min_measured,
+                  pathwaysize.upper.cut = length(genes),
                   nperm = nperm, nproc = 1)
   t <- r$results
   t$q <- p.adjust(t$pval, "BH")
