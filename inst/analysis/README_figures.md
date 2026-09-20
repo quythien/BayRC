@@ -6,8 +6,8 @@ files it writes. Start from the table; the sections below give the detail.
 | Figure | Script | Writes under |
 |---|---|---|
 | 1 | none, hand-drawn flowchart | — |
-| 2A | `plots/heatmap_baboon.R` | `BAYRC_FIGURE_DIR` |
-| 2B | `plots/heatmap_circadian_pairs.R within_baboon` | `BAYRC_OUTPUT_DIR/heatmap_circadian_pairs/` |
+| 2A | `plots/heatmap_baboon.R`, drawn by `plots/replot_figure2.R` | `BAYRC_FIGURE_DIR/figure2/` |
+| 2B | `plots/heatmap_circadian_pairs.R within_baboon`, drawn by `plots/replot_figure2.R` | `BAYRC_FIGURE_DIR/figure2/` |
 | 3A | `applications/Baboon_SCN_HIP.R` | `BAYRC_FIGURE_DIR/baboon_SCN_HIP/` |
 | 3B, 4, 5 | `applications/Baboon_SUN_PUT.R` | `BAYRC_FIGURE_DIR/baboon_SUN_PUT/` |
 | 6 | `applications/Baboon_Human_LUN.R` | `BAYRC_FIGURE_DIR/baboon_human_LUN/` |
@@ -85,10 +85,12 @@ defined it.
 
 ## Figures
 
-**Figure 2** — genome-wide and KEGG-circadian concordance across 26 baboon
-tissues. `plots/heatmap_baboon.R` writes
-`Baboon_Concordance_Heatmap_0.5_<method>.pdf` and `Baboon_Concordance_Matrix.csv`;
-the cap and ramp come from `plots/palette_concordance.R`.
+**Figure 2** — genome-wide concordance across 26 baboon tissues and
+KEGG-circadian concordance across the 25 excluding SCN. `plots/heatmap_baboon.R`
+and `plots/heatmap_circadian_pairs.R` compute the concordance matrices;
+`plots/replot_figure2.R` draws both panels from those matrices as
+`Fig2A_genomewide.pdf` and `Fig2B_circadian.pdf`, with the cap and ramp from
+`plots/palette_concordance.R`, and writes the run record.
 `plots/heatmap_circadian_pairs.R` also takes `within_baboon_with_scn`,
 `within_human` and `cross_species`. 325 within-species pairs, 676 cross-species.
 

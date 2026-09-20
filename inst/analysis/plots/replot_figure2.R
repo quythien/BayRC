@@ -10,16 +10,22 @@
 
 this.file <- sub("^--file=", "", grep("^--file=", commandArgs(), value = TRUE)[1])
 here <- if (is.na(this.file)) getwd() else dirname(normalizePath(this.file))
-source(file.path(here, "palette_concordance.R"))
+analysis.dir <- here
+while (!file.exists(file.path(analysis.dir, "config.R")) &&
+       dirname(analysis.dir) != analysis.dir) analysis.dir <- dirname(analysis.dir)
+source(file.path(analysis.dir, "config.R"))
+source(file.path(analysis.dir, "plots", "palette_concordance.R"))
+source(file.path(analysis.dir, "pipeline", "run_record.R"))
 
-suppressPackageStartupMessages(library(pheatmap))
+suppressPackageStartupMessages({library(pheatmap); library(BayRC)})
 
 args   <- commandArgs(trailingOnly = TRUE)
 outdir <- if (length(args) >= 1) args[1] else
-  file.path(Sys.getenv("BAYRC_FIGURE_DIR", unset = "."), "fig2_replot")
+  file.path(BAYRC_FIGURE_DIR, "figure2")
 dir.create(outdir, recursive = TRUE, showWarnings = FALSE)
 
-fig_dir <- Sys.getenv("BAYRC_FIGURE_DIR", unset = ".")
+# the concordance matrices are written under the analysis output root
+fig_dir <- BAYRC_OUTPUT_DIR
 
 panels <- list(
   Fig2A_genomewide = list(
@@ -53,6 +59,15 @@ for (stem in names(panels)) {
   dev.off()
 
   off <- m[row(m) != col(m)]
-  cat(sprintf("%s  off-diagonal range %.3f to %.3f\n",
-              stem, min(off), max(off)))
+  cat(sprintf("%s  %d tissues  off-diagonal range %.3f to %.3f\n",
+              stem, nrow(m), min(off), max(off)))
 }
+
+write_run_record(file.path(outdir, "run_record.txt"), "plots/replot_figure2.R",
+                 c(list(colour_cap = concordance_max,
+                        clustering = "ward.D2 on 1 - concordance"),
+                   setNames(lapply(names(panels), function(n)
+                     sprintf("%s (written %s)", panels[[n]]$csv,
+                             format(file.info(panels[[n]]$csv)$mtime,
+                                    "%Y-%m-%d %H:%M"))), names(panels))),
+                 repo = analysis.dir)

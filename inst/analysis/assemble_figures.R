@@ -61,60 +61,51 @@ find_panel <- function(dir, pattern, recursive = FALSE) {
   hits[1]
 }
 
-brain.dir <- file.path(fig.out, "baboon_brain")
-lung.dir  <- file.path(fig.out, "baboon_human_lung")
-sunput.heatmaps <- file.path(BAYRC_OUTPUT_DIR, "heatmap_baboon_SUN_PUT")
-circadian.dir <- file.path(BAYRC_OUTPUT_DIR, "heatmap_circadian_pairs",
-                           "within_baboon")
+fig2.dir   <- file.path(BAYRC_FIGURE_DIR, "figure2")
+scnhip.dir <- file.path(BAYRC_FIGURE_DIR, "baboon_SCN_HIP")
+sunput.dir <- file.path(BAYRC_FIGURE_DIR, "baboon_SUN_PUT")
+lung.dir   <- file.path(BAYRC_FIGURE_DIR, "baboon_human_LUN")
 
 panels <- list(
   # Figure 2: genome-wide and KEGG-circadian concordance heatmaps
-  list(dir = BAYRC_FIGURE_DIR,
-       pattern = "^Baboon_Concordance_Heatmap_0[.]5_ward[.]D2[.]pdf$",
+  list(dir = fig2.dir, pattern = "^Fig2A_genomewide[.]pdf$",
        to = "F2A_baboon_genomewide_concordance.pdf",
-       script = "plots/heatmap_baboon.R"),
-  list(dir = circadian.dir,
-       pattern = "_Heatmap_ward[.]D2[.]pdf$",
+       script = "plots/heatmap_baboon.R then plots/replot_figure2.R"),
+  list(dir = fig2.dir, pattern = "^Fig2B_circadian[.]pdf$",
        to = "F2B_baboon_circadian_concordance.pdf",
-       script = "plots/heatmap_circadian_pairs.R within_baboon"),
+       script = "plots/heatmap_circadian_pairs.R within_baboon then plots/replot_figure2.R"),
 
   # Figure 3: within-species phase concordance scatters
-  list(dir = brain.dir,
-       pattern = "^Baboon_SCN_HIP_Peak_Concordance_.*_2h_new[.]pdf$",
+  list(dir = scnhip.dir, pattern = "^Baboon_SCN_HIP_Peak_Concordance[.]pdf$",
        to = "F3A_baboon_SCN_HIP_phase_concordance.pdf",
-       script = "Baboon_SCN_HIP.R"),
-  list(dir = brain.dir,
-       pattern = "^Baboon_SUN_PUT_Peak_Concordance_.*_2h_new[.]pdf$",
+       script = "applications/Baboon_SCN_HIP.R"),
+  list(dir = sunput.dir, pattern = "^Baboon_SUN_PUT_Peak_Concordance[.]pdf$",
        to = "F3B_baboon_SUN_PUT_phase_concordance.pdf",
-       script = "Baboon_SUN_PUT.R"),
+       script = "applications/Baboon_SUN_PUT.R"),
 
-  # Figure 4: SUN-PUT enrichment dotplots
-  list(dir = brain.dir,
-       pattern = "^SUN_PUT_shifted_GO_BP_dotplot[.]pdf$",
-       to = "F4A_SUN_PUT_shifted_GO_BP_dotplot.pdf",
-       script = "plot_enrich_SUN_PUT.R"),
-  list(dir = brain.dir,
-       pattern = "^SUN_PUT_shifted_KEGG_dotplot[.]pdf$",
-       to = "F4B_SUN_PUT_shifted_KEGG_dotplot.pdf",
-       script = "plot_enrich_SUN_PUT.R"),
+  # Figure 4: SUN-PUT pathway transition enrichment, a single panel
+  list(dir = sunput.dir, pattern = "^SUN_PUT_transition_enrichment[.]pdf$",
+       to = "F4_SUN_PUT_transition_enrichment.pdf",
+       script = "applications/Baboon_SUN_PUT.R"),
 
-  # Figure 5: SUN-PUT pathway heatmaps. plot_heatmap() writes one file per
-  # pathway into its own sub-directory, and also a rhythmic-only version;
-  # the patterns take the full version of the two pathways the figure shows.
-  list(dir = sunput.heatmaps, recursive = TRUE,
-       pattern = "Parkinson.*_integrated[.]pdf$",
+  # Figure 5: SUN-PUT pathway heatmaps, the rhythmic-only version
+  list(dir = sunput.dir,
+       pattern = "^KEGG_Parkinson_disease_integrated_rhythmic_only[.]pdf$",
        to = "F5A_SUN_PUT_KEGG_Parkinson_heatmap.pdf",
-       script = "Baboon_SUN_PUT.R (heatmap section)"),
-  list(dir = sunput.heatmaps, recursive = TRUE,
-       pattern = "Oxidative_phosphorylation_integrated[.]pdf$",
+       script = "applications/Baboon_SUN_PUT.R"),
+  list(dir = sunput.dir,
+       pattern = "^KEGG_Oxidative_phosphorylation_integrated_rhythmic_only[.]pdf$",
        to = "F5B_SUN_PUT_KEGG_OxPhos_heatmap.pdf",
-       script = "Baboon_SUN_PUT.R (heatmap section)"),
+       script = "applications/Baboon_SUN_PUT.R"),
 
   # Figure 6: cross-species lung
+  list(dir = lung.dir, pattern = "^Baboon_Human_LUN_Peak_Concordance[.]pdf$",
+       to = "F6A_baboon_human_LUN_phase_concordance.pdf",
+       script = "applications/Baboon_Human_LUN.R"),
   list(dir = lung.dir,
-       pattern = "^Baboon_Human_LUN_Peak_Concordance_.*_2h[.]pdf$",
-       to = "F6_baboon_human_LUN_phase_concordance.pdf",
-       script = "Baboon_Human_LUN.R")
+       pattern = "^KEGG_Circadian_rhythm_integrated_rhythmic_only[.]pdf$",
+       to = "F6B_baboon_human_LUN_circadian_heatmap.pdf",
+       script = "applications/Baboon_Human_LUN.R")
 )
 
 for (i in seq_along(panels))
@@ -128,11 +119,11 @@ figures <- list(
                "F2B_baboon_circadian_concordance.pdf"),
   Figure_3 = c("F3A_baboon_SCN_HIP_phase_concordance.pdf",
                "F3B_baboon_SUN_PUT_phase_concordance.pdf"),
-  Figure_4 = c("F4A_SUN_PUT_shifted_GO_BP_dotplot.pdf",
-               "F4B_SUN_PUT_shifted_KEGG_dotplot.pdf"),
+  Figure_4 = "F4_SUN_PUT_transition_enrichment.pdf",
   Figure_5 = c("F5A_SUN_PUT_KEGG_Parkinson_heatmap.pdf",
                "F5B_SUN_PUT_KEGG_OxPhos_heatmap.pdf"),
-  Figure_6 = "F6_baboon_human_LUN_phase_concordance.pdf"
+  Figure_6 = c("F6A_baboon_human_LUN_phase_concordance.pdf",
+               "F6B_baboon_human_LUN_circadian_heatmap.pdf")
 )
 
 # Collect ---------------------------------------------------------------------
