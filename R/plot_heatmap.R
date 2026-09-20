@@ -28,6 +28,13 @@
 #'   plot PNG; if \code{NULL} the plot is drawn but not saved.
 #' @param n_bins Integer; number of bins for the phase colour wheel
 #'   (default 24).
+#' @param col_main Colour mapping for the posterior-probability panel, as
+#'   returned by \code{circlize::colorRamp2}; defaults to the package's own
+#'   five-stop white-to-red ramp over \[0, 1\].
+#' @param col_phase1 Colour mapping for the first phase panel; defaults to a
+#'   three-stop white-to-blue ramp over \[0, 1\].
+#' @param col_phase2 Colour mapping for the second phase panel; defaults to a
+#'   three-stop white-to-red ramp over \[0, 1\].
 #' @param versions Character; which version to produce: \code{"full"},
 #'   \code{"rhythmic_only"}, or \code{"both"} (default \code{"full"}).
 #'
@@ -42,6 +49,10 @@ plot_heatmap <- function(data1, data2,
                           group_names = c("Group1", "Group2"),
                           save_path = NULL,
                           n_bins = 24,
+                          col_main = circlize::colorRamp2(c(0, 0.5, 0.7, 0.9, 1),
+                                                c("#fff5f0", "#fee0d2", "#fcae91", "#fb6a4a", "#ef3b2c")),
+                          col_phase1 = circlize::colorRamp2(c(0, 0.5, 1), c("white", "#6baed6", "#08519c")),
+                          col_phase2 = circlize::colorRamp2(c(0, 0.5, 1), c("white", "#fc9272", "#a50f15")),
                           versions = c("full", "rhythmic_only", "both")) {
 
   versions <- match.arg(versions)
@@ -276,7 +287,7 @@ plot_heatmap <- function(data1, data2,
   ht_main <- Heatmap(
     heatmap_mat,
     name = "Rhythmicity_Prob",
-    col = colorRamp2(c(0, 0.5, 0.7, 0.9, 1), c("#fff5f0", "#fee0d2", "#fcae91", "#fb6a4a", "#ef3b2c")),
+    col = col_main,
     
     cluster_rows = FALSE,
     cluster_columns = FALSE,
@@ -386,7 +397,7 @@ plot_heatmap <- function(data1, data2,
   ht_phase1 <- Heatmap(
     hist_mat_1,
     name = paste0("Phase_", group_names[1]),
-    col = colorRamp2(c(0, 0.5, 1), c("white", "#6baed6", "#08519c")),
+    col = col_phase1,
     cluster_rows = FALSE,
     cluster_columns = FALSE,
     show_row_names = FALSE,
@@ -405,7 +416,7 @@ plot_heatmap <- function(data1, data2,
   ht_phase2 <- Heatmap(
     hist_mat_2,
     name = paste0("Phase_", group_names[2]),
-    col = colorRamp2(c(0, 0.5, 1), c("white", "#fc9272", "#a50f15")),
+    col = col_phase2,
     cluster_rows = FALSE,
     cluster_columns = FALSE,
     show_row_names = FALSE,

@@ -14,6 +14,10 @@ plot_heatmap(
   group_names = c("Group1", "Group2"),
   save_path = NULL,
   n_bins = 24,
+  col_main = circlize::colorRamp2(c(0, 0.5, 0.7, 0.9, 1), c("#fff5f0", "#fee0d2",
+    "#fcae91", "#fb6a4a", "#ef3b2c")),
+  col_phase1 = circlize::colorRamp2(c(0, 0.5, 1), c("white", "#6baed6", "#08519c")),
+  col_phase2 = circlize::colorRamp2(c(0, 0.5, 1), c("white", "#fc9272", "#a50f15")),
   versions = c("full", "rhythmic_only", "both")
 )
 }
@@ -42,6 +46,16 @@ plot PNG; if \code{NULL} the plot is drawn but not saved.}
 
 \item{n_bins}{Integer; number of bins for the phase colour wheel
 (default 24).}
+
+\item{col_main}{Colour mapping for the posterior-probability panel, as
+returned by \code{circlize::colorRamp2}; defaults to the package's own
+five-stop white-to-red ramp over \[0, 1\].}
+
+\item{col_phase1}{Colour mapping for the first phase panel; defaults to a
+three-stop white-to-blue ramp over \[0, 1\].}
+
+\item{col_phase2}{Colour mapping for the second phase panel; defaults to a
+three-stop white-to-red ramp over \[0, 1\].}
 
 \item{versions}{Character; which version to produce: \code{"full"},
 \code{"rhythmic_only"}, or \code{"both"} (default \code{"full"}).}
