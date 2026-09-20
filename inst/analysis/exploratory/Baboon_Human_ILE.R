@@ -5,8 +5,10 @@ rm(list = ls())
 
 # Paths come from config.R; override any of them with the matching env var.
 this.file <- sub("^--file=", "", grep("^--file=", commandArgs(), value = TRUE)[1])
-source(file.path(if (is.na(this.file)) getwd() else dirname(normalizePath(this.file)),
-                 "config.R"))
+analysis.dir <- if (is.na(this.file)) getwd() else dirname(normalizePath(this.file))
+while (!file.exists(file.path(analysis.dir, "config.R")) &&
+       dirname(analysis.dir) != analysis.dir) analysis.dir <- dirname(analysis.dir)
+source(file.path(analysis.dir, "config.R"))
 
 current_gtex   <- BAYRC_DATA_DIR
 current_wd     <- BAYRC_WD_DIR

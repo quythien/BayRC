@@ -1,14 +1,14 @@
-# SAME SPECIE  (Baboon Lung vs Human Lung)
+# SAME SPECIE  (Baboon Thalamus vs Human Thalamus)
 
 
 rm(list = ls())
 
 # Paths come from config.R; override any of them with the matching env var.
 this.file <- sub("^--file=", "", grep("^--file=", commandArgs(), value = TRUE)[1])
-source(file.path(if (is.na(this.file)) getwd() else dirname(normalizePath(this.file)),
-                 "config.R"))
 analysis.dir <- if (is.na(this.file)) getwd() else dirname(normalizePath(this.file))
-source(file.path(analysis.dir, "plots", "theme_bayrc.R"))
+while (!file.exists(file.path(analysis.dir, "config.R")) &&
+       dirname(analysis.dir) != analysis.dir) analysis.dir <- dirname(analysis.dir)
+source(file.path(analysis.dir, "config.R"))
 
 current_gtex   <- BAYRC_DATA_DIR
 current_wd     <- BAYRC_WD_DIR
@@ -80,30 +80,30 @@ to_zt <- function(t_cos) ifelse(t_cos >= 18, t_cos - 24, t_cos)
 # BRAIN/LUNG OBJECTS (HERE: LUNG Baboon vs LUNG Human)
 #---------------------------------------------------------------------------------
 
-baboon_LUN <- list(
-  rho = mcmc_data_baboon$LUN,
-  phi = mcmc_phi_baboon$LUN
+baboon_THR <- list(
+  rho = mcmc_data_baboon$THR,
+  phi = mcmc_phi_baboon$THR
 )
 
-human_LUN <- list(
-  rho = mcmc_data_human$LUN,
-  phi = mcmc_phi_human$LUN
+human_THR <- list(
+  rho = mcmc_data_human$THR,
+  phi = mcmc_phi_human$THR
 )
 
-baboon_LUN <- list(
-  rho = mcmc_data_baboon$LUN,
-  phi = mcmc_phi_baboon$LUN
+baboon_THR <- list(
+  rho = mcmc_data_baboon$THR,
+  phi = mcmc_phi_baboon$THR
 )
 
-human_LUN <- list(
-  rho = mcmc_data_human$LUN,
-  phi = mcmc_phi_human$LUN
+human_THR <- list(
+  rho = mcmc_data_human$THR,
+  phi = mcmc_phi_human$THR
 )
 
 save(
-  baboon_LUN,
-  human_LUN,
-  file = file.path(BAYRC_AGING_DIR, "data", "HB_lung.RData")
+  baboon_THR,
+  human_THR,
+  file = file.path(BAYRC_AGING_DIR, "data", "HB_thalamus.RData")
 )
 
 
@@ -143,30 +143,30 @@ source(file.path(thien_dir, "plots/heatmap.R"))
 
 # Analyze ALL genes together
 results_global1 <- multi_conservation(
-  mcmc.merge.list   = list(baboon_LUN, human_LUN),
-  dataset.names     = c("Baboon_LUN", "Human_LUN"),
+  mcmc.merge.list   = list(baboon_THR, human_THR),
+  dataset.names     = c("Baboon_THR", "Human_THR"),
   select.pathway.list = "global",
   n_perm            = 1000,
   n_boot            = 1000,
-  output.dir        = file.path(output.dir, "concordance_LUN"),
+  output.dir        = file.path(output.dir, "concordance_THR"),
   use_cpp           = TRUE
 )
 
-rhy <- detect_rhy(baboon_LUN, human_LUN, 0.25)
+rhy <- detect_rhy(baboon_THR, human_THR, 0.25)
 
 #---------------------------------------------------------------------------------
 # Outer (rhythmic) and inner (phase) analysis
 #---------------------------------------------------------------------------------
 
-# dataset1 = Baboon lung, dataset2 = Human lung
-pA <- rowMeans(baboon_LUN$rho)
-pB <- rowMeans(human_LUN$rho)
+# dataset1 = Baboon thalamus, dataset2 = Human thalamus
+pA <- rowMeans(baboon_THR$rho)
+pB <- rowMeans(human_THR$rho)
 
 trans_outer <- transition_classify(pA, pB, bfdr_alpha = 0.25)
 
 phase_inner <- phase_infer(
-  phi_matrix1      = baboon_LUN$phi,
-  phi_matrix2      = human_LUN$phi,
+  phi_matrix1      = baboon_THR$phi,
+  phi_matrix2      = human_THR$phi,
   gain_loss_status = trans_outer$gain_loss_status,
   bfdr_alpha       = 0.25,
   shift            = 2,
@@ -175,7 +175,7 @@ phase_inner <- phase_infer(
 )
 
 #---------------------------------------------------------------------------------
-# Maintained plot: Peak Concordance Plot - Baboon Lung vs Human Lung
+# Maintained plot: Peak Concordance Plot - Baboon Thalamus vs Human Thalamus
 #---------------------------------------------------------------------------------
 
 library(ggplot2)
@@ -263,7 +263,7 @@ pct_phase_conserved_global <- 100 * n_phase_conserved / n_rhythmic_outer
 pct_phase_shifted_global   <- 100 * n_phase_shifted / n_rhythmic_outer
 pct_undetermined_global    <- 100 * n_undetermined / n_rhythmic_outer
 
-cat("\n[Global Summary - Baboon Lung vs Human Lung]\n")
+cat("\n[Global Summary - Baboon Thalamus vs Human Thalamus]\n")
 cat("  Rhythmic (outer τ_c ≤ 0.25):", n_rhythmic_outer, "\n")
 cat("  Phase-conserved (inner τ_p ≤ 0.10):", n_phase_conserved,
     sprintf("(%.2f%%)\n", pct_phase_conserved_global))
@@ -372,10 +372,10 @@ p <- ggplot(plot_df, aes(
     max.overlaps = Inf
   ) +
   labs(
-    title    = "Circadian Peak Concordance: Baboon Lung versus Human Lung",
+    title    = "Circadian Peak Concordance: Baboon Thalamus versus Human Thalamus",
     subtitle = subtitle_text,
-    x        = "Peak Hour – Baboon Lung (ZT)",
-    y        = "Peak Hour – Human Lung (ZT)",
+    x        = "Peak Hour – Baboon Thalamus (ZT)",
+    y        = "Peak Hour – Human Thalamus (ZT)",
     color    = "Phase class"
   ) +
   scale_x_continuous(
@@ -387,7 +387,7 @@ p <- ggplot(plot_df, aes(
     labels = sprintf("ZT%+d", seq(-6, 18, 6))
   ) +
   coord_cartesian(xlim = c(-8, 20), ylim = c(-8, 20)) +
-  theme_bayrc(base_size = 14) +
+  theme_bw(base_size = 14) +
   theme(
     plot.title    = element_text(face = "bold", size = 16, hjust = 0.5),
     plot.subtitle = element_text(size = 13, hjust = 0.5, margin = margin(b = 10)),
@@ -408,20 +408,22 @@ p
 #───────────────────────────────────────────────────────────────
 # Save
 #───────────────────────────────────────────────────────────────
-save_dir <- file.path(output.dir, "figure/baboon_human_lung")
+save_dir <- file.path(output.dir, "figure/baboon_human_thalamus")
 dir.create(save_dir, recursive = TRUE, showWarnings = FALSE)
 
-bayrc_save(p, file.path(save_dir, "Baboon_Human_LUN_Peak_Concordance_0.25_2h"),
-           width = 9, height = 8)
+ggsave(
+  file.path(save_dir, "Baboon_Human_THR_Peak_Concordance_0.25_2h.pdf"),
+  plot = p, width = 9, height = 8
+)
 
 #───────────────────────────────────────────────────────────────
 #───────────────────────────────────────────────────────────────
 ################################################################################
-# COMPLETE WORKFLOW: Baboon Lung vs Human Lung Pathway Analysis
+# COMPLETE WORKFLOW: Baboon Thalamus vs Human Thalamus Pathway Analysis
 ################################################################################
 
 # Set parameters
-dataset_names <- c("Baboon_LUN", "Human_LUN")
+dataset_names <- c("Baboon_THR", "Human_THR")
 qvalue_cut <- 0.25
 nperm <- 1000
 pathway_size_min <- 10
@@ -438,9 +440,9 @@ dir.create(output.dir, recursive = TRUE, showWarnings = FALSE)
 cat("\n=== STAGE 1: Union Test (Active Pathways) ===\n")
 
 result_union <- pathSelect(
-  mcmc.merge.list = list(Baboon_LUN = baboon_LUN, Human_LUN = human_LUN),
+  mcmc.merge.list = list(Baboon_THR = baboon_THR, Human_THR = human_THR),
   pathway.list = kegg.pathway.list_hsa,
-  dataset.names = c("Baboon_LUN", "Human_LUN"),
+  dataset.names = c("Baboon_THR", "Human_THR"),
   ranking.method = "union",
   score_type = "pos",
   qvalue.cut = 0.20,
@@ -471,9 +473,9 @@ active_pathway_list <- kegg.pathway.list_hsa[match(active_pathways, names(kegg.p
 
 # Gain enrichment
 result_gain <- pathSelect(
-  mcmc.merge.list = list(Human_LUN = human_LUN, Baboon_LUN = baboon_LUN),
+  mcmc.merge.list = list(Human_THR = human_THR, Baboon_THR = baboon_THR),
   pathway.list = active_pathway_list,
-  dataset.names = c("Human_LUN", "Baboon_LUN"),
+  dataset.names = c("Human_THR", "Baboon_THR"),
   ranking.method = "gain",
   score_type = "pos",
   qvalue.cut = 0.20,
@@ -486,9 +488,9 @@ result_gain <- pathSelect(
 
 # Loss enrichment
 result_loss <- pathSelect(
-  mcmc.merge.list = list(Human_LUN = human_LUN, Baboon_LUN = baboon_LUN),
+  mcmc.merge.list = list(Human_THR = human_THR, Baboon_THR = baboon_THR),
   pathway.list = active_pathway_list,
-  dataset.names = c("Human_LUN", "Baboon_LUN"),
+  dataset.names = c("Human_THR", "Baboon_THR"),
   ranking.method = "loss",
   score_type = "pos",
   qvalue.cut = 0.20,
@@ -500,9 +502,9 @@ result_loss <- pathSelect(
 
 # Conservation enrichment - Q-VALUE FILTERING
 result_cons <- pathSelect(
-  mcmc.merge.list = list(Human_LUN = human_LUN, Baboon_LUN = baboon_LUN),
+  mcmc.merge.list = list(Human_THR = human_THR, Baboon_THR = baboon_THR),
   pathway.list = active_pathway_list,
-  dataset.names = c("Human_LUN", "Baboon_LUN"),
+  dataset.names = c("Human_THR", "Baboon_THR"),
   ranking.method = "conserved",
   score_type = "pos",
   qvalue.cut = 0.20,
@@ -618,12 +620,12 @@ cat("\n=== STAGE 4: Descriptive Metrics (multi_conservation) ===\n")
 cat("Running on", length(significant_pathways), "filtered pathways...\n")
 
 result_multiconservation <- multi_conservation(
-  mcmc.merge.list = list(Baboon_LUN = baboon_LUN, Human_LUN = human_LUN),
-  dataset.names = c("Baboon_LUN", "Human_LUN"),
+  mcmc.merge.list = list(Baboon_THR = baboon_THR, Human_THR = human_THR),
+  dataset.names = c("Baboon_THR", "Human_THR"),
   select.pathway.list = filtered_pathway_list,
   n_perm = 1000,
   n_boot = 1000,
-  output.dir = file.path(output.dir, "multiconservation_filtered_lung_v2"),
+  output.dir = file.path(output.dir, "multiconservation_filtered_thalamus_v2"),
   use_cpp = TRUE
 )
 
@@ -632,17 +634,17 @@ result_multiconservation <- multi_conservation(
 ################################################################################
 
 cat("\n\n################################################################################\n")
-cat("# GO ENRICHMENT WORKFLOW: Baboon Lung vs Human Lung\n")
+cat("# GO ENRICHMENT WORKFLOW: Baboon Thalamus vs Human Thalamus\n")
 cat("################################################################################\n")
 load(file.path(BAYRC_THIEN_DIR, "pathway", "go.pathway.list_hsa.RData"))
 output.dir <- BAYRC_OUTPUT_DIR
-go_output.dir <- file.path(output.dir, "go_enrichment_lung")
+go_output.dir <- file.path(output.dir, "go_enrichment_thalamus")
 dir.create(go_output.dir, recursive = TRUE, showWarnings = FALSE)
 
 result_gain_go <- pathSelect(
-  mcmc.merge.list = list(Human_LUN = human_LUN, Baboon_LUN = baboon_LUN),
+  mcmc.merge.list = list(Human_THR = human_THR, Baboon_THR = baboon_THR),
   pathway.list = go.pathway.list_hsa,
-  dataset.names = c("Human_LUN", "Baboon_LUN"),
+  dataset.names = c("Human_THR", "Baboon_THR"),
   ranking.method = "gain",
   score_type = "pos",
   qvalue.cut = 0.25,
@@ -658,9 +660,9 @@ top_gain_go <- result_gain_go$results %>%
   dplyr::select(pathway, pval, padj, Top_Gain_Genes)
 
 result_loss_go <- pathSelect(
-  mcmc.merge.list = list(Human_LUN = human_LUN, Baboon_LUN = baboon_LUN),
+  mcmc.merge.list = list(Human_THR = human_THR, Baboon_THR = baboon_THR),
   pathway.list = go.pathway.list_hsa,
-  dataset.names = c("Human_LUN", "Baboon_LUN"),
+  dataset.names = c("Human_THR", "Baboon_THR"),
   ranking.method = "loss",
   score_type = "pos",
   qvalue.cut = 0.20,
@@ -678,9 +680,9 @@ top_loss_go <- result_loss_go$results %>%
 # 27 
 
 result_cons_go <- pathSelect(
-  mcmc.merge.list = list(Human_LUN = human_LUN, Baboon_LUN = baboon_LUN),
+  mcmc.merge.list = list(Human_THR = human_THR, Baboon_THR = baboon_THR),
   pathway.list = go.pathway.list_hsa,
-  dataset.names = c("Human_LUN", "Baboon_LUN"),
+  dataset.names = c("Human_THR", "Baboon_THR"),
   ranking.method = "conserved",
   score_type = "pos",
   qvalue.cut = 0.20,
@@ -703,10 +705,10 @@ print_pathway_summary(result_cons_go, filter_by = "q", cutoff = 0.05)
 result_multiconservation_filtered <- result_multiconservation %>%
   select(
     Pathway,
-    Baboon_LUN_vs_Human_LUN_AdjustedConcordance,
-    Baboon_LUN_vs_Human_LUN_PValue,
-    Baboon_LUN_vs_Human_LUN_QValue,
-    Baboon_LUN_vs_Human_LUN_GainLossRatio
+    Baboon_THR_vs_Human_THR_AdjustedConcordance,
+    Baboon_THR_vs_Human_THR_PValue,
+    Baboon_THR_vs_Human_THR_QValue,
+    Baboon_THR_vs_Human_THR_GainLossRatio
   )
 
 relevant_pathways <- names(filtered_pathway_list)
@@ -723,14 +725,14 @@ result_multiconservation_filtered <- result_multiconservation_filtered %>%
 # SET UP OUTPUT DIRECTORY
 ###############################################
 
-base_path <- file.path(output.dir, "heatmap_baboon_human_lung")
+base_path <- file.path(output.dir, "heatmap_baboon_human_thalamus")
 dir.create(base_path, showWarnings = FALSE, recursive = TRUE)
 
 ###############################################################
 # PLOT EACH PATHWAY
 ###############################################################
-pA <- rowMeans(human_LUN$rho)
-pB <- rowMeans(baboon_LUN$rho)
+pA <- rowMeans(human_THR$rho)
+pB <- rowMeans(baboon_THR$rho)
 
 circadian_genes <- kegg.pathway.list_hsa[["KEGG Circadian rhythm"]]
 
@@ -743,8 +745,8 @@ kegg.pathway.list_hsa[["KEGG Circadian rhythm"]] <- circadian_genes
 trans_outer <- transition_classify(pA, pB, bfdr_alpha = 0.25)
 
 # phase_inner <- phase_infer(
-#   phi_matrix1      = human_LUN$phi,
-#   phi_matrix2      = baboon_LUN$phi,
+#   phi_matrix1      = human_THR$phi,
+#   phi_matrix2      = baboon_THR$phi,
 #   gain_loss_status = trans_outer$gain_loss_status,
 #   bfdr_alpha       = 0.15,
 #   shift            = 3,
@@ -769,7 +771,7 @@ for (pathway in pathways_to_plot) {
   }
   
   pathway_genes <- kegg.pathway.list_hsa[[pathway]]
-  overlap <- intersect(rownames(baboon_LUN$rho), pathway_genes)
+  overlap <- intersect(rownames(baboon_THR$rho), pathway_genes)
   
   if (length(overlap) == 0) {
     cat("   ✗ No overlapping genes — skip\n")
@@ -790,13 +792,13 @@ for (pathway in pathways_to_plot) {
     while (dev.cur() > 1) dev.off()
     
     plot_heatmap(
-      data1 = human_LUN,
-      data2 = baboon_LUN,
+      data1 = human_THR,
+      data2 = baboon_THR,
       pathway_genes = pathway_genes,
       pathway_name = pathway,
       phase_results = phase_inner,
       transition_results = trans_outer,
-      group_names = c("Human Lung", "Baboon Lung"),
+      group_names = c("Human Thalamus", "Baboon Thalamus"),
       versions = "both",
       save_path = out_dir
     )
@@ -825,9 +827,9 @@ cat("Output directory:", base_path, "\n")
 library(dplyr)
 library(kableExtra)
 
-# For Baboon Lung vs Human Lung analysis
-pA <- rowMeans(baboon_LUN$rho)
-pB <- rowMeans(human_LUN$rho)
+# For Baboon Thalamus vs Human Thalamus analysis
+pA <- rowMeans(baboon_THR$rho)
+pB <- rowMeans(human_THR$rho)
 
 # Get transition classification with probabilistic indices
 trans_outer <- transition_classify(pA, pB, bfdr_alpha = 0.25)
@@ -883,8 +885,8 @@ if ("p_gain" %in% names(trans_outer)) {
 genome_wide_expected <- data.frame(
   Category = c(
     "Total Genes", 
-    "Expected Rhythmic in Baboon Lung", 
-    "Expected Rhythmic in Human Lung",
+    "Expected Rhythmic in Baboon Thalamus", 
+    "Expected Rhythmic in Human Thalamus",
     "Expected Gain (Human > Baboon)", 
     "Expected Loss (Human < Baboon)", 
     "Expected Maintained (R_c)"
@@ -903,26 +905,19 @@ genome_wide_expected <- data.frame(
     Percentage = sprintf("%.2f%%", 100 * Expected_Count / n_total)
   )
 
-# Add thresholds. transition_classify() and transition_classify_marginal()
-# name their thresholds differently, and c() quietly drops any that come back
-# empty, which leaves a column shorter than the table. Take one value per row
-# either way, and drop the gene names the thresholds carry.
-tau_of <- function(x, ...) {
-  for (nm in c(...)) if (!is.null(x[[nm]]) && length(x[[nm]])) return(unname(x[[nm]][1]))
-  NA_real_
-}
+# Add thresholds
 genome_wide_expected$Threshold <- c(
-  NA_real_,
-  tau_of(trans_outer, "tau_rhythmic_A", "tau_A"),
-  tau_of(trans_outer, "tau_rhythmic_B", "tau_B"),
-  tau_of(trans_outer, "tau_gain"),
-  tau_of(trans_outer, "tau_loss"),
-  tau_of(trans_outer, "tau_cons")
+  NA,
+  trans_outer$tau_rhythmic_A,
+  trans_outer$tau_rhythmic_B,
+  trans_outer$tau_gain,
+  trans_outer$tau_loss,
+  trans_outer$tau_cons
 )
 
 cat("\n========================================\n")
 cat("EXPECTED COUNTS (PROBABILISTIC)\n")
-cat("Baboon Lung vs Human Lung\n")
+cat("Baboon Thalamus vs Human Thalamus\n")
 cat("========================================\n\n")
 
 print(genome_wide_expected)
@@ -960,14 +955,14 @@ conserved_genes <- intersect(circadian_genes, maintained_genes)
 
 results <- data.frame(
   Gene = conserved_genes,
-  Mean_Baboon_hr = sapply(conserved_genes, function(g) circular_mean_24h(baboon_LUN$phi[g,])),
-  Mean_Human_hr = sapply(conserved_genes, function(g) circular_mean_24h(human_LUN$phi[g,])),
+  Mean_Baboon_hr = sapply(conserved_genes, function(g) circular_mean_24h(baboon_THR$phi[g,])),
+  Mean_Human_hr = sapply(conserved_genes, function(g) circular_mean_24h(human_THR$phi[g,])),
   SD_Baboon_hr = sapply(conserved_genes, function(g) {
-    r <- circular((baboon_LUN$phi[g,] / 24) * 2 * pi, units = "radians")
+    r <- circular((baboon_THR$phi[g,] / 24) * 2 * pi, units = "radians")
     (sd.circular(r) / (2*pi)) * 24
   }),
   SD_Human_hr = sapply(conserved_genes, function(g) {
-    r <- circular((human_LUN$phi[g,] / 24) * 2 * pi, units = "radians")
+    r <- circular((human_THR$phi[g,] / 24) * 2 * pi, units = "radians")
     (sd.circular(r) / (2*pi)) * 24
   })
 )
@@ -1025,7 +1020,7 @@ p <- ggplot(plot_data) +
     title = "Circadian Peak Timing of Phase-Conserved Genes",
     subtitle = "Posterior phase estimates (ZT) ± SD"
   ) +
-  theme_bayrc(base_size = 13) +
+  theme_minimal(base_size = 13) +
   theme(
     plot.title = element_text(face = "bold", hjust = 0.5, size = 18),
     plot.subtitle = element_text(hjust = 0.5, size = 11, color = "gray40"),
@@ -1050,10 +1045,10 @@ p <- ggplot(plot_data) +
     shape = guide_legend(order = 2, override.aes = list(size = 4, stroke = 1.5, fill = "gray50", color = "white", alpha = 1)),
     linetype = "none"
   )
-save_dir <- file.path(output.dir, "figure/baboon_human_lung")
+save_dir <- file.path(output.dir, "figure/baboon_human_thalamus")
 dir.create(save_dir, recursive = TRUE, showWarnings = FALSE)
-bayrc_save(p, file.path(save_dir, "Baboon_Human_LUN_circular_phase_plot"),
-           width = 12, height = 10, dpi = 800)
+ggsave(file.path(save_dir, "Baboon_Human_THR_circular_phase_plot.pdf"), p, width = 12, height = 10, dpi = 800)
+ggsave(file.path(save_dir, "Baboon_Human_THR_circular_phase_plot.png"), p, width = 12, height = 10, dpi = 800)
 
 ##### Test new function
 
@@ -1063,8 +1058,8 @@ bayrc_save(p, file.path(save_dir, "Baboon_Human_LUN_circular_phase_plot"),
 
 # Compute Jaccard for each iteration
 result <- compute_adjusted_jaccard_analytical_pvalue(
-  rho_A = baboon_LUN$rho,
-  rho_B = human_LUN$rho
+  rho_A = baboon_THR$rho,
+  rho_B = human_THR$rho
 )
 
 # Summary statistics
@@ -1252,9 +1247,9 @@ table(ribosome_status)
 
 
 
-# INLINE_PLOT_FROM_run_concordance_LUN.R
-# Regenerate concordance figure for Baboon_Human_LUN
-# Source in the LUN screen session where all objects are loaded
+# INLINE_PLOT_FROM_run_concordance_THR.R
+# Regenerate concordance figure for Baboon_Human_THR
+# Source in the THR screen session where all objects are loaded
 
 library(ggplot2); library(dplyr); library(ggrepel)
 if (!dir.exists(tempdir())) dir.create(tempdir(), recursive = TRUE)
@@ -1329,7 +1324,7 @@ n_total  <- nrow(maintained_df)
 n_within <- sum(maintained_df$within_concordance, na.rm = TRUE)
 pct_within <- 100 * n_within / n_total
 
-cat("\n[Baboon_Human_LUN: Within +/-2 h summary]\n")
+cat("\n[Baboon_Human_THR: Within +/-2 h summary]\n")
 cat("  Maintained genes:", n_total, "\n")
 cat("  Within +/-2 h:", n_within, "\n")
 cat(sprintf("  => %.1f%% within +/-2 h interval\n", pct_within))
@@ -1379,16 +1374,16 @@ p <- ggplot(plot_df, aes(
     seed = 42
   ) +
   labs(
-    title    = "Circadian Peak Concordance: Baboon Lung versus Human Lung",
+    title    = "Circadian Peak Concordance: Baboon Thalamus versus Human Thalamus",
     subtitle = subtitle_text,
-    x        = "Peak Hour - Baboon Lung (ZT)",
-    y        = "Peak Hour - Human Lung (ZT)",
+    x        = "Peak Hour - Baboon Thalamus (ZT)",
+    y        = "Peak Hour - Human Thalamus (ZT)",
     color    = "Phase class"
   ) +
   scale_x_continuous(breaks = seq(-6, 18, 6), labels = sprintf("ZT%+d", seq(-6, 18, 6))) +
   scale_y_continuous(breaks = seq(-6, 18, 6), labels = sprintf("ZT%+d", seq(-6, 18, 6))) +
   coord_cartesian(xlim = c(-8, 20), ylim = c(-8, 20)) +
-  theme_bayrc(base_size = 14) +
+  theme_bw(base_size = 14) +
   theme(
     plot.title    = element_text(face = "bold", size = 16, hjust = 0.5),
     plot.subtitle = element_text(size = 13, hjust = 0.5, margin = margin(b = 10)),
@@ -1402,11 +1397,11 @@ p <- ggplot(plot_df, aes(
     plot.margin = margin(15, 15, 15, 15)
   )
 
-save_dir <- file.path(output.dir, "figure/baboon_human_lung")
+save_dir <- file.path(output.dir, "figure/baboon_human_thalamus")
 dir.create(save_dir, recursive = TRUE, showWarnings = FALSE)
-bayrc_save(p, file.path(save_dir, "Baboon_Human_LUN_Peak_Concordance_0.25_2h"),
-           width = 9, height = 8)
-cat("\nFigure saved to:", file.path(save_dir, "Baboon_Human_LUN_Peak_Concordance_0.25_2h.pdf"), "\n")
+ggsave(file.path(save_dir, "Baboon_Human_THR_Peak_Concordance_0.25_2h.pdf"),
+       plot = p, width = 9, height = 8)
+cat("\nFigure saved to:", file.path(save_dir, "Baboon_Human_THR_Peak_Concordance_0.25_2h.pdf"), "\n")
 
-# END_INLINE_PLOT_FROM_run_concordance_LUN.R
+# END_INLINE_PLOT_FROM_run_concordance_THR.R
 
