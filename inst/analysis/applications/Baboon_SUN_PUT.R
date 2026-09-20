@@ -167,9 +167,13 @@ cat(sprintf("within +/-%g h: %d of %d (%.1f%%)\n", shift, sum(within),
             length(maintained), 100 * mean(within)))
 cat("phase-shifted:", length(shifted), " phase-conserved:", length(conserved),
     " undetermined:", length(maintained) - length(shifted) - length(conserved), "\n")
-cat(sprintf("shifted genes: mean %+.2f h, SD %.2f, %.0f%% share the sign\n",
-            mean(delta[shifted]), sd(delta[shifted]),
-            100 * max(mean(delta[shifted] > 0), mean(delta[shifted] < 0))))
+# the offset over the whole maintained set, not only the genes past the window
+cat(sprintf("offset over maintained: mean %+.2f h, median %+.2f, SD %.2f, %.1f%% positive\n",
+            mean(delta[maintained]), median(delta[maintained]),
+            sd(delta[maintained]), 100 * mean(delta[maintained] > 0)))
+if (length(shifted))
+  cat(sprintf("  within the shifted class alone: mean %+.2f h, SD %.2f\n",
+              mean(delta[shifted]), sd(delta[shifted])))
 cat("pathways tested:", length(kegg), " stage 1 active:", length(active),
     " stage 2 significant:", length(selected), "\n\n")
 print(union_res[union_res$q < stage1_q, c("pathway", "size", "pval", "q")],

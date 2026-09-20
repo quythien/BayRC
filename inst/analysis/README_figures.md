@@ -78,6 +78,11 @@ nperm          10000    fgsea permutations
 Stage 1 is deliberately the looser of the two: it screens for pathways with
 rhythmic signal in either tissue, and stage 2 carries the inference.
 
+The SUN-PUT scripts also print the phase offset over the whole maintained set
+rather than over the shifted class alone. The shifted class is selected for
+exceeding the phase window, so its mean is biased upward by the threshold that
+defined it.
+
 ## Figures
 
 **Figure 2** — genome-wide and KEGG-circadian concordance across 26 baboon
