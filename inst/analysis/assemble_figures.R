@@ -70,7 +70,7 @@ circadian.dir <- file.path(BAYRC_OUTPUT_DIR, "heatmap_circadian_pairs",
 panels <- list(
   # Figure 2: genome-wide and KEGG-circadian concordance heatmaps
   list(dir = BAYRC_FIGURE_DIR,
-       pattern = "^Baboon_Concordance_Heatmap_[0-9.]+_ward[.]D2[.]pdf$",
+       pattern = "^Baboon_Concordance_Heatmap_0[.]5_ward[.]D2[.]pdf$",
        to = "F2A_baboon_genomewide_concordance.pdf",
        script = "plots/heatmap_baboon.R"),
   list(dir = circadian.dir,

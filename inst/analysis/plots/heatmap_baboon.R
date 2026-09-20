@@ -169,17 +169,10 @@ write.csv(
 
 library(pheatmap)
 
-# Your original color palette
+# ramp, cap and breaks come from palette_concordance.R
 col_fun <- concordance_colors
-
-# 1. Determine a good upper limit for the color scale (e.g., 0.25 or the 95th percentile)
-# This ensures the colors are used for the off-diagonal variation.
-max_val <- 0.5
-# Alternatively, use: max_val <- quantile(ACI_mat[row(ACI_mat) != col(ACI_mat)], 0.99)
-
-# 2. Create breaks that focus on the 0 to max_val range
-# We create 201 breaks for 200 colors.
-breaksList <- seq(0, max_val, length.out = 201)
+max_val <- concordance_max
+breaksList <- concordance_breaks
 
 # Generate the heatmap
 for (method in methods) {

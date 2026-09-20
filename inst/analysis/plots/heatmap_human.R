@@ -122,8 +122,8 @@ row_dist <- as.dist(ACI_dissim)
 col_dist <- as.dist(ACI_dissim)
 
 # cap the scale so the off-diagonal trend is visible
-max_val <- 0.5
-breaksList <- seq(0, max_val, length.out = 201)
+max_val <- concordance_max
+breaksList <- concordance_breaks
 
 methods <- c("ward.D2", "complete", "average")
 
