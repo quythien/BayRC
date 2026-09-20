@@ -115,11 +115,8 @@ A named list of G x K matrices (K = floor(iteration / thin)):
     \item{log.r1, log.r1.SS, log.r3_A, log.r3_phi}{RJMCMC log-ratio
       components (for diagnostics).}
     \item{if.accept.rj}{Binary matrix indicating accepted RJMCMC moves.}
-    \item{Z1_gap}{3 x K matrix, not G x K: the median, 99th percentile and
-      maximum across genes of \code{abs(Z1_check - logZ1)} at each stored
-      iteration. A birth proposal equal to pi_1 would make this zero; it
-      is not, and the gap does not shrink with \code{NP_Z1}, so it is not
-      quadrature error. Diagnostic only.}
+    \item{Z1_gap}{3 x K matrix: median, 99th percentile and maximum across
+      genes of \code{abs(Z1_check - logZ1)} at each stored iteration.}
   }
   All G x K matrices have \code{rownames} equal to \code{Data.list$gname}.
   After calling \code{match_symbols()}, the attributes
