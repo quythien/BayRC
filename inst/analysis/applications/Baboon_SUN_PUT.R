@@ -112,7 +112,9 @@ wrap_label <- function(x, width = 26)
          USE.NAMES = FALSE)
 
 if (nrow(sig)) {
-plot4 <- stage2
+# a pathway that cleared stage 1 but has no enriched transition would draw an
+# empty row, so the panel keeps only the pathways with a dot
+plot4 <- stage2[stage2$pathway %in% sig$pathway, ]
 plot4$n_expected <- with(plot4,
   ifelse(direction == "gain", Expected_N_Gain,
   ifelse(direction == "loss", Expected_N_Loss, Expected_N_Conserved)))
