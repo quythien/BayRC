@@ -21,7 +21,8 @@ stage1_q       <- 0.20
 stage2_q       <- 0.05
 nperm          <- 10000
 min_measured   <- 15
-panel_pathways <- c("KEGG Parkinson disease", "KEGG Oxidative phosphorylation")
+panel_pathways <- c("KEGG Pathways of neurodegeneration - multiple diseases",
+                    "KEGG Oxidative phosphorylation")
 
 fig.dir <- file.path(BAYRC_FIGURE_DIR, "baboon_SUN_PUT")
 dir.create(fig.dir, recursive = TRUE, showWarnings = FALSE)
