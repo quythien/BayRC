@@ -82,13 +82,23 @@ union_res <- select_pathways(kegg, "union")
 union_res$q <- p.adjust(union_res$pval, "BH")
 active <- union_res$pathway[union_res$q < stage1_q]
 
-stage2 <- lapply(c("gain", "loss", "conserved"), function(m) {
-  r <- select_pathways(kegg[active], m)
+# pathSelect names its effect column after the ranking method, so the three
+# runs are cut to the shared columns before they are stacked
+stage2_cols <- c("pathway", "size", "pval", "Expected_N_Gain",
+                 "Expected_N_Loss", "Expected_N_Conserved")
+stage2 <- do.call(rbind, lapply(c("gain", "loss", "conserved"), function(m) {
+  if (!length(active)) return(NULL)
+  r <- select_pathways(kegg[active], m)[, stage2_cols]
   r$q <- p.adjust(r$pval, "BH")
   r$direction <- m
   r
-})
-stage2 <- do.call(rbind, stage2)
+}))
+if (is.null(stage2))
+  stage2 <- data.frame(pathway = character(), size = integer(),
+                       pval = numeric(), Expected_N_Gain = numeric(),
+                       Expected_N_Loss = numeric(),
+                       Expected_N_Conserved = numeric(), q = numeric(),
+                       direction = character())
 sig <- stage2[stage2$q < stage2_q, ]
 
 write.csv(union_res[order(union_res$pval), c("pathway", "size", "pval", "q")],

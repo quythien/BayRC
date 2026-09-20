@@ -86,17 +86,28 @@ union_res$q <- p.adjust(union_res$pval, "BH")
 active <- union_res$pathway[union_res$q < stage1_q]
 
 # stage 2 tests the transitions within those
-stage2 <- lapply(c("gain", "loss", "conserved"), function(m) {
-  r <- select_pathways(kegg[active], m)
+# pathSelect names its effect column after the ranking method, so the three
+# runs are cut to the shared columns before they are stacked
+stage2_cols <- c("pathway", "size", "pval", "Expected_N_Gain",
+                 "Expected_N_Loss", "Expected_N_Conserved")
+stage2 <- do.call(rbind, lapply(c("gain", "loss", "conserved"), function(m) {
+  if (!length(active)) return(NULL)
+  r <- select_pathways(kegg[active], m)[, stage2_cols]
   r$q <- p.adjust(r$pval, "BH")
   r$direction <- m
   r
-})
-stage2 <- do.call(rbind, stage2)
+}))
+if (is.null(stage2))
+  stage2 <- data.frame(pathway = character(), size = integer(),
+                       pval = numeric(), Expected_N_Gain = numeric(),
+                       Expected_N_Loss = numeric(),
+                       Expected_N_Conserved = numeric(), q = numeric(),
+                       direction = character())
 sig <- stage2[stage2$q < stage2_q, ]
 
 # Figure 4
 sig$label <- sub("^KEGG ", "", sig$pathway)
+if (nrow(sig)) {
 fig4 <- ggplot(sig, aes(x = direction, y = reorder(label, -q),
                         size = Expected_N_Conserved, color = q)) +
   geom_point() +
@@ -107,10 +118,11 @@ fig4 <- ggplot(sig, aes(x = direction, y = reorder(label, -q),
   theme_bayrc(base_size = 13)
 bayrc_save(fig4, file.path(fig.dir, "SUN_PUT_transition_enrichment"),
            width = 8, height = 6)
+}
 
 # pathway concordance metrics behind the enrichment table
 selected <- unique(sig$pathway)
-metrics <- multi_conservation(
+metrics <- if (!length(selected)) NULL else multi_conservation(
   mcmc.merge.list = list(PUT = put, SUN = sun),
   dataset.names = c("PUT", "SUN"), select.pathway.list = kegg[selected],
   n_perm = 1000, n_boot = 1000,
@@ -121,7 +133,8 @@ write.csv(union_res[order(union_res$pval), c("pathway", "size", "pval", "q")],
 write.csv(sig[order(sig$direction, sig$pval),
               c("pathway", "direction", "size", "pval", "q")],
           file.path(fig.dir, "stage2_significant.csv"), row.names = FALSE)
-write.csv(metrics, file.path(fig.dir, "pathway_metrics.csv"), row.names = FALSE)
+if (!is.null(metrics))
+  write.csv(metrics, file.path(fig.dir, "pathway_metrics.csv"), row.names = FALSE)
 
 # Figure 5 panels
 for (pw in panel_pathways) {
