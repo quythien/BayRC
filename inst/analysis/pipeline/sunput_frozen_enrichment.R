@@ -1,6 +1,6 @@
 ## SUN vs PUT enrichment under the frozen setting: the 354-pathway release,
 ## gene sets cut to the measured genes and kept at 15 or more, union stage 1 at
-## BH q < 0.05, transition stage 2 at q < 0.20, 10000 permutations.
+## BH q < 0.20, transition stage 2 at q < 0.05, 10000 permutations.
 ##
 ## Writes the stage tables and the pathway metrics behind Table 1.
 ##
