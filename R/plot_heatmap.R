@@ -497,7 +497,7 @@ plot_heatmap <- function(data1, data2,
   # Create legend for Delta Peak colors
   delta_peak_legend <- Legend(
     title = "Delta Peak",
-    labels = c(paste0(legend_names[2], " later"), paste0(legend_names[2], " earlier"), "Conserved", "Non-classified"),
+    labels = c(paste0(legend_names[2], " later"), paste0(legend_names[2], " earlier"), "Within the window", "Not classified"),
     legend_gp = gpar(fill = c("#E63946", "#4361EE", "#06A77D", "#E0E0E0")),
     title_gp = gpar(fontsize = 18, fontface = "bold"),
     labels_gp = gpar(fontsize = 16)
