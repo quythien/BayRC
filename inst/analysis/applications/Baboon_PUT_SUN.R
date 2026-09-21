@@ -145,7 +145,7 @@ fig4 <- ggplot(plot4[plot4$q < stage2_q, ],
                         limits = size_limits) +
   scale_x_discrete(drop = FALSE) +
   scale_y_discrete(drop = FALSE) +
-  labs(title = "Pathway transition enrichment: putamen versus substantia nigra",
+  labs(title = "Putamen versus substantia nigra",
        x = "Transition", y = NULL) +
   theme_bayrc(base_size = 12) +
   theme(axis.text.y = element_text(size = 10))

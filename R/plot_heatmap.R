@@ -35,6 +35,10 @@
 #'   three-stop white-to-blue ramp over \[0, 1\].
 #' @param col_phase2 Colour mapping for the second phase panel; defaults to a
 #'   three-stop white-to-red ramp over \[0, 1\].
+#' @param legend_names Character vector of length 2; the condition names used
+#'   in the legend text, which defaults to \code{group_names}. One legend
+#'   shared by two panels needs wording that fits both, while the column and
+#'   peak-time annotations keep the names in \code{group_names}.
 #' @param show_legend Logical; draw the heatmap and annotation legends
 #'   (default \code{TRUE}). Set \code{FALSE} for a panel that shares the
 #'   legend of another panel in the same figure.
@@ -58,6 +62,7 @@ plot_heatmap <- function(data1, data2,
                                                 c("#fff5f0", "#fee0d2", "#fcae91", "#fb6a4a", "#ef3b2c")),
                           col_phase1 = circlize::colorRamp2(c(0, 0.5, 1), c("white", "#6baed6", "#08519c")),
                           col_phase2 = circlize::colorRamp2(c(0, 0.5, 1), c("white", "#fc9272", "#a50f15")),
+                          legend_names = group_names,
                           show_legend = TRUE,
                           legend_side = "left",
                           versions = c("full", "rhythmic_only", "both")) {
@@ -104,8 +109,8 @@ plot_heatmap <- function(data1, data2,
     # Map to concordance categories
     concordance <- rep(NA_character_, n_genes)
     concordance[status_vec == "Maintained"] <- "Conserved"
-    concordance[status_vec == "Gain"] <- paste0("Gain in ", group_names[2])  # NOT in Group1, IS in Group2
-    concordance[status_vec == "Loss"] <- paste0("Loss in ", group_names[2])  # IS in Group1, NOT in Group2
+    concordance[status_vec == "Gain"] <- paste0("Gain in ", legend_names[2])  # NOT in Group1, IS in Group2
+    concordance[status_vec == "Loss"] <- paste0("Loss in ", legend_names[2])  # IS in Group1, NOT in Group2
     
   } else {
     stop("transition_results is required. Please provide output from transition_classify()")
@@ -212,8 +217,8 @@ plot_heatmap <- function(data1, data2,
   phase_status_ord <- phase_status[order_idx]
   concordance_ord  <- concordance[order_idx]
   
-  loss_label <- paste0("Loss in ", group_names[2])
-  gain_label <- paste0("Gain in ", group_names[2])
+  loss_label <- paste0("Loss in ", legend_names[2])
+  gain_label <- paste0("Gain in ", legend_names[2])
 
   # Force all categories to appear in legend (Gain before Loss)
   concordance_ord <- factor(
@@ -264,8 +269,8 @@ plot_heatmap <- function(data1, data2,
   )
   
   # Define colors for all concordance states (dynamically named)
-  loss_label <- paste0("Loss in ", group_names[2])
-  gain_label <- paste0("Gain in ", group_names[2])
+  loss_label <- paste0("Loss in ", legend_names[2])
+  gain_label <- paste0("Gain in ", legend_names[2])
 
   conc_colors <- c("#FFA500", "#4169E1", "#9370DB")
   names(conc_colors) <- c("Conserved", loss_label, gain_label)
@@ -465,7 +470,7 @@ plot_heatmap <- function(data1, data2,
   # Create legend for Delta Peak colors
   delta_peak_legend <- Legend(
     title = "Delta Peak",
-    labels = c(paste0(group_names[2], " later"), paste0(group_names[2], " earlier"), "Conserved", "Non-classified"),
+    labels = c(paste0(legend_names[2], " later"), paste0(legend_names[2], " earlier"), "Conserved", "Non-classified"),
     legend_gp = gpar(fill = c("#E63946", "#4361EE", "#06A77D", "#E0E0E0")),
     title_gp = gpar(fontsize = 10, fontface = "bold"),
     labels_gp = gpar(fontsize = 8)

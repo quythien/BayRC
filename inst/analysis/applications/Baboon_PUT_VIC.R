@@ -148,7 +148,7 @@ fig4 <- ggplot(plot4[plot4$q < stage2_q, ],
                         limits = size_limits) +
   scale_x_discrete(drop = FALSE) +
   scale_y_discrete(drop = FALSE) +
-  labs(title = "Pathway transition enrichment: putamen versus cortex",
+  labs(title = "Putamen versus cortex",
        x = "Transition", y = NULL) +
   theme_bayrc(base_size = 12) +
   theme(axis.text.y = element_text(size = 10))
@@ -179,6 +179,7 @@ for (pw in panel_pathways) {
                pathway_name = pw, phase_results = phase,
                transition_results = trans,
                group_names = c("Baboon PUT", "Baboon VIC"),
+               legend_names = c("Baboon PUT", "the compared region"),
                versions = "both", save_path = fig.dir,
                show_legend = TRUE, legend_side = "bottom")
 }
