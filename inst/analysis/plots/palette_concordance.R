@@ -13,10 +13,10 @@ concordance_max    <- 0.5
 concordance_breaks <- seq(0, concordance_max, length.out = 201)
 concordance_legend <- seq(0, concordance_max, length.out = 6)
 
-## Ramp for the pathway transition dotplot (Figure 4). The pale end is the
+## Ramp for the pathway transition dotplot (Figure 4). The light end is the
 ## stage-2 q cut and the dark end the strongest enrichment; the first three
-## stops share the concordance family, and lightness falls in even steps so the
-## teal-to-peach hue change still reads as ordered.
+## stops share the concordance family, and lightness falls from L* 83 to 41 so
+## the teal-to-warm hue change still reads as ordered.
 enrichment_colors <- colorRampPalette(c(
-  "#DFF2F4", "#AFDEC2", "#7AC6B9", "#CF9166", "#C06C84"
+  "#A8D8DC", "#7FC4A8", "#4FA89C", "#C97A4E", "#A03E5C"
 ))(256)

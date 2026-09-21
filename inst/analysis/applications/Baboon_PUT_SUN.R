@@ -141,7 +141,7 @@ fig4 <- ggplot(plot4[plot4$q < stage2_q, ],
                          limits = -log10(q_limits), oob = scales::squish,
                          breaks = -log10(q_breaks),
                          labels = format(q_breaks, drop0trailing = TRUE)) +
-  scale_size_continuous(name = "expected genes", range = c(2.5, 9),
+  scale_size_continuous(name = "expected gene count", range = c(2.5, 9),
                         limits = size_limits) +
   scale_x_discrete(drop = FALSE) +
   scale_y_discrete(drop = FALSE) +
