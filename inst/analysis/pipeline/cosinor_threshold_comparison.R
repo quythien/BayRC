@@ -17,6 +17,8 @@ rho  <- get(grep("^mcmc_data", ls(), value = TRUE)[1])
 post <- rowMeans(rho[["LUN"]])
 BF   <- post / (1 - post + 1e-20)
 
+to_zt <- function(t_cos) ifelse(t_cos >= 18, t_cos - 24, t_cos)
+
 load(file.path(BAYRC_GTEX_DIR, "data", "CAMO.bab.hum.RData"))
 bab_raw  <- baboon_withTOD$baboon$LUN
 bab_cols <- grep("LUN\\.ZT", colnames(bab_raw))
