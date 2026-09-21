@@ -222,13 +222,13 @@ print(union_res[union_res$q < stage1_q, c("pathway", "size", "pval", "q")],
       row.names = FALSE)
 print(sig[order(sig$direction, sig$pval), c("pathway", "direction", "pval", "q")],
       row.names = FALSE)
-# the loss NES values say whether the active pathways are also less likely than
-# background to lose rhythmicity
-if (!is.null(stage2_full$loss)) {
-  cat("\nloss enrichment across the stage-1 active set\n")
-  loss_nes <- stage2_full$loss
-  print(loss_nes[order(loss_nes$NES), c("pathway", "NES", "pval", "q")],
-        row.names = FALSE)
+# the gain and loss NES say how the active pathways sit against background on
+# the two transitions that carry no enrichment
+for (m in c("gain", "loss")) {
+  r <- stage2_full[[m]]
+  if (is.null(r)) next
+  cat("\n", m, "enrichment across the stage-1 active set\n")
+  print(r[order(r$NES), c("pathway", "NES", "pval", "q")], row.names = FALSE)
 }
 for (pw in panel_pathways) {
   g <- kegg[[pw]]
