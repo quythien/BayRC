@@ -290,6 +290,11 @@ plot_heatmap <- function(data1, data2,
     `Phase Status` = phase_status_factor,
     col = list(`Rhythmicity Status` = conc_colors,
                `Phase Status` = phase_colors),
+    annotation_legend_param = list(
+      `Rhythmicity Status` = list(title_gp = gpar(fontsize = 18, fontface = "bold"),
+                                  labels_gp = gpar(fontsize = 16)),
+      `Phase Status` = list(title_gp = gpar(fontsize = 18, fontface = "bold"),
+                            labels_gp = gpar(fontsize = 16))),
     
     annotation_name_side = "bottom",
     annotation_name_gp = gpar(fontsize = 14, fontface = "bold"),
@@ -333,7 +338,8 @@ plot_heatmap <- function(data1, data2,
     
     heatmap_legend_param = list(
       title = expression(Pr(rho == 1)),
-      title_gp = gpar(fontsize = 15, fontface = "bold")
+      title_gp = gpar(fontsize = 18, fontface = "bold"),
+      labels_gp = gpar(fontsize = 16)
     )
   )
   
@@ -481,8 +487,8 @@ plot_heatmap <- function(data1, data2,
     title = "Delta Peak",
     labels = c(paste0(legend_names[2], " later"), paste0(legend_names[2], " earlier"), "Conserved", "Non-classified"),
     legend_gp = gpar(fill = c("#E63946", "#4361EE", "#06A77D", "#E0E0E0")),
-    title_gp = gpar(fontsize = 15, fontface = "bold"),
-    labels_gp = gpar(fontsize = 13)
+    title_gp = gpar(fontsize = 18, fontface = "bold"),
+    labels_gp = gpar(fontsize = 16)
   )
 
   right_ha <- rowAnnotation(
