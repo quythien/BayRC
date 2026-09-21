@@ -114,7 +114,14 @@ page0 = src[0]
 groups = legend_groups(page0)
 bottom = content_bottom(page0, groups)
 title = page0.search_for("Cross-species lung")
-top = title[0].y1 + 10 if title else 0
+if title:
+    # cut above whatever the figure keeps rather than a fixed drop below the
+    # title, so the panel letters sitting just under it keep their headroom
+    keep = [fitz.Rect(b[:4]) for b in page0.get_text("blocks")
+            if not title[0].intersects(fitz.Rect(b[:4]))]
+    top = max(title[0].y1 + 2, min(r.y0 for r in keep) - 6)
+else:
+    top = 0
 scale, gap = .82, 20
 width = sum(g.width for g in groups) * scale + gap * (len(groups) - 1)
 out = fitz.open()
