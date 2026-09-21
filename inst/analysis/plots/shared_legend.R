@@ -12,7 +12,10 @@ save_legend_grob <- function(grob, path, pad = 0.15) {
   w <- convertWidth(grobWidth(grob), "in", valueOnly = TRUE)
   h <- convertHeight(grobHeight(grob), "in", valueOnly = TRUE)
   dev.off()
-  pdf(paste0(path, ".pdf"), width = max(w, 1) + pad, height = max(h, 0.4) + pad)
+  # cairo carries the glyphs the labels use, and matches the device the panels
+  # themselves are drawn on
+  cairo_pdf(paste0(path, ".pdf"), width = max(w, 1) + pad,
+            height = max(h, 0.4) + pad)
   grid.newpage()
   grid.draw(grob)
   dev.off()

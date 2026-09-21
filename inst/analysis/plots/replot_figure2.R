@@ -38,6 +38,8 @@ panels <- list(
     title = "Baboon Circadian Pathway Concordance Heatmap")
 )
 
+off_max <- setNames(numeric(length(panels)), names(panels))
+
 for (stem in names(panels)) {
   p <- panels[[stem]]
   if (!file.exists(p$csv)) {
@@ -60,8 +62,10 @@ for (stem in names(panels)) {
   dev.off()
 
   off <- m[row(m) != col(m)]
-  cat(sprintf("%s  %d tissues  off-diagonal range %.3f to %.3f\n",
-              stem, nrow(m), min(off), max(off)))
+  off_max[stem] <- max(off)
+  cat(sprintf("%s  %d tissues  off-diagonal range %.3f to %.3f, %d pairs above %.2f\n",
+              stem, nrow(m), min(off), max(off), sum(off > concordance_max),
+              concordance_max))
 }
 
 # Both panels are drawn on this one scale, so the colour bar is written once
@@ -69,9 +73,16 @@ for (stem in names(panels)) {
 concordance_fun <- circlize::colorRamp2(
   seq(0, concordance_max, length.out = length(concordance_colors)),
   concordance_colors)
+
+# the circadian panel runs past the cap, so its top label declares that the
+# darkest cells are clamped rather than reading as exactly 0.5
+bar_labels <- format(concordance_legend, digits = 2)
+if (any(off_max > concordance_max))
+  bar_labels[length(bar_labels)] <- sprintf("≥ %.1f", concordance_max)
+
 concordance_bar <- ComplexHeatmap::Legend(
   col_fun = concordance_fun, title = "Adjusted c-score",
-  at = concordance_legend, labels = format(concordance_legend, digits = 2),
+  at = concordance_legend, labels = bar_labels,
   direction = "horizontal", legend_width = unit(7, "cm"),
   title_position = "lefttop", title_gp = gpar(fontsize = 10, fontface = "bold"),
   labels_gp = gpar(fontsize = 9))
