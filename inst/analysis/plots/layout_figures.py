@@ -43,6 +43,11 @@ def legend_groups(page):
         if hits:
             titles.append(max(hits, key=lambda r: r.y0))
     blocks = [fitz.Rect(b[:4]) for b in page.get_text("blocks")]
+    if not titles:
+        raise SystemExit(
+            "no legend titles found on the page. This happens when figures/ "
+            "holds an already reflowed file: empty archive/before_legend_layout "
+            "and copy fresh assemble_figures.R output into figures/ first.")
     groups = []
     for t in titles:
         # a key runs down to the next key in its own column, or to the page

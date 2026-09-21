@@ -35,14 +35,19 @@ read_pair <- function(s) {
   cls    <- cache$phase_class[cache$maintained]
   d <- (cache$phase$peak2 - cache$phase$peak1) %% 24
   d <- ifelse(d > 12, d - 24, d)
+  # the shift decision is one BFDR classification; its direction is the sign of
+  # the phase difference, ahead when the compared region peaks earlier
+  dm <- d[cache$maintained]
+  sh <- cls == "Phase-shifted"
   list(label = s$label,
        trans = c(Gain = sum(status == "Gain"),
                  Conserved = sum(status == "Maintained"),
                  Loss = sum(status == "Loss")),
        phase = c(Aligned = sum(cls == "Phase-conserved"),
-                 Shifted = sum(cls == "Phase-shifted"),
+                 Ahead = sum(sh & dm < 0, na.rm = TRUE),
+                 Behind = sum(sh & dm > 0, na.rm = TRUE),
                  Undetermined = sum(cls == "Undetermined")),
-       offset = mean(d[cache$maintained], na.rm = TRUE))
+       offset = mean(dm, na.rm = TRUE))
 }
 
 pairs_data <- lapply(sources, read_pair)
@@ -59,7 +64,7 @@ trans$pair   <- factor(trans$pair, levels = rev(pairs))
 phase$pair   <- factor(phase$pair, levels = rev(pairs))
 trans$status <- factor(trans$status, levels = c("Gain", "Conserved", "Loss"))
 phase$status <- factor(phase$status,
-                       levels = c("Aligned", "Shifted", "Undetermined"))
+                       levels = c("Aligned", "Ahead", "Behind", "Undetermined"))
 
 common <- theme_classic(base_size = 16, base_family = "Helvetica") +
   theme(panel.grid.minor = element_blank(), panel.grid.major.y = element_blank(),
@@ -90,16 +95,18 @@ labels <- vapply(pairs_data, function(p)
 
 e <- ggplot(phase, aes(percent, pair, fill = status)) +
   geom_col(width = .58, position = position_stack(reverse = TRUE)) +
-  geom_text(aes(label = sprintf("%.0f%%", percent)),
+  # a segment narrower than its own label would print it over its neighbour
+  geom_text(aes(label = ifelse(percent >= 4, sprintf("%.0f%%", percent), "")),
             position = position_stack(vjust = .5, reverse = TRUE),
             size = 4.4, colour = "white") +
   scale_y_discrete(labels = setNames(labels, pairs)) +
   scale_x_continuous(breaks = seq(0, 100, 25), expand = c(0, 0)) +
   coord_cartesian(xlim = c(0, 100)) +
-  scale_fill_manual(values = c(Aligned = "#1B9E77", Shifted = "#D95F02",
-                               Undetermined = "#8274B5"),
-                    labels = c("Phase-conserved", "Phase-shifted",
-                               "Undetermined")) +
+  # the two shifted classes share a hue so they still read as one group
+  scale_fill_manual(values = c(Aligned = "#1B9E77", Ahead = "#FDB863",
+                               Behind = "#D95F02", Undetermined = "#8274B5"),
+                    labels = c("Phase-conserved", "Shifted ahead",
+                               "Shifted behind", "Undetermined")) +
   labs(title = "Timing among conserved genes",
        subtitle = sprintf("Posterior phase classification | ±%g h window, BFDR = %.2f",
                           shift, bfdr_alpha),
