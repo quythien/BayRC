@@ -259,7 +259,7 @@ side_by_side <- function(inputs, output, labels = LETTERS[seq_along(inputs)],
   strip <- ""
   if (!is.na(below)) {
     d <- page_size(below)
-    if (!is.na(below.under)) {
+    if (length(below.under) == 1 && !is.na(below.under)) {
       strip.w <- width.of[below.under]
       lead <- (below.under - 1) * (width.of[below.under] + gutter)
       strip <- sprintf("\n\n\\vspace{%.1fbp}\\noindent\\hspace*{%.1fbp}\\includegraphics[width=%.1fbp]{%s}",
