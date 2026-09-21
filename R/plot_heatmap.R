@@ -46,6 +46,9 @@
 #'   the shared legend so it wraps onto further rows. Use it when the strip sits
 #'   under one panel rather than the whole row, where scaling to fit would
 #'   shrink the type instead.
+#' @param canvas_width Numeric inches or \code{NULL}; the page the heatmap is
+#'   drawn on. The default narrows the page for a pathway with few genes, so the
+#'   fixed-width blocks fill it rather than sitting in margin.
 #' @param legend_path Character or \code{NULL}; when given, the legends are
 #'   also packed horizontally and written on their own to
 #'   \code{<legend_path>.pdf}, for a figure whose panels share one legend.
@@ -79,6 +82,7 @@ plot_heatmap <- function(data1, data2,
                           legend_path = NULL,
                           extra_legends = list(),
                           legend_max_width = NULL,
+                          canvas_width = NULL,
                           show_title = TRUE,
                           show_legend = TRUE,
                           legend_side = "left",
@@ -591,7 +595,13 @@ plot_heatmap <- function(data1, data2,
     # the block labels sit 15 mm under the body and need that room on the page
     fig_height <- fig_height + 0.4
     cat("Saving:", filename, "\n")
-    pdf(filename, width = 10, height = fig_height)
+    # the blocks are a fixed 16 cm, so a short heatmap on a 10 in canvas is
+    # mostly margin and renders small beside a taller panel. Narrowing the
+    # canvas for a few-gene pathway lets the blocks fill it and brings the
+    # panel's aspect closer to square.
+    fig_width <- if (is.null(canvas_width))
+      max(7.5, min(10, 4.5 + fig_height * 0.45)) else canvas_width
+    pdf(filename, width = fig_width, height = fig_height)
 
     # Draw heatmap
     draw(ht_list,

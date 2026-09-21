@@ -75,10 +75,12 @@ p <- peak_concordance_plot(
   title = "Baboon versus human lung",
   xlab = "Peak Hour - Baboon lung (ZT)",
   ylab = "Peak Hour - Human lung (ZT)", window = shift)
-# the phase-class key is carried by the strip beneath the pair, not per panel
+# the phase-class key is carried by the strip beneath the pair, not per panel.
+# the aspect matches the circadian heatmap beside it so the two panels finish at
+# the same height and the shared legend sits close under both
 bayrc_save(p + theme(legend.position = "none"),
            file.path(fig.dir, "Baboon_Human_LUN_Peak_Concordance"),
-           width = 5, height = 5.6)
+           width = 5, height = 4.9)
 
 # gene sets cut to the measured genes before the enrichment sees them
 kegg <- readRDS(file.path(BAYRC_PATHWAY_DIR, "kegg_pathway_list_hsa.rds"))
