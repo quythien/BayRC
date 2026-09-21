@@ -1,4 +1,4 @@
-# Baboon putamen versus cortex, the corticostriatal circuit: rhythmic
+# Baboon putamen versus visual cortex: rhythmic
 # transitions, phase inference, pathway enrichment and the Figure 3C, 4B and 5B
 # panels. Putamen is condition A here and in Baboon_PUT_SUN.R.
 
@@ -70,9 +70,9 @@ clock_genes <- c("BHLHE40", "BHLHE41", "BMAL1", "BTRC", "CLOCK", "CREB1",
 p <- peak_concordance_plot(
   peak_x = phase$peak1[maintained], peak_y = phase$peak2[maintained],
   phase_class = phase_class, label_genes = clock_genes,
-  title = "Circadian Peak Concordance: Baboon Putamen versus Cortex",
+  title = "Circadian Peak Concordance: Baboon Putamen versus Visual Cortex",
   xlab = "Peak Hour - Putamen (ZT)",
-  ylab = "Peak Hour - Cortex (ZT)", window = shift)
+  ylab = "Peak Hour - Visual cortex (ZT)", window = shift)
 bayrc_save(p + theme(legend.position = "none"), file.path(fig.dir, "Baboon_PUT_VIC_Peak_Concordance"),
            width = 5, height = 4.4)
 
@@ -162,7 +162,7 @@ fig4 <- ggplot(plot4[plot4$q < stage2_q, ],
                         limits = size_limits) +
   scale_x_discrete(drop = FALSE) +
   scale_y_discrete(drop = FALSE) +
-  labs(title = "Putamen versus cortex",
+  labs(title = "Putamen versus visual cortex",
        x = "Transition", y = NULL) +
   theme_bayrc(base_size = 12) +
   theme(axis.text.y = element_text(size = 10))
@@ -200,8 +200,8 @@ for (pw in panel_pathways) {
   plot_heatmap(data1 = put, data2 = vic, pathway_genes = kegg[[pw]],
                pathway_name = pw, phase_results = phase,
                transition_results = trans,
-               group_names = c("Baboon PUT", "Baboon VIC"),
-               legend_names = c("Baboon PUT", "the compared region"),
+               group_names = c("Putamen", "Visual cortex"),
+               legend_names = c("Putamen", "the compared region"),
                versions = "both", save_path = fig.dir,
                show_title = FALSE, show_legend = FALSE,
                legend_path = file.path(fig.dir, "parkinson_heatmap_legend"))

@@ -507,6 +507,7 @@ plot_heatmap <- function(data1, data2,
       width = unit(3, "cm")
     ),
     annotation_name_side = "bottom",
+    annotation_name_offset = unit(6, "mm"),
     annotation_name_gp = gpar(fontsize = 14, fontface = "bold")
   )
   
@@ -601,7 +602,7 @@ plot_heatmap <- function(data1, data2,
     # Add peak time titles
     decorate_heatmap_body(paste0("Phase_", group_names[1]), {
       grid.text(
-        paste0(sub("^Baboon ", "", group_names[1]), " peak time"),
+        group_names[1],
         x = unit(0.5, "npc"),
         y = unit(0, "npc") - unit(15, "mm"),
         gp = gpar(fontsize = 15, fontface = "bold")
@@ -610,7 +611,7 @@ plot_heatmap <- function(data1, data2,
     
     decorate_heatmap_body(paste0("Phase_", group_names[2]), {
       grid.text(
-        paste0(sub("^Baboon ", "", group_names[2]), " peak time"),
+        group_names[2],
         x = unit(0.5, "npc"),
         y = unit(0, "npc") - unit(15, "mm"),
         gp = gpar(fontsize = 15, fontface = "bold")
@@ -642,7 +643,7 @@ plot_heatmap <- function(data1, data2,
     # Add peak time titles
     decorate_heatmap_body(paste0("Phase_", group_names[1]), {
       grid.text(
-        paste0(sub("^Baboon ", "", group_names[1]), " peak time"),
+        group_names[1],
         x = unit(0.5, "npc"),
         y = unit(0, "npc") - unit(15, "mm"),
         gp = gpar(fontsize = 15, fontface = "bold")
@@ -651,7 +652,7 @@ plot_heatmap <- function(data1, data2,
     
     decorate_heatmap_body(paste0("Phase_", group_names[2]), {
       grid.text(
-        paste0(sub("^Baboon ", "", group_names[2]), " peak time"),
+        group_names[2],
         x = unit(0.5, "npc"),
         y = unit(0, "npc") - unit(15, "mm"),
         gp = gpar(fontsize = 15, fontface = "bold")

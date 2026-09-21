@@ -195,7 +195,7 @@ for (pw in panel_pathways) {
   plot_heatmap(data1 = put, data2 = sun, pathway_genes = kegg[[pw]],
                pathway_name = pw, phase_results = phase,
                transition_results = trans,
-               group_names = c("Baboon PUT", "Baboon SUN"),
+               group_names = c("Putamen", "Substantia nigra"),
                versions = "both", save_path = fig.dir,
                show_title = FALSE, show_legend = FALSE, legend_side = "bottom")
 }
