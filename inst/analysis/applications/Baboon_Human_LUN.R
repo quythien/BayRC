@@ -75,14 +75,20 @@ p <- peak_concordance_plot(
   title = "Baboon versus human lung",
   xlab = "Peak Hour - Baboon lung (ZT)",
   ylab = "Peak Hour - Human lung (ZT)", window = shift)
-# the phase-class key sits in the scatter's empty lower-right, so the strip
-# beneath the pair carries only the heatmap's own keys. the aspect matches the
-# heatmap beside it so the two panels finish at the same height
-bayrc_save(p + theme(legend.position = c(0.98, 0.02),
-                     legend.justification = c(1, 0),
+# the points lie along the diagonal, so the key goes in the empty upper-left
+# and the strip beneath the pair carries only the heatmap's own keys. the
+# aspect matches the heatmap beside it so the two panels finish at the same
+# height
+# the axis type is set a little below the shared theme so it matches the
+# heatmap beside it once the assembler has scaled the two panels to one width
+bayrc_save(p + theme(legend.position = c(0.02, 0.98),
+                     legend.justification = c(0, 1),
                      legend.direction = "vertical",
+                     legend.title = element_blank(),
                      legend.background = element_rect(fill = "white", colour = NA),
-                     legend.margin = margin(4, 6, 4, 6)),
+                     legend.margin = margin(4, 6, 4, 6),
+                     axis.title = element_text(face = "bold", size = 14),
+                     axis.text = element_text(colour = "black", size = 12.5)),
            file.path(fig.dir, "Baboon_Human_LUN_Peak_Concordance"),
            width = 5, height = 4.9)
 
@@ -160,6 +166,8 @@ for (pw in panel_pathways) {
                legend_path = file.path(fig.dir, "circadian_heatmap_legend"),
                # the strip sits under panel B alone, so it wraps to that width
                legend_max_width = 11,
+               # the assembler scales this panel down further than the scatter
+               font_scale = 1.3,
                versions = "both", save_path = fig.dir)
 }
 

@@ -49,6 +49,10 @@
 #' @param canvas_width Numeric inches or \code{NULL}; the page the heatmap is
 #'   drawn on. The default narrows the page for a pathway with few genes, so the
 #'   fixed-width blocks fill it rather than sitting in margin.
+#' @param font_scale Numeric multiplier on the type drawn inside the heatmap:
+#'   gene names, tick labels and the title. A figure that places the heatmap
+#'   beside a scatter scales the two panels differently, so raise this until the
+#'   rendered type matches its neighbour.
 #' @param legend_path Character or \code{NULL}; when given, the legends are
 #'   also packed horizontally and written on their own to
 #'   \code{<legend_path>.pdf}, for a figure whose panels share one legend.
@@ -83,12 +87,17 @@ plot_heatmap <- function(data1, data2,
                           extra_legends = list(),
                           legend_max_width = NULL,
                           canvas_width = NULL,
+                          font_scale = 1,
                           show_title = TRUE,
                           show_legend = TRUE,
                           legend_side = "left",
                           versions = c("full", "rhythmic_only", "both")) {
 
   versions <- match.arg(versions)
+  fs <- function(size) size * font_scale
+  # the region names sit under blocks of a fixed width, so they run into each
+  # other if they take the full scaling
+  fs_block <- function(size) size * min(font_scale, 1.1)
   
   if(!requireNamespace("ComplexHeatmap", quietly = TRUE)) {
     stop("Install ComplexHeatmap: BiocManager::install('ComplexHeatmap')")
@@ -334,7 +343,7 @@ plot_heatmap <- function(data1, data2,
     
     column_names_side = "bottom",
     column_names_centered = TRUE,
-    column_names_gp = gpar(fontsize = 15, fontface = "bold"),
+    column_names_gp = gpar(fontsize = fs(15), fontface = "bold"),
     column_title_side = "top",
     column_title = NULL,
     column_title_gp = gpar(fontsize = 12, fontface = "bold"),
@@ -442,7 +451,7 @@ plot_heatmap <- function(data1, data2,
     show_row_names = FALSE,
     show_column_names = TRUE,
     column_names_side = "bottom",
-    column_names_gp = gpar(fontsize = 15),
+    column_names_gp = gpar(fontsize = fs(15)),
     column_names_centered = TRUE,
     column_title_side = "bottom",
     column_title = NULL,
@@ -461,7 +470,7 @@ plot_heatmap <- function(data1, data2,
     show_row_names = FALSE,
     show_column_names = TRUE,
     column_names_side = "bottom",
-    column_names_gp = gpar(fontsize = 15),
+    column_names_gp = gpar(fontsize = fs(15)),
     column_names_centered = TRUE,
     column_title_side = "bottom",
     column_title = NULL,
@@ -515,7 +524,7 @@ plot_heatmap <- function(data1, data2,
         at = seq(-axis_limit, axis_limit, by = 6),
         labels = as.character(seq(-axis_limit, axis_limit, by = 6)),
         side = "bottom",
-        gp = gpar(fontsize = 14)
+        gp = gpar(fontsize = fs(14))
       ),
       ylim = c(-axis_limit, axis_limit),
       width = unit(5, "cm")
@@ -530,9 +539,9 @@ plot_heatmap <- function(data1, data2,
   gene_ha <- rowAnnotation(
     Genes = anno_text(
       genes_ord,
-      gp = gpar(fontsize = 15),
+      gp = gpar(fontsize = fs(15)),
       just = "left",
-      width = max_text_width(genes_ord, gp = gpar(fontsize = 15)) + unit(2, "mm")
+      width = max_text_width(genes_ord, gp = gpar(fontsize = fs(15))) + unit(2, "mm")
     ),
     show_annotation_name = FALSE
   )
@@ -621,7 +630,7 @@ plot_heatmap <- function(data1, data2,
         pathway_name,
         x = unit(0.5, "npc"),
         y = unit(1, "npc") - unit(3, "mm"),
-        gp = gpar(fontsize = 22, fontface = "bold")
+        gp = gpar(fontsize = fs(22), fontface = "bold")
       )
     
     # Add peak time titles
@@ -630,7 +639,7 @@ plot_heatmap <- function(data1, data2,
         group_names[1],
         x = unit(0.5, "npc"),
         y = unit(0, "npc") - unit(15, "mm"),
-        gp = gpar(fontsize = 15, fontface = "bold")
+        gp = gpar(fontsize = fs_block(15), fontface = "bold")
       )
     })
     
@@ -639,7 +648,7 @@ plot_heatmap <- function(data1, data2,
         group_names[2],
         x = unit(0.5, "npc"),
         y = unit(0, "npc") - unit(15, "mm"),
-        gp = gpar(fontsize = 15, fontface = "bold")
+        gp = gpar(fontsize = fs_block(15), fontface = "bold")
       )
     })
 
@@ -650,7 +659,7 @@ plot_heatmap <- function(data1, data2,
         "Delta peak (h)",
         x = unit(0.5, "npc"),
         y = unit(0, "npc") - unit(15, "mm"),
-        gp = gpar(fontsize = 15, fontface = "bold")
+        gp = gpar(fontsize = fs_block(15), fontface = "bold")
       )
     })
 
@@ -675,7 +684,7 @@ plot_heatmap <- function(data1, data2,
         pathway_name,
         x = unit(0.5, "npc"),
         y = unit(1, "npc") - unit(3, "mm"),
-        gp = gpar(fontsize = 22, fontface = "bold")
+        gp = gpar(fontsize = fs(22), fontface = "bold")
       )
     
     # Add peak time titles
@@ -684,7 +693,7 @@ plot_heatmap <- function(data1, data2,
         group_names[1],
         x = unit(0.5, "npc"),
         y = unit(0, "npc") - unit(15, "mm"),
-        gp = gpar(fontsize = 15, fontface = "bold")
+        gp = gpar(fontsize = fs_block(15), fontface = "bold")
       )
     })
     
@@ -693,7 +702,7 @@ plot_heatmap <- function(data1, data2,
         group_names[2],
         x = unit(0.5, "npc"),
         y = unit(0, "npc") - unit(15, "mm"),
-        gp = gpar(fontsize = 15, fontface = "bold")
+        gp = gpar(fontsize = fs_block(15), fontface = "bold")
       )
     })
 
@@ -704,7 +713,7 @@ plot_heatmap <- function(data1, data2,
         "Delta peak (h)",
         x = unit(0.5, "npc"),
         y = unit(0, "npc") - unit(15, "mm"),
-        gp = gpar(fontsize = 15, fontface = "bold")
+        gp = gpar(fontsize = fs_block(15), fontface = "bold")
       )
     })
   }
