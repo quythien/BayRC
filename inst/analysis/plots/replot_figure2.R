@@ -76,21 +76,19 @@ concordance_fun <- circlize::colorRamp2(
   seq(0, concordance_max, length.out = length(concordance_colors)),
   concordance_colors)
 
-# the circadian panel runs past the cap, so its top label declares that the
-# darkest cells are clamped rather than reading as exactly 0.5
-bar_labels <- format(concordance_legend, digits = 2)
-if (any(off_max > concordance_max))
-  bar_labels[length(bar_labels)] <- sprintf("≥ %.1f", concordance_max)
+# the circadian panel runs past the cap, so the title says the darkest cells are
+# clamped. A label on the end tick would hang off the end of the bar
+bar_title <- if (any(off_max > concordance_max))
+  sprintf("Adjusted c-score (capped at %.1f)", concordance_max) else
+  "Adjusted c-score"
 
 concordance_bar <- ComplexHeatmap::Legend(
-  col_fun = concordance_fun, title = "Adjusted c-score",
-  at = concordance_legend, labels = bar_labels,
+  col_fun = concordance_fun, title = bar_title,
+  at = concordance_legend, labels = format(concordance_legend, digits = 2),
   direction = "horizontal", legend_width = unit(7, "cm"),
   title_position = "lefttop", title_gp = gpar(fontsize = 10, fontface = "bold"),
   labels_gp = gpar(fontsize = 9))
-# the top label sits past the end of the bar, so the file needs room for it
-save_legend_grob(concordance_bar@grob, file.path(outdir, "Fig2_concordance_legend"),
-                 pad = 0.35)
+save_legend_grob(concordance_bar@grob, file.path(outdir, "Fig2_concordance_legend"))
 
 write_run_record(file.path(outdir, "run_record.txt"), "plots/replot_figure2.R",
                  c(list(colour_cap = concordance_max,

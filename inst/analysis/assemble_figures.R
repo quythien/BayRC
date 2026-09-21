@@ -280,9 +280,8 @@ side_by_side <- function(inputs, output, labels = LETTERS[seq_along(inputs)],
       "\\begin{minipage}{%.1fbp}\\centering\\includegraphics[width=%.1fbp]{%s}\\end{minipage}",
       content.w, strip.w, below)
     strip <- ""
-    # the strip is now a row, so it takes a row separator's space as well as
-    # its own height, which the earlier total did not allow for
-    paper.h <- paper.h + label.space
+    # the strip is a row of its own, so it takes one more separator
+    paper.h <- paper.h + gutter
   } else {
     below.after <- length(unique(row.of))
   }
@@ -305,7 +304,7 @@ side_by_side <- function(inputs, output, labels = LETTERS[seq_along(inputs)],
              # a legend belonging to the panels above it goes between the rows
              # rather than at the foot of the figure
              values = mid.strip, after = below.after),
-             collapse = sprintf("\\\\[%.1fbp]\n", gutter + label.space)), strip),
+             collapse = sprintf("\\\\[%.1fbp]\n", gutter)), strip),
     "\\end{document}")
 
   work <- file.path(tempdir(), "assemble")

@@ -75,7 +75,7 @@ p <- ggplot(cells, aes(tissue, gene, fill = posterior)) +
   scale_x_discrete(expand = c(0, 0)) +
   scale_y_discrete(expand = c(0, 0)) +
   labs(title = "Rhythmic membership of the circadian pathway",
-       subtitle = sprintf("Posterior rhythmicity per gene and tissue; ringed cells clear BFDR = %.2f",
+       subtitle = sprintf("Posterior probability that the gene is rhythmic in that tissue; a ring marks the genes called rhythmic at BFDR = %.2f",
                           bfdr_alpha),
        x = NULL, y = NULL) +
   theme_bayrc(base_size = 14) +

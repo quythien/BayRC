@@ -330,7 +330,9 @@ cat(sprintf("Pearson r (phase, n = %d) = %.4f\n", nrow(both_rhy), corr3))
 
 # ── Save combined PDF ─────────────────────────────────────────────────────────
 out_file <- file.path(outdir, "S5_Bayes_Cosinor_Agreement_LUN.pdf")
-pdf(out_file, width = 15, height = 5)
+# the supplementary scales this to a 6.5 in text block, so a wide canvas would
+# put the gene labels below 4 pt in print
+pdf(out_file, width = 9, height = 3.4)
 grid.arrange(
   p1, p2, p3, nrow = 1,
   top = "Agreement between Bayesian Posteriors and Frequentist Cosinor Output - Baboon Lung"
