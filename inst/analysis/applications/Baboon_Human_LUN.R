@@ -83,7 +83,8 @@ select_pathways <- function(plist, method)
 # stage 1 keeps the rhythmically active pathways and stage 2 tests the
 # transitions within those; --replot reads both from the tables a full run wrote
 if (replot) {
-  source_run <- require_run_record(fig.dir, c("stage1_union.csv", "stage2_significant.csv"))
+  source_run <- require_run_record(fig.dir, c("stage1_union.csv", "stage2_significant.csv",
+                                              "plot_data.rds"))
   union_res <- read.csv(file.path(fig.dir, "stage1_union.csv"))
   sig <- read.csv(file.path(fig.dir, "stage2_significant.csv"))
   active <- union_res$pathway[union_res$q < stage1_q]

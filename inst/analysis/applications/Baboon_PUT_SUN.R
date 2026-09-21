@@ -15,6 +15,7 @@ source(file.path(analysis.dir, "plots", "peak_concordance.R"))
 source(file.path(analysis.dir, "plots", "shared_legend.R"))
 source(file.path(analysis.dir, "plots", "palette_concordance.R"))
 source(file.path(analysis.dir, "pipeline", "run_record.R"))
+source(file.path(analysis.dir, "pipeline", "plot_cache.R"))
 
 # --replot redraws every figure from the tables a full run left behind
 replot <- "--replot" %in% commandArgs(trailingOnly = TRUE)
@@ -35,28 +36,39 @@ size_limits    <- c(0, 120)
 fig.dir <- file.path(BAYRC_FIGURE_DIR, "baboon_PUT_SUN")
 dir.create(fig.dir, recursive = TRUE, showWarnings = FALSE)
 
-load(file.path(BAYRC_SUMMARY_DIR, "mcmc_rho_BF3.RData"))
-load(file.path(BAYRC_SUMMARY_DIR, "phi", "mcmc_phi_BF3.RData"))
+# --replot reads the plot cache instead of the draws; a full run writes it
+cache.file <- file.path(fig.dir, "plot_data.rds")
+if (replot) {
+  cache <- read_plot_cache(cache.file)
+  put <- cache$panelA; sun <- cache$panelB
+  measured <- cache$measured; pA <- cache$pA; pB <- cache$pB
+  trans <- cache$trans; status <- trans$gain_loss_status
+  phase <- cache$phase; maintained <- cache$maintained
+  phase_class <- cache$phase_class
+} else {
+  load(file.path(BAYRC_SUMMARY_DIR, "mcmc_rho_BF3.RData"))
+  load(file.path(BAYRC_SUMMARY_DIR, "phi", "mcmc_phi_BF3.RData"))
 
-# direction is PUT to SUN, so a loss is a gene that stops being rhythmic in SUN
-put <- list(rho = mcmc_data_baboon$PUT, phi = mcmc_phi_baboon$PUT)
-sun <- list(rho = mcmc_data_baboon$SUN, phi = mcmc_phi_baboon$SUN)
-measured <- rownames(put$rho)
+  # direction is PUT to SUN, so a loss is a gene that stops being rhythmic in SUN
+  put <- list(rho = mcmc_data_baboon$PUT, phi = mcmc_phi_baboon$PUT)
+  sun <- list(rho = mcmc_data_baboon$SUN, phi = mcmc_phi_baboon$SUN)
+  measured <- rownames(put$rho)
 
-pA <- rowMeans(put$rho)
-pB <- rowMeans(sun$rho)
-trans <- transition_classify(pA, pB, bfdr_alpha = bfdr_alpha)
-status <- trans$gain_loss_status
+  pA <- rowMeans(put$rho)
+  pB <- rowMeans(sun$rho)
+  trans <- transition_classify(pA, pB, bfdr_alpha = bfdr_alpha)
+  status <- trans$gain_loss_status
 
-phase <- phase_infer(phi_matrix1 = put$phi, phi_matrix2 = sun$phi,
-                     gain_loss_status = status, bfdr_alpha = bfdr_alpha,
-                     shift = shift, P = 24, compute_hdi = TRUE)
+  phase <- phase_infer(phi_matrix1 = put$phi, phi_matrix2 = sun$phi,
+                       gain_loss_status = status, bfdr_alpha = bfdr_alpha,
+                       shift = shift, P = 24, compute_hdi = TRUE)
 
-maintained <- names(status)[status == "Maintained"]
-phase_class <- rep("Undetermined", length(status))
-names(phase_class) <- names(status)
-phase_class[phase$flag_cons]  <- "Phase-conserved"
-phase_class[phase$flag_shift] <- "Phase-shifted"
+  maintained <- names(status)[status == "Maintained"]
+  phase_class <- rep("Undetermined", length(status))
+  names(phase_class) <- names(status)
+  phase_class[phase$flag_cons]  <- "Phase-conserved"
+  phase_class[phase$flag_shift] <- "Phase-shifted"
+}
 
 # signed difference, SUN minus PUT, on the circle
 delta <- ((phase$peak2 - phase$peak1 + 12) %% 24) - 12
@@ -93,7 +105,8 @@ select_pathways <- function(plist, method)
 # stage 1 keeps the rhythmically active pathways and stage 2 tests the
 # transitions within those; --replot reads both from the tables a full run wrote
 if (replot) {
-  source_run <- require_run_record(fig.dir, c("stage1_union.csv", "stage2_significant.csv"))
+  source_run <- require_run_record(fig.dir, c("stage1_union.csv", "stage2_significant.csv",
+                                              "plot_data.rds"))
   union_res <- read.csv(file.path(fig.dir, "stage1_union.csv"))
   sig <- read.csv(file.path(fig.dir, "stage2_significant.csv"))
   active <- union_res$pathway[union_res$q < stage1_q]
@@ -187,6 +200,11 @@ if (!replot) {
             file.path(fig.dir, "stage2_significant.csv"), row.names = FALSE)
   if (!is.null(metrics))
     write.csv(metrics, file.path(fig.dir, "pathway_metrics.csv"), row.names = FALSE)
+  write_plot_cache(cache.file, dataA = put, dataB = sun,
+                   panel_genes = unlist(kegg[panel_pathways], use.names = FALSE),
+                   measured = measured, pA = pA, pB = pB, trans = trans,
+                   phase = phase, maintained = maintained,
+                   phase_class = phase_class)
 }
 
 # Figure 5A; the legend both panels share is written by Baboon_PUT_VIC.R
