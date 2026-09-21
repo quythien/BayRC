@@ -15,6 +15,7 @@ while (!file.exists(file.path(analysis.dir, "config.R")) &&
        dirname(analysis.dir) != analysis.dir) analysis.dir <- dirname(analysis.dir)
 source(file.path(analysis.dir, "config.R"))
 source(file.path(analysis.dir, "plots", "palette_concordance.R"))
+source(file.path(analysis.dir, "plots", "shared_legend.R"))
 source(file.path(analysis.dir, "pipeline", "run_record.R"))
 
 suppressPackageStartupMessages({library(pheatmap); library(BayRC)})
@@ -54,14 +55,26 @@ for (stem in names(panels)) {
            breaks        = concordance_breaks,
            border_color  = NA,
            main          = p$title,
-           legend_breaks = concordance_legend,
-           legend_labels = format(concordance_legend, digits = 2))
+           legend        = FALSE)
   dev.off()
 
   off <- m[row(m) != col(m)]
   cat(sprintf("%s  %d tissues  off-diagonal range %.3f to %.3f\n",
               stem, nrow(m), min(off), max(off)))
 }
+
+# Both panels are drawn on this one scale, so the colour bar is written once
+# and the assembler places it under the pair.
+concordance_fun <- circlize::colorRamp2(
+  seq(0, concordance_max, length.out = length(concordance_colors)),
+  concordance_colors)
+concordance_bar <- ComplexHeatmap::Legend(
+  col_fun = concordance_fun, title = "Concordance",
+  at = concordance_legend, labels = format(concordance_legend, digits = 2),
+  direction = "horizontal", legend_width = unit(7, "cm"),
+  title_position = "lefttop", title_gp = gpar(fontsize = 10, fontface = "bold"),
+  labels_gp = gpar(fontsize = 9))
+save_legend_grob(concordance_bar@grob, file.path(outdir, "Fig2_concordance_legend"))
 
 write_run_record(file.path(outdir, "run_record.txt"), "plots/replot_figure2.R",
                  c(list(colour_cap = concordance_max,

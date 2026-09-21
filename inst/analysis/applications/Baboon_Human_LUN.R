@@ -13,6 +13,9 @@ source(file.path(analysis.dir, "plots", "theme_bayrc.R"))
 source(file.path(analysis.dir, "plots", "peak_concordance.R"))
 source(file.path(analysis.dir, "pipeline", "run_record.R"))
 
+# --replot redraws every figure from the tables a full run left behind
+replot <- "--replot" %in% commandArgs(trailingOnly = TRUE)
+
 # frozen analysis parameters
 bfdr_alpha     <- 0.25
 shift          <- 2
@@ -77,34 +80,48 @@ select_pathways <- function(plist, method)
              pathwaysize.upper.cut = length(measured),
              nperm = nperm, nproc = 1)$results
 
-union_res <- select_pathways(kegg, "union")
-union_res$q <- p.adjust(union_res$pval, "BH")
-active <- union_res$pathway[union_res$q < stage1_q]
+# stage 1 keeps the rhythmically active pathways and stage 2 tests the
+# transitions within those; --replot reads both from the tables a full run wrote
+if (replot) {
+  source_run <- require_run_record(fig.dir, c("stage1_union.csv", "stage2_significant.csv"))
+  union_res <- read.csv(file.path(fig.dir, "stage1_union.csv"))
+  sig <- read.csv(file.path(fig.dir, "stage2_significant.csv"))
+  active <- union_res$pathway[union_res$q < stage1_q]
+  stage2 <- sig
+} else {
+  source_run <- NULL
+  union_res <- select_pathways(kegg, "union")
+  union_res$q <- p.adjust(union_res$pval, "BH")
+  active <- union_res$pathway[union_res$q < stage1_q]
 
-# pathSelect names its effect column after the ranking method, so the three
-# runs are cut to the shared columns before they are stacked
-stage2_cols <- c("pathway", "size", "pval", "Expected_N_Gain",
-                 "Expected_N_Loss", "Expected_N_Conserved")
-stage2 <- do.call(rbind, lapply(c("gain", "loss", "conserved"), function(m) {
-  if (!length(active)) return(NULL)
-  r <- select_pathways(kegg[active], m)[, stage2_cols]
-  r$q <- p.adjust(r$pval, "BH")
-  r$direction <- m
-  r
-}))
-if (is.null(stage2))
-  stage2 <- data.frame(pathway = character(), size = integer(),
-                       pval = numeric(), Expected_N_Gain = numeric(),
-                       Expected_N_Loss = numeric(),
-                       Expected_N_Conserved = numeric(), q = numeric(),
-                       direction = character())
-sig <- stage2[stage2$q < stage2_q, ]
+  # pathSelect names its effect column after the ranking method, so the three
+  # runs are cut to the shared columns before they are stacked
+  stage2_cols <- c("pathway", "size", "pval", "Expected_N_Gain",
+                   "Expected_N_Loss", "Expected_N_Conserved")
+  stage2 <- do.call(rbind, lapply(c("gain", "loss", "conserved"), function(m) {
+    if (!length(active)) return(NULL)
+    r <- select_pathways(kegg[active], m)[, stage2_cols]
+    r$q <- p.adjust(r$pval, "BH")
+    r$direction <- m
+    r
+  }))
+  if (is.null(stage2))
+    stage2 <- data.frame(pathway = character(), size = integer(),
+                         pval = numeric(), Expected_N_Gain = numeric(),
+                         Expected_N_Loss = numeric(),
+                         Expected_N_Conserved = numeric(), q = numeric(),
+                         direction = character())
+  sig <- stage2[stage2$q < stage2_q, ]
+}
 
-write.csv(union_res[order(union_res$pval), c("pathway", "size", "pval", "q")],
-          file.path(fig.dir, "stage1_union.csv"), row.names = FALSE)
-write.csv(sig[order(sig$direction, sig$pval),
-              c("pathway", "direction", "size", "pval", "q")],
-          file.path(fig.dir, "stage2_significant.csv"), row.names = FALSE)
+# the tables a later --replot reads back
+if (!replot) {
+  write.csv(union_res[order(union_res$pval), c("pathway", "size", "pval", "q")],
+            file.path(fig.dir, "stage1_union.csv"), row.names = FALSE)
+  write.csv(sig[order(sig$direction, sig$pval),
+                c("pathway", "direction", "size", "pval", "q")],
+            file.path(fig.dir, "stage2_significant.csv"), row.names = FALSE)
+}
 
 # Figure 6B
 for (pw in panel_pathways) {
@@ -122,7 +139,8 @@ write_run_record(file.path(fig.dir, "run_record.txt"), "applications/Baboon_Huma
                       min_measured = min_measured,
                       pathway_list = "kegg_pathway_list_hsa.rds",
                       panels = panel_pathways),
-                 repo = analysis.dir)
+                 repo = analysis.dir,
+                 replot_of = if (is.null(source_run)) NULL else source_run$run_at)
 
 shifted <- names(phase$flag_shift)[phase$flag_shift]
 conserved <- names(phase$flag_cons)[phase$flag_cons]

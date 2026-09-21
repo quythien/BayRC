@@ -16,6 +16,9 @@ source(file.path(analysis.dir, "plots", "palette_concordance.R"))
 source(file.path(analysis.dir, "plots", "shared_legend.R"))
 source(file.path(analysis.dir, "pipeline", "run_record.R"))
 
+# --replot redraws every figure from the tables a full run left behind
+replot <- "--replot" %in% commandArgs(trailingOnly = TRUE)
+
 # frozen analysis parameters
 bfdr_alpha     <- 0.25
 shift          <- 2
@@ -87,33 +90,43 @@ select_pathways <- function(plist, method)
              pathwaysize.upper.cut = length(measured),
              nperm = nperm, nproc = 1)$results
 
-# stage 1 keeps the rhythmically active pathways
-union_res <- select_pathways(kegg, "union")
-union_res$q <- p.adjust(union_res$pval, "BH")
-active <- union_res$pathway[union_res$q < stage1_q]
+# stage 1 keeps the rhythmically active pathways and stage 2 tests the
+# transitions within those; --replot reads both from the tables a full run wrote
+if (replot) {
+  source_run <- require_run_record(fig.dir, c("stage1_union.csv", "stage2_significant.csv"))
+  union_res <- read.csv(file.path(fig.dir, "stage1_union.csv"))
+  sig <- read.csv(file.path(fig.dir, "stage2_significant.csv"))
+  active <- union_res$pathway[union_res$q < stage1_q]
+  stage2 <- sig
+  stage2_full <- NULL
+} else {
+  source_run <- NULL
+  union_res <- select_pathways(kegg, "union")
+  union_res$q <- p.adjust(union_res$pval, "BH")
+  active <- union_res$pathway[union_res$q < stage1_q]
 
-# stage 2 tests the transitions within those
-# pathSelect names its effect column after the ranking method, so the three
-# runs are cut to the shared columns before they are stacked
-stage2_cols <- c("pathway", "size", "pval", "Expected_N_Gain",
-                 "Expected_N_Loss", "Expected_N_Conserved")
-stage2_full <- lapply(c("gain", "loss", "conserved"), function(m) {
-  if (!length(active)) return(NULL)
-  r <- select_pathways(kegg[active], m)
-  r$q <- p.adjust(r$pval, "BH")
-  r$direction <- m
-  r
-})
-names(stage2_full) <- c("gain", "loss", "conserved")
-stage2 <- do.call(rbind, lapply(stage2_full, function(r)
-  if (is.null(r)) NULL else r[, c(stage2_cols, "q", "direction")]))
-if (is.null(stage2))
-  stage2 <- data.frame(pathway = character(), size = integer(),
-                       pval = numeric(), Expected_N_Gain = numeric(),
-                       Expected_N_Loss = numeric(),
-                       Expected_N_Conserved = numeric(), q = numeric(),
-                       direction = character())
-sig <- stage2[stage2$q < stage2_q, ]
+  # pathSelect names its effect column after the ranking method, so the three
+  # runs are cut to the shared columns before they are stacked
+  stage2_cols <- c("pathway", "size", "pval", "Expected_N_Gain",
+                   "Expected_N_Loss", "Expected_N_Conserved")
+  stage2_full <- lapply(c("gain", "loss", "conserved"), function(m) {
+    if (!length(active)) return(NULL)
+    r <- select_pathways(kegg[active], m)
+    r$q <- p.adjust(r$pval, "BH")
+    r$direction <- m
+    r
+  })
+  names(stage2_full) <- c("gain", "loss", "conserved")
+  stage2 <- do.call(rbind, lapply(stage2_full, function(r)
+    if (is.null(r)) NULL else r[, c(stage2_cols, "q", "direction")]))
+  if (is.null(stage2))
+    stage2 <- data.frame(pathway = character(), size = integer(),
+                         pval = numeric(), Expected_N_Gain = numeric(),
+                         Expected_N_Loss = numeric(),
+                         Expected_N_Conserved = numeric(), q = numeric(),
+                         direction = character())
+  sig <- stage2[stage2$q < stage2_q, ]
+}
 
 # Figure 4: a dot per pathway and transition that clears the stage-2 cut, sized
 # by the expected gene count for that transition and shaded by -log10(q)
@@ -160,22 +173,26 @@ bayrc_save(fig4 + theme(legend.position = "none"),
 save_plot_legend(fig4, file.path(fig.dir, "transition_enrichment_legend"))
 }
 
-# pathway concordance metrics behind the enrichment table
 selected <- unique(sig$pathway)
-metrics <- if (!length(selected)) NULL else multi_conservation(
-  mcmc.merge.list = list(PUT = put, VIC = vic),
-  dataset.names = c("PUT", "VIC"), select.pathway.list = kegg[selected],
-  n_perm = 1000, n_boot = 1000,
-  output.dir = file.path(fig.dir, "multiconservation"), use_cpp = TRUE)
 
-write.csv(union_res[order(union_res$pval), c("pathway", "size", "pval", "q")],
-          file.path(fig.dir, "stage1_union.csv"), row.names = FALSE)
-write.csv(sig[order(sig$direction, sig$pval),
-              c("pathway", "direction", "size", "pval", "q",
-                "Expected_N_Gain", "Expected_N_Loss", "Expected_N_Conserved")],
-          file.path(fig.dir, "stage2_significant.csv"), row.names = FALSE)
-if (!is.null(metrics))
-  write.csv(metrics, file.path(fig.dir, "pathway_metrics.csv"), row.names = FALSE)
+# pathway concordance metrics behind the enrichment table, and the tables a
+# later --replot reads back
+if (!replot) {
+  metrics <- if (!length(selected)) NULL else multi_conservation(
+    mcmc.merge.list = list(PUT = put, VIC = vic),
+    dataset.names = c("PUT", "VIC"), select.pathway.list = kegg[selected],
+    n_perm = 1000, n_boot = 1000,
+    output.dir = file.path(fig.dir, "multiconservation"), use_cpp = TRUE)
+
+  write.csv(union_res[order(union_res$pval), c("pathway", "size", "pval", "q")],
+            file.path(fig.dir, "stage1_union.csv"), row.names = FALSE)
+  write.csv(sig[order(sig$direction, sig$pval),
+                c("pathway", "direction", "size", "pval", "q",
+                  "Expected_N_Gain", "Expected_N_Loss", "Expected_N_Conserved")],
+            file.path(fig.dir, "stage2_significant.csv"), row.names = FALSE)
+  if (!is.null(metrics))
+    write.csv(metrics, file.path(fig.dir, "pathway_metrics.csv"), row.names = FALSE)
+}
 
 # Figure 5B, and the legend both Figure 5 panels share
 for (pw in panel_pathways) {
@@ -196,7 +213,8 @@ write_run_record(file.path(fig.dir, "run_record.txt"), "applications/Baboon_PUT_
                       min_measured = min_measured,
                       pathway_list = "kegg_pathway_list_hsa.rds",
                       panels = panel_pathways),
-                 repo = analysis.dir)
+                 repo = analysis.dir,
+                 replot_of = if (is.null(source_run)) NULL else source_run$run_at)
 
 shifted <- names(phase$flag_shift)[phase$flag_shift]
 conserved <- names(phase$flag_cons)[phase$flag_cons]
@@ -231,7 +249,7 @@ print(sig[order(sig$direction, sig$pval), c("pathway", "direction", "pval", "q")
       row.names = FALSE)
 # the gain and loss NES say how the active pathways sit against background on
 # the two transitions that carry no enrichment
-for (m in c("gain", "loss")) {
+for (m in if (is.null(stage2_full)) character() else c("gain", "loss")) {
   r <- stage2_full[[m]]
   if (is.null(r)) next
   cat("\n", m, "enrichment across the stage-1 active set\n")

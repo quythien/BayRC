@@ -538,8 +538,8 @@ plot_heatmap <- function(data1, data2,
       delta_peak_legend,
       direction = "horizontal", gap = unit(6, "mm"))
     pdf(NULL)
-    lw <- convertWidth(ComplexHeatmap::width(shared), "in", valueOnly = TRUE)
-    lh <- convertHeight(ComplexHeatmap::height(shared), "in", valueOnly = TRUE)
+    lw <- convertWidth(grobWidth(shared@grob), "in", valueOnly = TRUE)
+    lh <- convertHeight(grobHeight(shared@grob), "in", valueOnly = TRUE)
     dev.off()
     pdf(paste0(legend_path, ".pdf"), width = lw + 0.2, height = lh + 0.2)
     grid.newpage()

@@ -76,6 +76,9 @@ panels <- list(
   list(dir = fig2.dir, pattern = "^Fig2B_circadian[.]pdf$",
        to = "F2B_baboon_circadian_concordance.pdf",
        script = "plots/heatmap_circadian_pairs.R within_baboon then plots/replot_figure2.R"),
+  list(dir = fig2.dir, pattern = "^Fig2_concordance_legend[.]pdf$",
+       to = "F2L_concordance_legend.pdf",
+       script = "plots/replot_figure2.R"),
 
   # Figure 3: within-species phase concordance scatters
   list(dir = scnhip.dir, pattern = "^Baboon_SCN_HIP_Peak_Concordance[.]pdf$",
@@ -152,7 +155,8 @@ stacked.figures <- "Figure_5"
 # A figure listed here is drawn with its panels carrying no legend of their own
 # and this one placed under the row. The panels' scales have to match for that
 # to be right, which for Figure 4 is what q_limits and size_limits fix.
-shared.legends <- list(Figure_4 = "F4L_transition_enrichment_legend.pdf",
+shared.legends <- list(Figure_2 = "F2L_concordance_legend.pdf",
+                       Figure_4 = "F4L_transition_enrichment_legend.pdf",
                        Figure_5 = "F5L_parkinson_heatmap_legend.pdf",
                        Figure_5_row = "F5L_parkinson_heatmap_legend.pdf")
 
