@@ -26,7 +26,7 @@ min_measured   <- 15
 panel_pathways <- "KEGG Parkinson disease"
 # Figure 4A and 4B sit side by side, so both panels fix the same colour and size
 # scales; Baboon_PUT_SUN.R repeats these two values.
-q_limits       <- c(0.05, 0.001)
+q_limits       <- c(0.05, 0.0005)
 size_limits    <- c(0, 120)
 
 fig.dir <- file.path(BAYRC_FIGURE_DIR, "baboon_PUT_VIC")
@@ -142,11 +142,11 @@ fig4 <- ggplot(plot4[plot4$q < stage2_q, ],
                    colour = -log10(q))) +
   geom_point() +
   scale_colour_gradientn(colours = enrichment_colors, name = "q",
-                         limits = -log10(q_limits),
+                         limits = -log10(q_limits), oob = scales::squish,
                          breaks = -log10(q_breaks),
                          labels = format(q_breaks, drop0trailing = TRUE)) +
   scale_size_continuous(name = "expected genes", range = c(2.5, 9),
-                        limits = size_limits) +
+                        limits = size_limits, oob = scales::squish) +
   scale_x_discrete(drop = FALSE) +
   scale_y_discrete(drop = FALSE) +
   labs(title = "Putamen versus cortex",
