@@ -40,8 +40,11 @@ phi_lun <- mcmc_phi_baboon$LUN    # genes x MCMC iterations (phase in hours, 0-2
 
 # Posterior mean = P(rhythmic | data)
 posterior_mean  <- rowMeans(rho_lun)
-# Bayes Factor (equal prior assumption: p_rhythmic = 0.5)
-BF_bayes        <- posterior_mean / (1 - posterior_mean + 1e-20)
+# Bayes factor as Section S3 defines it, the posterior odds divided by the
+# prior odds. The runs behind mcmc_rho_BF3.RData used p_rhythmic = 0.2.
+p_rhythmic      <- 0.2
+prior_odds      <- p_rhythmic / (1 - p_rhythmic)
+BF_bayes        <- posterior_mean / (1 - posterior_mean + 1e-20) / prior_odds
 gene_names_bay  <- rownames(rho_lun)
 
 cat("Bayesian genes loaded:", length(gene_names_bay), "\n")
@@ -285,7 +288,7 @@ write.csv(s5_table, file.path(outdir, "S5_detection_counts.csv"), row.names = FA
 # ── Where the evidence scale sits against the cosinor scale ───────────────────
 # The same merged set crossed over both thresholds rather than one, so the grid
 # shows where each scale's detections nest rather than fixing a cut-off on
-# either. BF > 1, 3, 5 are posterior > 0.5, 0.75 and 0.83.
+# either.
 cos_cuts <- list("p < 0.05"    = merged$pval < 0.05,
                  "p < 0.01"    = merged$pval < 0.01,
                  "BH q < 0.05" = p.adjust(merged$pval, "BH") < 0.05)
@@ -305,6 +308,12 @@ s5_grid <- do.call(rbind, lapply(names(cos_cuts), function(nm) {
 }))
 cat("\n=== detections by evidence threshold and cosinor rule ===\n")
 cat("genes compared:", N_total, "\n")
+# the posterior each Bayes factor cut corresponds to at this prior
+cat("prior p_rhythmic:", p_rhythmic, " prior odds:", round(prior_odds, 3), "\n")
+cat("posterior equivalent of each cut: ",
+    paste(sprintf("BF > %d: %.3f", bf_cuts,
+                  bf_cuts * prior_odds / (1 + bf_cuts * prior_odds)),
+          collapse = "  "), "\n")
 cat("Bayesian totals: ",
     paste(sprintf("BF > %d: %d", bf_cuts,
                   vapply(bf_cuts, function(b) sum(merged$BF_bayes > b), integer(1))),

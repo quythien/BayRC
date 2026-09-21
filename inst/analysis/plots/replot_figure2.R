@@ -31,11 +31,11 @@ fig_dir <- BAYRC_OUTPUT_DIR
 panels <- list(
   Fig2A_genomewide = list(
     csv   = file.path(fig_dir, "all_plots", "Baboon_Concordance_Matrix.csv"),
-    title = "Baboon Genome-wide Rhythmicity Concordance Heatmap"),
+    title = "Genome-wide rhythmicity"),
   Fig2B_circadian = list(
     csv   = file.path(fig_dir, "heatmap_circadian_pairs", "within_baboon",
                       "pairwise_concordance_baboon_circadian_Matrix.csv"),
-    title = "Baboon Circadian Pathway Concordance Heatmap")
+    title = "Circadian pathway")
 )
 
 off_max <- setNames(numeric(length(panels)), names(panels))
@@ -88,7 +88,9 @@ concordance_bar <- ComplexHeatmap::Legend(
   direction = "horizontal", legend_width = unit(7, "cm"),
   title_position = "lefttop", title_gp = gpar(fontsize = 10, fontface = "bold"),
   labels_gp = gpar(fontsize = 9))
-save_legend_grob(concordance_bar@grob, file.path(outdir, "Fig2_concordance_legend"))
+# the top label sits past the end of the bar, so the file needs room for it
+save_legend_grob(concordance_bar@grob, file.path(outdir, "Fig2_concordance_legend"),
+                 pad = 0.35)
 
 write_run_record(file.path(outdir, "run_record.txt"), "plots/replot_figure2.R",
                  c(list(colour_cap = concordance_max,

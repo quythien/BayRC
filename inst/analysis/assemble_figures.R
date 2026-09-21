@@ -76,6 +76,9 @@ panels <- list(
   list(dir = fig2.dir, pattern = "^Fig2B_circadian[.]pdf$",
        to = "F2B_baboon_circadian_concordance.pdf",
        script = "plots/heatmap_circadian_pairs.R within_baboon then plots/replot_figure2.R"),
+  list(dir = fig2.dir, pattern = "^Fig2C_circadian_membership[.]pdf$",
+       to = "F2C_circadian_membership.pdf",
+       script = "plots/figure2_panelC.R"),
   list(dir = fig2.dir, pattern = "^Fig2_concordance_legend[.]pdf$",
        to = "F2L_concordance_legend.pdf",
        script = "plots/replot_figure2.R"),
@@ -134,7 +137,8 @@ for (i in seq_along(panels))
 
 figures <- list(
   Figure_2 = c("F2A_baboon_genomewide_concordance.pdf",
-               "F2B_baboon_circadian_concordance.pdf"),
+               "F2B_baboon_circadian_concordance.pdf",
+               "F2C_circadian_membership.pdf"),
   Figure_3 = c("F3A_baboon_SCN_HIP_phase_concordance.pdf",
                "F3B_baboon_PUT_SUN_phase_concordance.pdf",
                "F3C_baboon_PUT_VIC_phase_concordance.pdf",
@@ -153,11 +157,12 @@ figures <- list(
 stacked.figures <- "Figure_5"
 
 # A figure listed here wraps its panels into rows of this many.
-figure.columns <- list(Figure_3 = 3)
+figure.columns <- list(Figure_2 = 2, Figure_3 = 3)
 # a legend that belongs to one panel rather than the row sits under that panel
 legend.under <- list(Figure_6 = 2L, Figure_5_row = 1L)
 # a legend that belongs to the panels in one row sits directly beneath that row
-legend.after.row <- list(Figure_3 = 1L)
+# the colour bar belongs to the two heatmaps, not to the membership panel below
+legend.after.row <- list(Figure_2 = 1L, Figure_3 = 1L)
 
 # A figure listed here is drawn with its panels carrying no legend of their own
 # and this one placed under the row. The panels' scales have to match for that
