@@ -247,7 +247,7 @@ side_by_side <- function(inputs, output, labels = LETTERS[seq_along(inputs)],
 
 stacked <- function(inputs, output, labels = LETTERS[seq_along(inputs)],
                     panel.width = 468, gap = 14, margin = 9,
-                    label.space = 22) {
+                    label.space = 22, below = NA_character_) {
   if (!nzchar(Sys.which("pdflatex")) || !nzchar(Sys.which("pdfinfo")))
     return(FALSE)
   size <- lapply(inputs, page_size)
@@ -255,6 +255,16 @@ stacked <- function(inputs, output, labels = LETTERS[seq_along(inputs)],
   paper.w <- panel.width + 2 * margin
   paper.h <- sum(scaled.h) + length(inputs) * label.space +
              (length(inputs) - 1) * gap + 2 * margin
+
+  # a legend the panels share sits centred under the stack, at its own width
+  strip <- ""
+  if (!is.na(below)) {
+    d <- page_size(below)
+    strip.w <- min(d[1], panel.width)
+    paper.h <- paper.h + strip.w * d[2] / d[1] + gap
+    strip <- sprintf("\\\\[%.1fbp]\n\\centerline{\\includegraphics[width=%.1fbp]{%s}}",
+                     gap, strip.w, below)
+  }
 
   panel <- function(i) sprintf(
     "\\textbf{\\sffamily\\large %s}\\\\[2bp]\n\\includegraphics[width=%.1fbp]{%s}",
@@ -266,8 +276,8 @@ stacked <- function(inputs, output, labels = LETTERS[seq_along(inputs)],
     "\\usepackage{graphicx}", "\\pagestyle{empty}",
     "\\setlength{\\parindent}{0pt}",
     "\\begin{document}\\noindent",
-    paste(vapply(seq_along(inputs), panel, character(1)),
-          collapse = sprintf("\\\\[%.1fbp]\n", gap)),
+    paste0(paste(vapply(seq_along(inputs), panel, character(1)),
+                 collapse = sprintf("\\\\[%.1fbp]\n", gap)), strip),
     "\\end{document}")
 
   work <- file.path(tempdir(), "assemble")
