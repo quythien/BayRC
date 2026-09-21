@@ -82,7 +82,7 @@ clock_genes <- c("BHLHE40", "BHLHE41", "BMAL1", "BTRC", "CLOCK", "CREB1",
 p <- peak_concordance_plot(
   peak_x = phase$peak1[maintained], peak_y = phase$peak2[maintained],
   phase_class = phase_class, label_genes = clock_genes,
-  title = "Circadian Peak Concordance: Baboon Putamen versus Visual Cortex",
+  title = "Putamen versus visual cortex",
   xlab = "Peak Hour - Putamen (ZT)",
   ylab = "Peak Hour - Visual cortex (ZT)", window = shift)
 bayrc_save(p + theme(legend.position = "none"), file.path(fig.dir, "Baboon_PUT_VIC_Peak_Concordance"),

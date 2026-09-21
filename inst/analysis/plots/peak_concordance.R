@@ -29,10 +29,9 @@ peak_concordance_plot <- function(peak_x, peak_y, phase_class, label_genes,
   d$phase_class[is.na(d$phase_class)] <- "Undetermined"
 
   n_within <- sum(circ_diff(peak_x, peak_y) <= window)
-  subtitle <- bquote("Rhythmically Conserved Set " ~ R[c] ~
-                     "(" * n == .(nrow(d)) * ", " *
+  subtitle <- bquote(n == .(nrow(d)) * ", " *
                      .(round(100 * n_within / nrow(d), 1)) *
-                     "% within " * "±" * .(window) * " h interval)")
+                     "% within " * "±" * .(window) * " h")
 
   ggplot(d, aes(x = x, y = y, color = phase_class)) +
     geom_abline(intercept = 0, slope = 1, color = "black",

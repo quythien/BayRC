@@ -72,7 +72,7 @@ clock_genes <- c("BMAL1", "CLOCK", "NPAS2", "PER1", "PER2", "PER3", "CRY1",
 p <- peak_concordance_plot(
   peak_x = phase$peak1[maintained], peak_y = phase$peak2[maintained],
   phase_class = phase_class, label_genes = clock_genes,
-  title = "Circadian Peak Concordance: Baboon versus Human Lung",
+  title = "Baboon versus human lung",
   xlab = "Peak Hour - Baboon lung (ZT)",
   ylab = "Peak Hour - Human lung (ZT)", window = shift)
 bayrc_save(p, file.path(fig.dir, "Baboon_Human_LUN_Peak_Concordance"),
@@ -148,6 +148,8 @@ for (pw in panel_pathways) {
                pathway_name = pw, phase_results = phase,
                transition_results = trans,
                group_names = c("Baboon lung", "Human lung"),
+               show_legend = FALSE,
+               legend_path = file.path(fig.dir, "circadian_heatmap_legend"),
                versions = "both", save_path = fig.dir)
 }
 

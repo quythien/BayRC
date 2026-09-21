@@ -125,6 +125,9 @@ panels <- list(
   list(dir = lung.dir,
        pattern = "^KEGG_Circadian_rhythm_integrated_rhythmic_only[.]pdf$",
        to = "F6B_baboon_human_LUN_circadian_heatmap.pdf",
+       script = "applications/Baboon_Human_LUN.R"),
+  list(dir = lung.dir, pattern = "^circadian_heatmap_legend[.]pdf$",
+       to = "F6L_circadian_heatmap_legend.pdf",
        script = "applications/Baboon_Human_LUN.R")
 )
 
@@ -160,14 +163,17 @@ stacked.figures <- "Figure_5"
 # to be right, which for Figure 4 is what q_limits and size_limits fix.
 # A figure whose panels share one subject carries its title once, above the
 # pair, and the panels are drawn with show_title = FALSE.
-figure.titles <- list(Figure_5 = "KEGG Parkinson disease",
-                      Figure_5_row = "KEGG Parkinson disease")
+figure.titles <- list(Figure_3 = "Circadian peak concordance",
+                      Figure_5 = "KEGG Parkinson disease",
+                      Figure_5_row = "KEGG Parkinson disease",
+                      Figure_6 = "Cross-species lung")
 
 shared.legends <- list(Figure_2 = "F2L_concordance_legend.pdf",
                        Figure_3 = "F3L_phase_class_legend.pdf",
                        Figure_4 = "F4L_transition_enrichment_legend.pdf",
                        Figure_5 = "F5L_parkinson_heatmap_legend.pdf",
-                       Figure_5_row = "F5L_parkinson_heatmap_legend.pdf")
+                       Figure_5_row = "F5L_parkinson_heatmap_legend.pdf",
+                       Figure_6 = "F6L_circadian_heatmap_legend.pdf")
 
 # Collect ---------------------------------------------------------------------
 

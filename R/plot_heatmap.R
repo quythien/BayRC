@@ -400,7 +400,7 @@ plot_heatmap <- function(data1, data2,
     col_names <- rep("", n_bins)
     
     # Identify the bins closest to target labels
-    target_labels <- c(-6, 0, 6, 12, 18)
+    target_labels <- c(0, 6, 12)
     for(label in target_labels) {
       closest_idx <- which.min(abs(bin_centers - label))
       if (length(closest_idx) > 0) {
@@ -497,9 +497,8 @@ plot_heatmap <- function(data1, data2,
       bar_width = 1,
       gp = gpar(fill = delta_colors, col = NA),
       axis_param = list(
-        at = c(-axis_limit, -axis_limit/2, 0, axis_limit/2, axis_limit),
-        labels = c(paste0("-", axis_limit), paste0("-", axis_limit/2), "0",
-                   as.character(axis_limit/2), as.character(axis_limit)),
+        at = c(-axis_limit/2, 0, axis_limit/2),
+        labels = c(paste0("-", axis_limit/2), "0", as.character(axis_limit/2)),
         side = "bottom",
         gp = gpar(fontsize = 14)
       ),
