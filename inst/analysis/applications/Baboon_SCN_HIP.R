@@ -204,21 +204,28 @@ if (!file.exists(clock_ref)) {
           "; skipping the clock reference panel")
 } else {
   ref <- read.csv(clock_ref, stringsAsFactors = FALSE)
-  # the five clock genes that are not rhythmic in SCN would draw empty columns
-  ref <- ref[ref$gene %in% c("BMAL1", "PER1", "DBP", "NR1D1"), ]
+  # the canonical clock, in loop order. NPAS2 and RORC are absent from the
+  # atlas. Genes that are not rhythmic in SCN draw an empty column, which is
+  # itself the reading.
+  clock_order <- c("CLOCK", "BMAL1", "PER1", "PER2", "CRY1", "CRY2",
+                   "NR1D1", "NR1D2", "DBP")
+  ref <- ref[ref$gene %in% clock_order, ]
   ref$dphi[ref$status != "Maintained"] <- NA
 
   # tissues ordered by how much of the clock they hold with SCN
   held <- tapply(ref$status == "Maintained", ref$tissue, sum)
   ref$tissue <- factor(ref$tissue, levels = names(sort(held)))
-  ref$gene <- factor(ref$gene, levels = c("BMAL1", "PER1", "DBP", "NR1D1"))
+  ref$gene <- factor(ref$gene, levels = clock_order)
 
-  lim <- max(abs(ref$dphi), na.rm = TRUE)
+  # the differences run -6.4 to +3.9 h, so capping at 6 spends the whole ramp
+  # on the range the data occupy and keeps one hour visibly distinct
+  lim <- 6
   fig3d <- ggplot(ref, aes(x = gene, y = tissue, fill = dphi)) +
     geom_tile(colour = "white", linewidth = 0.4) +
     scale_fill_gradientn(colours = bayrc_div(256), limits = c(-lim, lim),
+                         oob = scales::squish,
                          na.value = "#f4f2ee", name = "Δφ from SCN (h)",
-                         breaks = c(-6, 0, 6)) +
+                         breaks = seq(-6, 6, by = 2)) +
     labs(title = "Clock genes against SCN", x = NULL, y = NULL) +
     theme_bayrc(base_size = 10) +
     theme(axis.text.x = element_text(face = "italic"),
