@@ -122,7 +122,9 @@ and `plots/heatmap_circadian_pairs.R` compute the concordance matrices;
 `Fig2A_genomewide.pdf` and `Fig2B_circadian.pdf`, with the cap and ramp from
 `plots/palette_concordance.R`, and writes the run record.
 `plots/heatmap_circadian_pairs.R` also takes `within_baboon_with_scn`,
-`within_human` and `cross_species`. 325 within-species pairs, 676 cross-species.
+`within_human` and `cross_species`. 325 within-species pairs, and 625 cross-species,
+which excludes SCN from both species. `pipeline/pairwise_concordance_all.R`
+keeps SCN and so runs 676.
 
 **Figure 3** — within-species peak-phase concordance scatters: panel A from the
 SCN-HIP script, panels B and C from the two putamen circuits. All three draw

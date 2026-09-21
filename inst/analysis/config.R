@@ -22,12 +22,15 @@ BAYRC_PACKAGE_DIR <- Sys.getenv("BAYRC_PACKAGE_DIR",
 BAYRC_PATHWAY_DIR <- Sys.getenv("BAYRC_PATHWAY_DIR",
                        unset = file.path(BAYRC_WD_DIR,
                                          "Kyle/Circadian-analysis-main/R/pathway_data"))
-# The helper sources the analysis scripts pull in live beside the package, in
-# R/v1/R/Thien, not inside it. Several scripts used to point at
-# BAYRC_PACKAGE_DIR/Thien, which has never existed.
-BAYRC_THIEN_DIR   <- Sys.getenv("BAYRC_THIEN_DIR",
-                       unset = file.path(dirname(BAYRC_PACKAGE_DIR),
-                                         "R", "Thien"))
+# The helper sources the analysis scripts pull in sit beside the package in some
+# checkouts and inside it in others, so both are tried before either is assumed.
+BAYRC_THIEN_DIR   <- Sys.getenv("BAYRC_THIEN_DIR", unset = "")
+if (!nzchar(BAYRC_THIEN_DIR)) {
+  .thien <- c(file.path(dirname(BAYRC_PACKAGE_DIR), "R", "Thien"),
+              file.path(BAYRC_PACKAGE_DIR, "Thien"))
+  BAYRC_THIEN_DIR <- if (any(dir.exists(.thien)))
+    .thien[which(dir.exists(.thien))[1]] else .thien[1]
+}
 BAYRC_GTEX_DIR    <- Sys.getenv("BAYRC_GTEX_DIR",
                        unset = file.path(BAYRC_DATA_DIR, "GTEXdata"))
 # one_cosinor_OLS_new.R lives beside the collaborative data, not in the package
