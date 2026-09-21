@@ -172,8 +172,7 @@ write.csv(sig[order(sig$direction, sig$pval),
 if (!is.null(metrics))
   write.csv(metrics, file.path(fig.dir, "pathway_metrics.csv"), row.names = FALSE)
 
-# Figure 5A, the upper panel of a stacked pair; the legend is drawn once,
-# under panel B in Baboon_PUT_VIC.R
+# Figure 5A; the legend both panels share is written by Baboon_PUT_VIC.R
 for (pw in panel_pathways) {
   if (!pw %in% names(kegg)) stop("pathway not in the gene set list: ", pw)
   plot_heatmap(data1 = put, data2 = sun, pathway_genes = kegg[[pw]],

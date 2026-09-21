@@ -39,6 +39,9 @@
 #'   in the legend text, which defaults to \code{group_names}. One legend
 #'   shared by two panels needs wording that fits both, while the column and
 #'   peak-time annotations keep the names in \code{group_names}.
+#' @param legend_path Character or \code{NULL}; when given, the legends are
+#'   also packed horizontally and written on their own to
+#'   \code{<legend_path>.pdf}, for a figure whose panels share one legend.
 #' @param show_legend Logical; draw the heatmap and annotation legends
 #'   (default \code{TRUE}). Set \code{FALSE} for a panel that shares the
 #'   legend of another panel in the same figure.
@@ -63,6 +66,7 @@ plot_heatmap <- function(data1, data2,
                           col_phase1 = circlize::colorRamp2(c(0, 0.5, 1), c("white", "#6baed6", "#08519c")),
                           col_phase2 = circlize::colorRamp2(c(0, 0.5, 1), c("white", "#fc9272", "#a50f15")),
                           legend_names = group_names,
+                          legend_path = NULL,
                           show_legend = TRUE,
                           legend_side = "left",
                           versions = c("full", "rhythmic_only", "both")) {
@@ -515,7 +519,35 @@ plot_heatmap <- function(data1, data2,
   # ==========================================================================
   
   ht_list <- ht_main + ht_phase1 + ht_phase2 + right_ha + gene_ha
-  
+
+  # A figure whose panels share one legend draws them with show_legend = FALSE
+  # and places this file beneath the pair.
+  if (!is.null(legend_path) && current_version == versions_to_run[1]) {
+    shared <- packLegend(
+      Legend(title = "Rhythmicity Status", labels = names(conc_colors),
+             legend_gp = gpar(fill = conc_colors),
+             title_gp = gpar(fontsize = 10, fontface = "bold"),
+             labels_gp = gpar(fontsize = 8)),
+      Legend(title = "Phase Status", labels = names(phase_colors),
+             legend_gp = gpar(fill = phase_colors),
+             title_gp = gpar(fontsize = 10, fontface = "bold"),
+             labels_gp = gpar(fontsize = 8)),
+      Legend(title = expression(Pr(rho == 1)), col_fun = col_main, at = c(0, 0.5, 1),
+             title_gp = gpar(fontsize = 10, fontface = "bold"),
+             labels_gp = gpar(fontsize = 8), direction = "horizontal"),
+      delta_peak_legend,
+      direction = "horizontal", gap = unit(6, "mm"))
+    pdf(NULL)
+    lw <- convertWidth(ComplexHeatmap::width(shared), "in", valueOnly = TRUE)
+    lh <- convertHeight(ComplexHeatmap::height(shared), "in", valueOnly = TRUE)
+    dev.off()
+    pdf(paste0(legend_path, ".pdf"), width = lw + 0.2, height = lh + 0.2)
+    grid.newpage()
+    draw(shared)
+    dev.off()
+    cat("Saving:", paste0(legend_path, ".pdf"), "\n")
+  }
+
   if(!is.null(save_path)) {
     if(!dir.exists(save_path)) dir.create(save_path, recursive = TRUE)
     # Add version suffix to filename

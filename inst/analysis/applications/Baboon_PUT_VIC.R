@@ -177,7 +177,7 @@ write.csv(sig[order(sig$direction, sig$pval),
 if (!is.null(metrics))
   write.csv(metrics, file.path(fig.dir, "pathway_metrics.csv"), row.names = FALSE)
 
-# Figure 5B, the lower panel of a stacked pair, carrying the legend for both
+# Figure 5B, and the legend both Figure 5 panels share
 for (pw in panel_pathways) {
   if (!pw %in% names(kegg)) stop("pathway not in the gene set list: ", pw)
   plot_heatmap(data1 = put, data2 = vic, pathway_genes = kegg[[pw]],
@@ -186,7 +186,8 @@ for (pw in panel_pathways) {
                group_names = c("Baboon PUT", "Baboon VIC"),
                legend_names = c("Baboon PUT", "the compared region"),
                versions = "both", save_path = fig.dir,
-               show_legend = TRUE, legend_side = "bottom")
+               show_legend = FALSE,
+               legend_path = file.path(fig.dir, "parkinson_heatmap_legend"))
 }
 
 write_run_record(file.path(fig.dir, "run_record.txt"), "applications/Baboon_PUT_VIC.R",

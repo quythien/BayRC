@@ -28,7 +28,7 @@ if (bayrc_family == "Nimbus Sans" &&
 bayrc_ink   <- "#0b0b0b"   # titles, emphasis
 bayrc_ink2  <- "#52514e"   # axis text and labels
 bayrc_ink3  <- "#7a7974"   # reference lines
-bayrc_grid  <- "#e4e3de"   # axis lines
+bayrc_grid  <- "#e4e3de"   # gridlines
 
 ## two-series categorical, then the ordered set used for nested levels
 bayrc_pair   <- c(all = "#9dbfe0", highlight = "#eaa37c")
@@ -50,8 +50,8 @@ theme_bayrc <- function(base_size = 12) {
       plot.background   = element_rect(fill = NA, colour = NA),
       panel.background  = element_rect(fill = NA, colour = NA),
       panel.grid        = element_blank(),
-      axis.line         = element_line(colour = bayrc_grid, linewidth = 0.4),
-      axis.ticks        = element_line(colour = bayrc_grid, linewidth = 0.4),
+      axis.line         = element_line(colour = bayrc_ink2, linewidth = 0.5),
+      axis.ticks        = element_line(colour = bayrc_ink2, linewidth = 0.5),
       axis.ticks.length = unit(3.5, "pt"),
       axis.text         = element_text(colour = bayrc_ink2, size = base_size * 0.85),
       axis.title        = element_text(colour = bayrc_ink2, size = base_size),

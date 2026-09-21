@@ -108,6 +108,9 @@ panels <- list(
        pattern = "^KEGG_Parkinson_disease_integrated_rhythmic_only[.]pdf$",
        to = "F5B_PUT_VIC_KEGG_Parkinson_heatmap.pdf",
        script = "applications/Baboon_PUT_VIC.R"),
+  list(dir = putvic.dir, pattern = "^parkinson_heatmap_legend[.]pdf$",
+       to = "F5L_parkinson_heatmap_legend.pdf",
+       script = "applications/Baboon_PUT_VIC.R"),
 
   # Figure 6: cross-species lung
   list(dir = lung.dir, pattern = "^Baboon_Human_LUN_Peak_Concordance[.]pdf$",
@@ -135,18 +138,23 @@ figures <- list(
                "F4B_PUT_VIC_transition_enrichment.pdf"),
   Figure_5 = c("F5A_PUT_SUN_KEGG_Parkinson_heatmap.pdf",
                "F5B_PUT_VIC_KEGG_Parkinson_heatmap.pdf"),
+  Figure_5_row = c("F5A_PUT_SUN_KEGG_Parkinson_heatmap.pdf",
+                   "F5B_PUT_VIC_KEGG_Parkinson_heatmap.pdf"),
   Figure_6 = c("F6A_baboon_human_LUN_phase_concordance.pdf",
                "F6B_baboon_human_LUN_circadian_heatmap.pdf")
 )
 
-# Figure 5's two heatmaps are each as wide as the text block, so they stack;
-# every other multi-panel figure runs its panels along a row.
+# Figure 5's two heatmaps are each as wide as the text block, so they stack.
+# Figure_5_row holds the same two panels along a row for comparison; every
+# other multi-panel figure runs its panels along a row.
 stacked.figures <- "Figure_5"
 
 # A figure listed here is drawn with its panels carrying no legend of their own
 # and this one placed under the row. The panels' scales have to match for that
 # to be right, which for Figure 4 is what q_limits and size_limits fix.
-shared.legends <- list(Figure_4 = "F4L_transition_enrichment_legend.pdf")
+shared.legends <- list(Figure_4 = "F4L_transition_enrichment_legend.pdf",
+                       Figure_5 = "F5L_parkinson_heatmap_legend.pdf",
+                       Figure_5_row = "F5L_parkinson_heatmap_legend.pdf")
 
 # Collect ---------------------------------------------------------------------
 
@@ -283,7 +291,7 @@ for (nm in names(figures)) {
   down <- nm %in% stacked.figures
   legend <- file.path(sub.dir, shared.legends[[nm]])
   legend <- if (length(legend) && file.exists(legend)) legend else NA_character_
-  merge_panels <- if (down) stacked else
+  merge_panels <- if (down) function(...) stacked(..., below = legend) else
     function(...) side_by_side(..., below = legend)
   if (length(have) == 1L && is.na(legend)) {
     file.copy(have, out, overwrite = TRUE)

@@ -19,6 +19,7 @@ plot_heatmap(
   col_phase1 = circlize::colorRamp2(c(0, 0.5, 1), c("white", "#6baed6", "#08519c")),
   col_phase2 = circlize::colorRamp2(c(0, 0.5, 1), c("white", "#fc9272", "#a50f15")),
   legend_names = group_names,
+  legend_path = NULL,
   show_legend = TRUE,
   legend_side = "left",
   versions = c("full", "rhythmic_only", "both")
@@ -64,6 +65,10 @@ three-stop white-to-red ramp over \[0, 1\].}
 in the legend text, which defaults to \code{group_names}. One legend
 shared by two panels needs wording that fits both, while the column and
 peak-time annotations keep the names in \code{group_names}.}
+
+\item{legend_path}{Character or \code{NULL}; when given, the legends are
+also packed horizontally and written on their own to
+\code{<legend_path>.pdf}, for a figure whose panels share one legend.}
 
 \item{show_legend}{Logical; draw the heatmap and annotation legends
 (default \code{TRUE}). Set \code{FALSE} for a panel that shares the
