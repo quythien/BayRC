@@ -286,6 +286,9 @@ side_by_side <- function(inputs, output, labels = LETTERS[seq_along(inputs)],
       "\\begin{minipage}{%.1fbp}\\centering\\includegraphics[width=%.1fbp]{%s}\\end{minipage}",
       content.w, strip.w, below)
     strip <- ""
+    # the strip is now a row, so it takes a row separator's space as well as
+    # its own height, which the earlier total did not allow for
+    paper.h <- paper.h + label.space
   } else {
     below.after <- length(unique(row.of))
   }
