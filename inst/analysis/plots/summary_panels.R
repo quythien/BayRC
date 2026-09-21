@@ -21,15 +21,15 @@ shift      <- 2
 
 ## each pair, and the directory its application script writes
 sources <- list(
-  list(label = "SCN - HIP", dir = "baboon_SCN_HIP"),
-  list(label = "PUT - SUN", dir = "baboon_PUT_SUN"),
-  list(label = "PUT - VIC", dir = "baboon_PUT_VIC"))
+  list(label = "SCN → HIP", dir = "baboon_SCN_HIP"),
+  list(label = "PUT → SUN", dir = "baboon_PUT_SUN"),
+  list(label = "PUT → VIC", dir = "baboon_PUT_VIC"))
 
 read_pair <- function(s) {
   f <- file.path(BAYRC_FIGURE_DIR, s$dir, "plot_data.rds")
   if (!file.exists(f))
     stop("no plot cache for ", s$label, " at ", f,
-         "\n  run applications/Baboon_", sub(" - ", "_", s$label), ".R first")
+         "\n  run applications/Baboon_", sub(" → ", "_", s$label), ".R first")
   cache <- readRDS(f)
   status <- cache$trans$gain_loss_status
   cls    <- cache$phase_class[cache$maintained]
@@ -105,15 +105,23 @@ e <- ggplot(phase, aes(percent, pair, fill = status)) +
   # the two shifted classes share a hue so they still read as one group
   scale_fill_manual(values = c(Aligned = "#1B9E77", Ahead = "#FDB863",
                                Behind = "#D95F02", Undetermined = "#8274B5"),
-                    labels = c("Phase-conserved", "Shifted ahead",
-                               "Shifted behind", "Undetermined")) +
+                    labels = c("Phase-conserved", "Compared region earlier",
+                               "Compared region later", "Undetermined")) +
+  # four labels this long do not sit on one row under the panel
+  guides(fill = guide_legend(nrow = 2, byrow = TRUE)) +
   labs(title = "Timing among conserved genes",
-       subtitle = sprintf("Posterior phase classification | ±%g h window, BFDR = %.2f",
+       subtitle = sprintf("Posterior phase classification | ±%g h window, BFDR = %.2f\nDirection is the second region relative to the first",
                           shift, bfdr_alpha),
-       x = "Percentage of conserved genes", tag = "E") + common
+       x = "Percentage of conserved genes", tag = "E") + common +
+  # the fourth class pushes this key past the right edge when it is centred
+  # under the panel, so it is anchored to the panel's left instead
+  theme(legend.justification = "left",
+        legend.margin = margin(l = 0, r = 0))
 
 fig <- d + e + plot_layout(widths = c(1, 1.12))
-ggsave(file.path(outdir, "summary_panels.pdf"), fig, width = 15, height = 5.2)
+# cairo carries the arrow in the pair labels, which the base pdf device drops
+ggsave(file.path(outdir, "summary_panels.pdf"), fig, width = 15, height = 5.2,
+       device = cairo_pdf)
 write.csv(trans, file.path(outdir, "transition_counts.csv"), row.names = FALSE)
 write.csv(phase, file.path(outdir, "phase_counts.csv"), row.names = FALSE)
 
