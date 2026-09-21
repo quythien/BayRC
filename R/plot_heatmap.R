@@ -501,8 +501,8 @@ plot_heatmap <- function(data1, data2,
       bar_width = 1,
       gp = gpar(fill = delta_colors, col = NA),
       axis_param = list(
-        at = seq(-axis_limit, axis_limit, by = 6),
-        labels = as.character(seq(-axis_limit, axis_limit, by = 6)),
+        at = seq(-axis_limit, axis_limit, by = 3),
+        labels = as.character(seq(-axis_limit, axis_limit, by = 3)),
         side = "bottom",
         gp = gpar(fontsize = 14)
       ),
