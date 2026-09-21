@@ -164,6 +164,8 @@ stacked.figures <- "Figure_5"
 
 # A figure listed here wraps its panels into rows of this many.
 figure.columns <- list(Figure_3 = 3)
+# a legend that belongs to one panel rather than the row sits under that panel
+legend.under <- list(Figure_6 = 2L)
 
 # A figure listed here is drawn with its panels carrying no legend of their own
 # and this one placed under the row. The panels' scales have to match for that
@@ -227,6 +229,7 @@ page_size <- function(pdf) {
 side_by_side <- function(inputs, output, labels = LETTERS[seq_along(inputs)],
                          panel.width = 324, gutter = 9, margin = 9,
                          label.space = 22, below = NA_character_,
+                         below.under = NA_integer_,
                          title = NA_character_, ncol = NULL) {
   if (!nzchar(Sys.which("pdflatex")) || !nzchar(Sys.which("pdfinfo")))
     return(FALSE)
@@ -251,14 +254,22 @@ side_by_side <- function(inputs, output, labels = LETTERS[seq_along(inputs)],
     head <- sprintf("\\centerline{\\sffamily\\bfseries\\large %s}\\vspace{8bp}\n\n\\noindent ", title)
   }
 
-  # a legend the panels share sits centred under the row, at its own width
+  # a legend the panels share sits centred under the row at its own width, or
+  # under one named panel when below.under gives that panel's index
   strip <- ""
   if (!is.na(below)) {
     d <- page_size(below)
-    strip.w <- min(d[1], paper.w - 2 * margin)
+    if (!is.na(below.under)) {
+      strip.w <- width.of[below.under]
+      lead <- (below.under - 1) * (width.of[below.under] + gutter)
+      strip <- sprintf("\n\n\\vspace{%.1fbp}\\noindent\\hspace*{%.1fbp}\\includegraphics[width=%.1fbp]{%s}",
+                       gutter, lead, strip.w, below)
+    } else {
+      strip.w <- min(d[1], paper.w - 2 * margin)
+      strip <- sprintf("\n\n\\vspace{%.1fbp}\\centerline{\\includegraphics[width=%.1fbp]{%s}}",
+                       gutter, strip.w, below)
+    }
     paper.h <- paper.h + strip.w * d[2] / d[1] + gutter
-    strip <- sprintf("\n\n\\vspace{%.1fbp}\\centerline{\\includegraphics[width=%.1fbp]{%s}}",
-                     gutter, strip.w, below)
   }
 
   panel <- function(i) sprintf(
@@ -355,7 +366,8 @@ for (nm in names(figures)) {
   merge_panels <- if (down)
     function(...) stacked(..., below = legend, title = title) else
     function(...) side_by_side(..., below = legend, title = title,
-                              ncol = figure.columns[[nm]])
+                              ncol = figure.columns[[nm]],
+                              below.under = legend.under[[nm]])
   if (length(have) == 1L && is.na(legend)) {
     file.copy(have, out, overwrite = TRUE)
     cat("wrote", basename(out), "\n")

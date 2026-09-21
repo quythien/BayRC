@@ -42,6 +42,10 @@
 #' @param extra_legends List of \code{ComplexHeatmap::Legend} objects packed
 #'   into the shared legend file alongside the heatmap's own, so a figure whose
 #'   panels are not all heatmaps still has one legend region.
+#' @param legend_max_width Numeric centimetres or \code{NULL}; caps the width of
+#'   the shared legend so it wraps onto further rows. Use it when the strip sits
+#'   under one panel rather than the whole row, where scaling to fit would
+#'   shrink the type instead.
 #' @param legend_path Character or \code{NULL}; when given, the legends are
 #'   also packed horizontally and written on their own to
 #'   \code{<legend_path>.pdf}, for a figure whose panels share one legend.
@@ -74,6 +78,7 @@ plot_heatmap <- function(data1, data2,
                           legend_names = group_names,
                           legend_path = NULL,
                           extra_legends = list(),
+                          legend_max_width = NULL,
                           show_title = TRUE,
                           show_legend = TRUE,
                           legend_side = "left",
@@ -557,9 +562,12 @@ plot_heatmap <- function(data1, data2,
              legend_gp = gpar(fill = c("#E63946", "#4361EE", "#06A77D", "#E0E0E0")),
              title_gp = gpar(fontsize = 10, fontface = "bold"),
              labels_gp = gpar(fontsize = 8)))
-    shared <- do.call(packLegend,
-                      c(base_legends, extra_legends,
-                        list(direction = "horizontal", gap = unit(6, "mm"))))
+    pack_args <- list(direction = "horizontal", gap = unit(6, "mm"))
+    # a strip placed under one panel rather than the whole row has to wrap, or
+    # it is scaled down to fit and its type shrinks with it
+    if (!is.null(legend_max_width))
+      pack_args$max_width <- unit(legend_max_width, "cm")
+    shared <- do.call(packLegend, c(base_legends, extra_legends, pack_args))
     pdf(NULL)
     lw <- convertWidth(grobWidth(shared@grob), "in", valueOnly = TRUE)
     lh <- convertHeight(grobHeight(shared@grob), "in", valueOnly = TRUE)

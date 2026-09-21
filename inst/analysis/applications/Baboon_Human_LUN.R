@@ -157,6 +157,8 @@ for (pw in panel_pathways) {
                  legend_gp = grid::gpar(fill = unname(phase_colors)),
                  title_gp = grid::gpar(fontsize = 10, fontface = "bold"),
                  labels_gp = grid::gpar(fontsize = 8))),
+               # the strip sits under panel B alone, so it wraps to that width
+               legend_max_width = 11,
                versions = "both", save_path = fig.dir)
 }
 
