@@ -624,7 +624,18 @@ plot_heatmap <- function(data1, data2,
         gp = gpar(fontsize = 15, fontface = "bold")
       )
     })
-    
+
+    # the barplot's own annotation name would sit on its numerals, so the title
+    # is drawn level with the region names instead
+    decorate_annotation("Delta Peak (hours)", {
+      grid.text(
+        "Delta peak (h)",
+        x = unit(0.5, "npc"),
+        y = unit(0, "npc") - unit(15, "mm"),
+        gp = gpar(fontsize = 15, fontface = "bold")
+      )
+    })
+
     dev.off()
     cat("Saved\n")
   } else {
@@ -667,8 +678,19 @@ plot_heatmap <- function(data1, data2,
         gp = gpar(fontsize = 15, fontface = "bold")
       )
     })
+
+    # the barplot's own annotation name would sit on its numerals, so the title
+    # is drawn level with the region names instead
+    decorate_annotation("Delta Peak (hours)", {
+      grid.text(
+        "Delta peak (h)",
+        x = unit(0.5, "npc"),
+        y = unit(0, "npc") - unit(15, "mm"),
+        gp = gpar(fontsize = 15, fontface = "bold")
+      )
+    })
   }
-  
+
   n_shifted <- sum(!is.na(phase_status_ord) & phase_status_ord == "Shifted")
   n_conserved <- sum(!is.na(phase_status_ord) & phase_status_ord == "Conserved")
   n_gain <- sum(!is.na(concordance_ord) & grepl("^Gain", concordance_ord))
