@@ -73,7 +73,7 @@ p <- peak_concordance_plot(
   title = "Circadian Peak Concordance: Baboon Putamen versus Cortex",
   xlab = "Peak Hour - Putamen (ZT)",
   ylab = "Peak Hour - Cortex (ZT)", window = shift)
-bayrc_save(p, file.path(fig.dir, "Baboon_PUT_VIC_Peak_Concordance"),
+bayrc_save(p + theme(legend.position = "none"), file.path(fig.dir, "Baboon_PUT_VIC_Peak_Concordance"),
            width = 9, height = 8)
 
 # gene sets cut to the measured genes before the enrichment sees them

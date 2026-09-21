@@ -11,6 +11,7 @@ while (!file.exists(file.path(analysis.dir, "config.R")) &&
 source(file.path(analysis.dir, "config.R"))
 source(file.path(analysis.dir, "plots", "theme_bayrc.R"))
 source(file.path(analysis.dir, "plots", "peak_concordance.R"))
+source(file.path(analysis.dir, "plots", "shared_legend.R"))
 source(file.path(analysis.dir, "pipeline", "run_record.R"))
 
 # --replot redraws every figure from the tables a full run left behind
@@ -64,8 +65,10 @@ p <- peak_concordance_plot(
   title = "Circadian Peak Concordance: Baboon SCN versus Hippocampus",
   xlab = "Peak Hour - Suprachiasmatic nucleus (ZT)",
   ylab = "Peak Hour - Hippocampus (ZT)", window = shift)
-bayrc_save(p, file.path(fig.dir, "Baboon_SCN_HIP_Peak_Concordance"),
+bayrc_save(p + theme(legend.position = "none"), file.path(fig.dir, "Baboon_SCN_HIP_Peak_Concordance"),
            width = 9, height = 8)
+# the legend the three Figure 3 panels share
+save_plot_legend(p, file.path(fig.dir, "phase_class_legend"))
 
 # gene sets cut to the measured genes before the enrichment sees them
 kegg <- readRDS(file.path(BAYRC_PATHWAY_DIR, "kegg_pathway_list_hsa.rds"))

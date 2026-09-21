@@ -69,7 +69,7 @@ concordance_fun <- circlize::colorRamp2(
   seq(0, concordance_max, length.out = length(concordance_colors)),
   concordance_colors)
 concordance_bar <- ComplexHeatmap::Legend(
-  col_fun = concordance_fun, title = "Concordance",
+  col_fun = concordance_fun, title = "Adjusted c-score",
   at = concordance_legend, labels = format(concordance_legend, digits = 2),
   direction = "horizontal", legend_width = unit(7, "cm"),
   title_position = "lefttop", title_gp = gpar(fontsize = 10, fontface = "bold"),

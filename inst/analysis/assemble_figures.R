@@ -84,6 +84,9 @@ panels <- list(
   list(dir = scnhip.dir, pattern = "^Baboon_SCN_HIP_Peak_Concordance[.]pdf$",
        to = "F3A_baboon_SCN_HIP_phase_concordance.pdf",
        script = "applications/Baboon_SCN_HIP.R"),
+  list(dir = scnhip.dir, pattern = "^phase_class_legend[.]pdf$",
+       to = "F3L_phase_class_legend.pdf",
+       script = "applications/Baboon_SCN_HIP.R"),
   list(dir = putsun.dir, pattern = "^Baboon_PUT_SUN_Peak_Concordance[.]pdf$",
        to = "F3B_baboon_PUT_SUN_phase_concordance.pdf",
        script = "applications/Baboon_PUT_SUN.R"),
@@ -156,6 +159,7 @@ stacked.figures <- "Figure_5"
 # and this one placed under the row. The panels' scales have to match for that
 # to be right, which for Figure 4 is what q_limits and size_limits fix.
 shared.legends <- list(Figure_2 = "F2L_concordance_legend.pdf",
+                       Figure_3 = "F3L_phase_class_legend.pdf",
                        Figure_4 = "F4L_transition_enrichment_legend.pdf",
                        Figure_5 = "F5L_parkinson_heatmap_legend.pdf",
                        Figure_5_row = "F5L_parkinson_heatmap_legend.pdf")

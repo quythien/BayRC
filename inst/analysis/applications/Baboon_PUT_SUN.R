@@ -12,6 +12,7 @@ while (!file.exists(file.path(analysis.dir, "config.R")) &&
 source(file.path(analysis.dir, "config.R"))
 source(file.path(analysis.dir, "plots", "theme_bayrc.R"))
 source(file.path(analysis.dir, "plots", "peak_concordance.R"))
+source(file.path(analysis.dir, "plots", "shared_legend.R"))
 source(file.path(analysis.dir, "plots", "palette_concordance.R"))
 source(file.path(analysis.dir, "pipeline", "run_record.R"))
 
@@ -72,7 +73,7 @@ p <- peak_concordance_plot(
   title = "Circadian Peak Concordance: Baboon Putamen versus Substantia Nigra",
   xlab = "Peak Hour - Putamen (ZT)",
   ylab = "Peak Hour - Substantia nigra (ZT)", window = shift)
-bayrc_save(p, file.path(fig.dir, "Baboon_PUT_SUN_Peak_Concordance"),
+bayrc_save(p + theme(legend.position = "none"), file.path(fig.dir, "Baboon_PUT_SUN_Peak_Concordance"),
            width = 9, height = 8)
 
 # gene sets cut to the measured genes before the enrichment sees them
