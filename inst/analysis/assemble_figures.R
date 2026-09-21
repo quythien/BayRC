@@ -170,8 +170,7 @@ figure.columns <- list(Figure_3 = 3)
 # to be right, which for Figure 4 is what q_limits and size_limits fix.
 # A figure whose panels share one subject carries its title once, above the
 # pair, and the panels are drawn with show_title = FALSE.
-figure.titles <- list(Figure_2 = "Rhythmic concordance across baboon tissues",
-                      Figure_3 = "Circadian peak concordance",
+figure.titles <- list(Figure_3 = "Circadian peak concordance",
                       Figure_5 = "KEGG Parkinson disease",
                       Figure_5_row = "KEGG Parkinson disease",
                       Figure_6 = "Cross-species lung")
