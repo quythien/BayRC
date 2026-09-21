@@ -40,7 +40,7 @@ peak_concordance_plot <- function(peak_x, peak_y, phase_class, label_genes,
                 linetype = "dotted", linewidth = 1.1) +
     geom_abline(intercept = -window, slope = 1, color = "darkgreen",
                 linetype = "dotted", linewidth = 1.1) +
-    geom_point(size = 3, alpha = 0.9) +
+    geom_point(size = 3.4, alpha = 0.9) +
     scale_color_manual(values = phase_colors) +
     # the repel search starts from a random layout, so it is seeded to make
     # every rebuild of a panel place its labels the same way
@@ -56,12 +56,12 @@ peak_concordance_plot <- function(peak_x, peak_y, phase_class, label_genes,
     scale_y_continuous(breaks = seq(-6, 18, 6),
                        labels = sprintf("ZT%+d", seq(-6, 18, 6))) +
     coord_cartesian(xlim = c(-8, 20), ylim = c(-8, 20)) +
-    theme_bayrc(base_size = 14) +
-    theme(plot.title = element_text(face = "bold", size = 16, hjust = 0.5),
-          plot.subtitle = element_text(size = 13, hjust = 0.5,
+    theme_bayrc(base_size = 17) +
+    theme(plot.title = element_text(face = "bold", size = 19, hjust = 0.5),
+          plot.subtitle = element_text(size = 16, hjust = 0.5,
                                        margin = margin(b = 10)),
-          axis.title = element_text(face = "bold", size = 13),
-          axis.text = element_text(size = 12),
+          axis.title = element_text(face = "bold", size = 16),
+          axis.text = element_text(size = 15),
           legend.position = "bottom",
           legend.title = element_text(face = "bold"),
           legend.key = element_rect(fill = "white", color = NA),
