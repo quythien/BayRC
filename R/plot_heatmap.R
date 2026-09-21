@@ -501,8 +501,10 @@ plot_heatmap <- function(data1, data2,
       bar_width = 1,
       gp = gpar(fill = delta_colors, col = NA),
       axis_param = list(
-        at = seq(-axis_limit, axis_limit, by = 3),
-        labels = as.character(seq(-axis_limit, axis_limit, by = 3)),
+        # every 6 h; at 3 h the nine labels do not fit the block and
+        # ComplexHeatmap rotates them, which reads worse than a sparser axis
+        at = seq(-axis_limit, axis_limit, by = 6),
+        labels = as.character(seq(-axis_limit, axis_limit, by = 6)),
         side = "bottom",
         gp = gpar(fontsize = 14)
       ),
@@ -592,7 +594,9 @@ plot_heatmap <- function(data1, data2,
          show_annotation_legend = show_legend,
          merge_legend = TRUE,
          ht_gap = unit(1.2, "mm"),
-         padding = unit(c(2, 2, 2, 2), "mm"))
+         # the region names below the peak-time blocks sit 15 mm down, so the
+         # bottom margin has to clear them or they are cropped off the canvas
+         padding = unit(c(22, 2, 2, 2), "mm"))
 
     if (show_title)
       grid.text(
@@ -632,7 +636,9 @@ plot_heatmap <- function(data1, data2,
          show_annotation_legend = show_legend,
          merge_legend = TRUE,
          ht_gap = unit(1.2, "mm"),
-         padding = unit(c(2, 2, 2, 2), "mm"))
+         # the region names below the peak-time blocks sit 15 mm down, so the
+         # bottom margin has to clear them or they are cropped off the canvas
+         padding = unit(c(22, 2, 2, 2), "mm"))
 
     # Add centered main title at the top
     if (show_title)
