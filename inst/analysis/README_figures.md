@@ -50,7 +50,12 @@ export BAYRC_SUMMARY_DIR=$BAYRC_RESULT_DIR/summary/hb
 export BAYRC_OUTPUT_DIR=/path/to/analysis/output
 export BAYRC_FIGURE_DIR=/path/to/figure/output
 export BAYRC_PATHWAY_DIR=/path/to/R/pathway_data
+export BAYRC_PIPELINE_DIR=/path/to/Pipeline   # holds one_cosinor_OLS_new.R
 ```
+
+Every script under `applications/` and `plots/` takes its paths from here and
+runs from a cold session. The run order below was last checked end to end on
+2026-09-21, each step in a fresh R session.
 
 The default `BAYRC_RESULT_DIR` is the 2025 `result/` tree; point it at
 `result_fixed/` for the corrected sampler.
