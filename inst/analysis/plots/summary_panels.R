@@ -105,18 +105,20 @@ e <- ggplot(phase, aes(percent, pair, fill = status)) +
   # the two shifted classes share a hue so they still read as one group
   scale_fill_manual(values = c(Aligned = "#1B9E77", Ahead = "#FDB863",
                                Behind = "#D95F02", Undetermined = "#8274B5"),
-                    labels = c("Phase-conserved", "Compared region earlier",
-                               "Compared region later", "Undetermined")) +
+                    labels = c("Phase-conserved", "Second region peaks earlier",
+                               "Second region peaks later", "Undetermined")) +
   # four labels this long do not sit on one row under the panel
   guides(fill = guide_legend(nrow = 2, byrow = TRUE)) +
   labs(title = "Timing among conserved genes",
-       subtitle = sprintf("Posterior phase classification | ±%g h window, BFDR = %.2f\nDirection is the second region relative to the first",
+       subtitle = sprintf("Posterior phase classification | ±%g h window, BFDR = %.2f",
                           shift, bfdr_alpha),
        x = "Percentage of conserved genes", tag = "E") + common +
   # the fourth class pushes this key past the right edge when it is centred
   # under the panel, so it is anchored to the panel's left instead
-  theme(legend.justification = "left",
-        legend.margin = margin(l = 0, r = 0))
+  theme(legend.justification = "left", legend.margin = margin(l = 0, r = 0),
+        # the longest label reaches the page edge at the shared type size
+        legend.text = element_text(size = 12.5),
+        legend.key.width = unit(9, "pt"))
 
 fig <- d + e + plot_layout(widths = c(1, 1.12))
 # cairo carries the arrow in the pair labels, which the base pdf device drops
