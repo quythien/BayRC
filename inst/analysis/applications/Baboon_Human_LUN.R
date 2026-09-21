@@ -78,7 +78,11 @@ p <- peak_concordance_plot(
 # the phase-class key is carried by the strip beneath the pair, not per panel.
 # the aspect matches the circadian heatmap beside it so the two panels finish at
 # the same height and the shared legend sits close under both
-bayrc_save(p + theme(legend.position = "none"),
+bayrc_save(p + theme(legend.position = c(0.98, 0.02),
+                     legend.justification = c(1, 0),
+                     legend.direction = "vertical",
+                     legend.background = element_rect(fill = "white", colour = NA),
+                     legend.margin = margin(4, 6, 4, 6)),
            file.path(fig.dir, "Baboon_Human_LUN_Peak_Concordance"),
            width = 5, height = 4.9)
 
@@ -154,11 +158,6 @@ for (pw in panel_pathways) {
                group_names = c("Baboon lung", "Human lung"),
                show_legend = FALSE,
                legend_path = file.path(fig.dir, "circadian_heatmap_legend"),
-               extra_legends = list(ComplexHeatmap::Legend(
-                 title = "Phase class", labels = names(phase_colors),
-                 legend_gp = grid::gpar(fill = unname(phase_colors)),
-                 title_gp = grid::gpar(fontsize = 10, fontface = "bold"),
-                 labels_gp = grid::gpar(fontsize = 8))),
                # the strip sits under panel B alone, so it wraps to that width
                legend_max_width = 11,
                versions = "both", save_path = fig.dir)
