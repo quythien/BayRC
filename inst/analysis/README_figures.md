@@ -8,9 +8,12 @@ files it writes. Start from the table; the sections below give the detail.
 | 1 | none, hand-drawn flowchart | — |
 | 2A | `plots/heatmap_baboon.R`, drawn by `plots/replot_figure2.R` | `BAYRC_FIGURE_DIR/figure2/` |
 | 2B | `plots/heatmap_circadian_pairs.R within_baboon`, drawn by `plots/replot_figure2.R` | `BAYRC_FIGURE_DIR/figure2/` |
-| 3A | `applications/Baboon_SCN_HIP.R` | `BAYRC_FIGURE_DIR/baboon_SCN_HIP/` |
-| 3B, 4A, 5A | `applications/Baboon_PUT_SUN.R` | `BAYRC_FIGURE_DIR/baboon_PUT_SUN/` |
-| 3C, 4B, 5B | `applications/Baboon_PUT_VIC.R` | `BAYRC_FIGURE_DIR/baboon_PUT_VIC/` |
+| 2C | `plots/figure2_panelC.R` | `BAYRC_FIGURE_DIR/figure2/` |
+| 3A, 3D clock panel | `applications/Baboon_SCN_HIP.R` | `BAYRC_FIGURE_DIR/baboon_SCN_HIP/` |
+| 3B, 5A | `applications/Baboon_PUT_SUN.R` | `BAYRC_FIGURE_DIR/baboon_PUT_SUN/` |
+| 3C, 5B | `applications/Baboon_PUT_VIC.R` | `BAYRC_FIGURE_DIR/baboon_PUT_VIC/` |
+| 3D, 3E | `plots/summary_panels.R` | `<paper>/demos/figure3/` |
+| 4 | `plots/pathway_transition_panels.R` | `<paper>/figures/` |
 | 6 | `applications/Baboon_Human_LUN.R` | `BAYRC_FIGURE_DIR/baboon_human_LUN/` |
 | S4 | `plots/Cosinor_residual_diagnostics_LUN*.R` | `BAYRC_FIGURE_DIR` |
 | S5 | `plots/S5_Bayes_Cosinor_Agreement_LUN.R` | `BAYRC_FIGURE_DIR` |
@@ -24,6 +27,7 @@ pipeline/            shared upstream steps and the parameter searches
 plots/               shared drawing code: theme, palettes, heatmaps, scatters
 exploratory/         other tissue pairs, not used by any paper figure
 assemble_figures.R   collects the panels into Figure_N.pdf
+plots/layout_figures.py  reflows the assembled figures, see below
 ```
 
 Each application script runs standalone from a cold session and writes a
@@ -56,11 +60,31 @@ The default `BAYRC_RESULT_DIR` is the 2025 `result/` tree; point it at
 The MCMC output and the two `.RData` summaries are not in the repository.
 
 ```
-1. CAMO_h_b.R                     per-tissue MCMC, 26 human + 26 baboon
-2. pipeline/summarize_rho_phi.R   -> mcmc_rho_BF3.RData, phi/mcmc_phi_BF3.RData
-3. the application and plot scripts
-4. assemble_figures.R             panels -> Figure_2 ... Figure_6
+1. CAMO_h_b.R                        per-tissue MCMC, 26 human + 26 baboon
+2. pipeline/summarize_rho_phi.R      -> mcmc_rho_BF3.RData, phi/mcmc_phi_BF3.RData
+3. plots/heatmap_baboon.R            concordance matrices for Figure 2
+   plots/heatmap_circadian_pairs.R within_baboon
+4. applications/Baboon_SCN_HIP.R     the four case studies, each end to end
+   applications/Baboon_PUT_SUN.R     add --replot to redraw from their tables
+   applications/Baboon_PUT_VIC.R
+   applications/Baboon_Human_LUN.R
+5. plots/replot_figure2.R            Figure 2 panels A and B and the colour bar
+   plots/figure2_panelC.R            Figure 2 panel C
+   plots/summary_panels.R            Figure 3 panels D and E
+6. assemble_figures.R                panels -> Figure_2 ... Figure_6
+7. plots/pathway_transition_panels.R Figure 4, written straight to the figures
+8. plots/layout_figures.py <paper>   reflows Figures 3, 5 and 6
 ```
+
+Steps 3 to 8 run from `inst/analysis`. Step 7 comes after step 6 because it
+writes `Figure_4.pdf` itself rather than handing panels to the assembler, and
+step 8 comes last because it works on the assembled files. Steps 5 and 7 read
+the tables and caches the earlier steps wrote, so neither needs the MCMC output.
+
+Before re-running step 8 on a fresh build, empty
+`<paper>/archive/before_legend_layout/`. That directory holds the assembler's
+output as the reflow found it, which is what makes the reflow repeatable; the
+script reads the copy there in preference to the live file.
 
 ## Analysis parameters
 
@@ -100,15 +124,14 @@ SCN-HIP script, panels B and C from the two putamen circuits. All three draw
 `<pair>_Peak_Concordance.pdf` through `plots/peak_concordance.R`, with
 condition A on the x axis and the same ±2 h band.
 
-**Figure 4** — pathway transition enrichment in the two putamen circuits, from
-the stage-2 output: `PUT_SUN_transition_enrichment.pdf` and
-`PUT_VIC_transition_enrichment.pdf`, with `stage1_union.csv` and
-`stage2_significant.csv` beside each. The two panels fix the same colour and
-size limits through `q_limits` and `size_limits`, so a dot means the same thing
-in both, and both keep all three transition columns whether or not a dot falls
-in them. Neither panel carries a legend: `plots/shared_legend.R` writes
-`transition_enrichment_legend.pdf` from the same scales, and the assembler
-places it under the pair.
+**Figure 4** — pathway transition enrichment in the two putamen circuits.
+`plots/pathway_transition_panels.R` reads the `stage2_significant.csv` each
+putamen script wrote and draws the whole figure in one go: panel A puts both
+comparisons on one set of pathway rows, coloured by `-log10(q)` and sized by the
+posterior expected gene count; panel B gives each enriched pathway's transition
+composition, with a star on the transition it was enriched for. Because both
+panels come out of one plot, the assembler has no Figure 4 panels to merge and
+the script writes `Figure_4.pdf` directly.
 
 **Figure 5** — KEGG Parkinson disease drawn for both circuits and stacked.
 `plot_heatmap()` writes one file per pathway, plus a `_rhythmic_only` version
@@ -117,7 +140,22 @@ that drops the genes rhythmic in neither tissue. Panel A is drawn with
 bottom edge.
 
 **Figure 6** — cross-species lung: the concordance scatter and the KEGG
-Circadian rhythm heatmap.
+Circadian rhythm heatmap. The phase-class key sits inside the scatter, so the
+strip along the bottom carries only the heatmap's own keys.
+
+## Sizing figures for print
+
+The manuscript includes every figure at `\textwidth`, 488.5 pt. A panel is
+first scaled into its slot by the assembler and then the whole figure is scaled
+into the text block, so type set on a wide canvas is reduced twice and can reach
+3 or 4 pt in print while looking correct at native size. Two controls exist for
+this: `canvas_width` in `plot_heatmap()` narrows the page a heatmap is drawn on,
+which raises its type without changing any font size, and `font_scale`
+multiplies the type inside a heatmap when the canvas cannot narrow further. The
+block titles and the heatmap title take a capped share of `font_scale`, since
+they sit at fixed offsets and run into their neighbours otherwise.
+
+Check a figure at the size it will print rather than on screen.
 
 ## Notes
 
