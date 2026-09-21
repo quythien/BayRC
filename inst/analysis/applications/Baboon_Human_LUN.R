@@ -12,6 +12,7 @@ source(file.path(analysis.dir, "config.R"))
 source(file.path(analysis.dir, "plots", "theme_bayrc.R"))
 source(file.path(analysis.dir, "plots", "peak_concordance.R"))
 source(file.path(analysis.dir, "pipeline", "run_record.R"))
+source(file.path(analysis.dir, "pipeline", "plot_cache.R"))
 
 # --replot redraws every figure from the tables a full run left behind
 replot <- "--replot" %in% commandArgs(trailingOnly = TRUE)
@@ -28,28 +29,39 @@ panel_pathways <- "KEGG Circadian rhythm"
 fig.dir <- file.path(BAYRC_FIGURE_DIR, "baboon_human_LUN")
 dir.create(fig.dir, recursive = TRUE, showWarnings = FALSE)
 
-load(file.path(BAYRC_SUMMARY_DIR, "mcmc_rho_BF3.RData"))
-load(file.path(BAYRC_SUMMARY_DIR, "phi", "mcmc_phi_BF3.RData"))
+# --replot reads the plot cache instead of the draws; a full run writes it
+cache.file <- file.path(fig.dir, "plot_data.rds")
+if (replot) {
+  cache <- read_plot_cache(cache.file)
+  bab <- cache$panelA; hum <- cache$panelB
+  measured <- cache$measured; pA <- cache$pA; pB <- cache$pB
+  trans <- cache$trans; status <- trans$gain_loss_status
+  phase <- cache$phase; maintained <- cache$maintained
+  phase_class <- cache$phase_class
+} else {
+  load(file.path(BAYRC_SUMMARY_DIR, "mcmc_rho_BF3.RData"))
+  load(file.path(BAYRC_SUMMARY_DIR, "phi", "mcmc_phi_BF3.RData"))
 
-# direction is baboon to human
-bab <- list(rho = mcmc_data_baboon$LUN, phi = mcmc_phi_baboon$LUN)
-hum <- list(rho = mcmc_data_human$LUN,  phi = mcmc_phi_human$LUN)
-measured <- rownames(bab$rho)
+  # direction is baboon to human
+  bab <- list(rho = mcmc_data_baboon$LUN, phi = mcmc_phi_baboon$LUN)
+  hum <- list(rho = mcmc_data_human$LUN,  phi = mcmc_phi_human$LUN)
+  measured <- rownames(bab$rho)
 
-pA <- rowMeans(bab$rho)
-pB <- rowMeans(hum$rho)
-trans <- transition_classify(pA, pB, bfdr_alpha = bfdr_alpha)
-status <- trans$gain_loss_status
+  pA <- rowMeans(bab$rho)
+  pB <- rowMeans(hum$rho)
+  trans <- transition_classify(pA, pB, bfdr_alpha = bfdr_alpha)
+  status <- trans$gain_loss_status
 
-phase <- phase_infer(phi_matrix1 = bab$phi, phi_matrix2 = hum$phi,
-                     gain_loss_status = status, bfdr_alpha = bfdr_alpha,
-                     shift = shift, P = 24, compute_hdi = TRUE)
+  phase <- phase_infer(phi_matrix1 = bab$phi, phi_matrix2 = hum$phi,
+                       gain_loss_status = status, bfdr_alpha = bfdr_alpha,
+                       shift = shift, P = 24, compute_hdi = TRUE)
 
-maintained <- names(status)[status == "Maintained"]
-phase_class <- rep("Undetermined", length(status))
-names(phase_class) <- names(status)
-phase_class[phase$flag_cons]  <- "Phase-conserved"
-phase_class[phase$flag_shift] <- "Phase-shifted"
+  maintained <- names(status)[status == "Maintained"]
+  phase_class <- rep("Undetermined", length(status))
+  names(phase_class) <- names(status)
+  phase_class[phase$flag_cons]  <- "Phase-conserved"
+  phase_class[phase$flag_shift] <- "Phase-shifted"
+}
 delta <- ((phase$peak2 - phase$peak1 + 12) %% 24) - 12
 
 clock_genes <- c("BMAL1", "CLOCK", "NPAS2", "PER1", "PER2", "PER3", "CRY1",
@@ -122,6 +134,11 @@ if (!replot) {
   write.csv(sig[order(sig$direction, sig$pval),
                 c("pathway", "direction", "size", "pval", "q")],
             file.path(fig.dir, "stage2_significant.csv"), row.names = FALSE)
+  write_plot_cache(cache.file, dataA = bab, dataB = hum,
+                   panel_genes = unlist(kegg[panel_pathways], use.names = FALSE),
+                   measured = measured, pA = pA, pB = pB, trans = trans,
+                   phase = phase, maintained = maintained,
+                   phase_class = phase_class)
 }
 
 # Figure 6B
