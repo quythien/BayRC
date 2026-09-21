@@ -95,6 +95,9 @@ panels <- list(
   list(dir = putvic.dir, pattern = "^PUT_VIC_transition_enrichment[.]pdf$",
        to = "F4B_PUT_VIC_transition_enrichment.pdf",
        script = "applications/Baboon_PUT_VIC.R"),
+  list(dir = putvic.dir, pattern = "^transition_enrichment_legend[.]pdf$",
+       to = "F4L_transition_enrichment_legend.pdf",
+       script = "applications/Baboon_PUT_VIC.R"),
 
   # Figure 5: KEGG Parkinson disease in both circuits, the rhythmic-only version
   list(dir = putsun.dir,
@@ -140,13 +143,18 @@ figures <- list(
 # every other multi-panel figure runs its panels along a row.
 stacked.figures <- "Figure_5"
 
+# A figure listed here is drawn with its panels carrying no legend of their own
+# and this one placed under the row. The panels' scales have to match for that
+# to be right, which for Figure 4 is what q_limits and size_limits fix.
+shared.legends <- list(Figure_4 = "F4L_transition_enrichment_legend.pdf")
+
 # Collect ---------------------------------------------------------------------
 
 if (dry.run) {
   cat("resolved panels\n\n")
   for (nm in names(figures)) {
     cat(nm, "\n")
-    for (want in figures[[nm]]) {
+    for (want in c(figures[[nm]], shared.legends[[nm]])) {
       p <- Filter(function(x) x$to == want, panels)[[1]]
       cat("  ", want, "\n      ",
           if (is.na(p$from)) paste0("not found: ", p$pattern, " under ", p$dir,
@@ -184,7 +192,7 @@ page_size <- function(pdf) {
 
 side_by_side <- function(inputs, output, labels = LETTERS[seq_along(inputs)],
                          panel.width = 324, gutter = 9, margin = 9,
-                         label.space = 22) {
+                         label.space = 22, below = NA_character_) {
   if (!nzchar(Sys.which("pdflatex")) || !nzchar(Sys.which("pdfinfo")))
     return(FALSE)
   size <- lapply(inputs, page_size)
@@ -192,6 +200,16 @@ side_by_side <- function(inputs, output, labels = LETTERS[seq_along(inputs)],
   paper.w <- length(inputs) * panel.width +
              (length(inputs) - 1) * gutter + 2 * margin
   paper.h <- max(scaled.h) + label.space + 2 * margin
+
+  # a legend the panels share sits centred under the row, at its own width
+  strip <- ""
+  if (!is.na(below)) {
+    d <- page_size(below)
+    strip.w <- min(d[1], paper.w - 2 * margin)
+    paper.h <- paper.h + strip.w * d[2] / d[1] + gutter
+    strip <- sprintf("\n\n\\vspace{%.1fbp}\\centerline{\\includegraphics[width=%.1fbp]{%s}}",
+                     gutter, strip.w, below)
+  }
 
   panel <- function(i) sprintf(
     "\\begin{minipage}[t]{%.1fbp}\\raggedright\\textbf{\\sffamily\\large %s}\\\\[2bp]\n\\includegraphics[width=%.1fbp]{%s}\\end{minipage}",
@@ -203,8 +221,8 @@ side_by_side <- function(inputs, output, labels = LETTERS[seq_along(inputs)],
     "\\usepackage{graphicx}", "\\pagestyle{empty}",
     "\\setlength{\\parindent}{0pt}",
     "\\begin{document}\\noindent",
-    paste(vapply(seq_along(inputs), panel, character(1)),
-          collapse = sprintf("\\hspace{%.1fbp}\n", gutter)),
+    paste0(paste(vapply(seq_along(inputs), panel, character(1)),
+                 collapse = sprintf("\\hspace{%.1fbp}\n", gutter)), strip),
     "\\end{document}")
 
   work <- file.path(tempdir(), "assemble")
@@ -263,13 +281,17 @@ for (nm in names(figures)) {
   if (!length(have)) next
   out <- file.path(fig.dir, paste0(nm, ".pdf"))
   down <- nm %in% stacked.figures
-  merge_panels <- if (down) stacked else side_by_side
-  if (length(have) == 1L) {
+  legend <- file.path(sub.dir, shared.legends[[nm]])
+  legend <- if (length(legend) && file.exists(legend)) legend else NA_character_
+  merge_panels <- if (down) stacked else
+    function(...) side_by_side(..., below = legend)
+  if (length(have) == 1L && is.na(legend)) {
     file.copy(have, out, overwrite = TRUE)
     cat("wrote", basename(out), "\n")
   } else if (isTRUE(merge_panels(have, out))) {
     cat("wrote", basename(out), "from", length(have),
-        if (down) "panels stacked\n" else "panels side by side\n")
+        if (down) "panels stacked" else "panels side by side",
+        if (is.na(legend)) "\n" else "under a shared legend\n")
   } else {
     unassembled <- c(unassembled, nm)
   }

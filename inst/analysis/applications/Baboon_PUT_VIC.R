@@ -13,6 +13,7 @@ source(file.path(analysis.dir, "config.R"))
 source(file.path(analysis.dir, "plots", "theme_bayrc.R"))
 source(file.path(analysis.dir, "plots", "peak_concordance.R"))
 source(file.path(analysis.dir, "plots", "palette_concordance.R"))
+source(file.path(analysis.dir, "plots", "shared_legend.R"))
 source(file.path(analysis.dir, "pipeline", "run_record.R"))
 
 # frozen analysis parameters
@@ -152,8 +153,11 @@ fig4 <- ggplot(plot4[plot4$q < stage2_q, ],
        x = "Transition", y = NULL) +
   theme_bayrc(base_size = 12) +
   theme(axis.text.y = element_text(size = 10))
-bayrc_save(fig4, file.path(fig.dir, "PUT_VIC_transition_enrichment"),
-           width = 7.2, height = 3.9)
+# Figure 4A and 4B share one legend, written here and placed beneath the pair
+bayrc_save(fig4 + theme(legend.position = "none"),
+           file.path(fig.dir, "PUT_VIC_transition_enrichment"),
+           width = 5.4, height = 3.9)
+save_plot_legend(fig4, file.path(fig.dir, "transition_enrichment_legend"))
 }
 
 # pathway concordance metrics behind the enrichment table

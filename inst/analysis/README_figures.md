@@ -106,7 +106,9 @@ the stage-2 output: `PUT_SUN_transition_enrichment.pdf` and
 `stage2_significant.csv` beside each. The two panels fix the same colour and
 size limits through `q_limits` and `size_limits`, so a dot means the same thing
 in both, and both keep all three transition columns whether or not a dot falls
-in them.
+in them. Neither panel carries a legend: `plots/shared_legend.R` writes
+`transition_enrichment_legend.pdf` from the same scales, and the assembler
+places it under the pair.
 
 **Figure 5** — KEGG Parkinson disease drawn for both circuits and stacked.
 `plot_heatmap()` writes one file per pathway, plus a `_rhythmic_only` version

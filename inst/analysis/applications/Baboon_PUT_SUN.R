@@ -149,8 +149,10 @@ fig4 <- ggplot(plot4[plot4$q < stage2_q, ],
        x = "Transition", y = NULL) +
   theme_bayrc(base_size = 12) +
   theme(axis.text.y = element_text(size = 10))
-bayrc_save(fig4, file.path(fig.dir, "PUT_SUN_transition_enrichment"),
-           width = 7.2, height = 3.9)
+# Figure 4A and 4B share one legend, drawn once beneath the pair
+bayrc_save(fig4 + theme(legend.position = "none"),
+           file.path(fig.dir, "PUT_SUN_transition_enrichment"),
+           width = 5.4, height = 3.9)
 }
 
 # pathway concordance metrics behind the enrichment table
