@@ -97,16 +97,8 @@ panels <- list(
        to = "F3D_baboon_SCN_clock_reference.pdf",
        script = "applications/Baboon_SCN_HIP.R"),
 
-  # Figure 4: pathway transition enrichment in the two putamen circuits
-  list(dir = putsun.dir, pattern = "^PUT_SUN_transition_enrichment[.]pdf$",
-       to = "F4A_PUT_SUN_transition_enrichment.pdf",
-       script = "applications/Baboon_PUT_SUN.R"),
-  list(dir = putvic.dir, pattern = "^PUT_VIC_transition_enrichment[.]pdf$",
-       to = "F4B_PUT_VIC_transition_enrichment.pdf",
-       script = "applications/Baboon_PUT_VIC.R"),
-  list(dir = putvic.dir, pattern = "^transition_enrichment_legend[.]pdf$",
-       to = "F4L_transition_enrichment_legend.pdf",
-       script = "applications/Baboon_PUT_VIC.R"),
+  # Figure 4 is one plot covering both circuits, written straight to the paper
+  # figures by plots/pathway_transition_panels.R, so it has no panels here.
 
   # Figure 5: KEGG Parkinson disease in both circuits, the rhythmic-only version
   list(dir = putsun.dir,
@@ -147,8 +139,6 @@ figures <- list(
                "F3B_baboon_PUT_SUN_phase_concordance.pdf",
                "F3C_baboon_PUT_VIC_phase_concordance.pdf",
                "F3D_baboon_SCN_clock_reference.pdf"),
-  Figure_4 = c("F4A_PUT_SUN_transition_enrichment.pdf",
-               "F4B_PUT_VIC_transition_enrichment.pdf"),
   Figure_5 = c("F5A_PUT_SUN_KEGG_Parkinson_heatmap.pdf",
                "F5B_PUT_VIC_KEGG_Parkinson_heatmap.pdf"),
   Figure_5_row = c("F5A_PUT_SUN_KEGG_Parkinson_heatmap.pdf",
@@ -180,7 +170,6 @@ figure.titles <- list(Figure_5 = "KEGG Parkinson disease",
 
 shared.legends <- list(Figure_2 = "F2L_concordance_legend.pdf",
                        Figure_3 = "F3L_phase_class_legend.pdf",
-                       Figure_4 = "F4L_transition_enrichment_legend.pdf",
                        Figure_5 = "F5L_parkinson_heatmap_legend.pdf",
                        Figure_5_row = "F5L_parkinson_heatmap_legend.pdf",
                        Figure_6 = "F6L_circadian_heatmap_legend.pdf")

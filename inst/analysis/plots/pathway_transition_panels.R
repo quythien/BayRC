@@ -4,6 +4,9 @@
 ## Everything is read from stage2_significant.csv, which the application
 ## scripts write.
 ##
+## Both panels come out of one ggplot, so this script writes the whole of
+## Figure 4 and assemble_figures.R has no panels to merge for it.
+##
 ## Usage: Rscript pathway_transition_panels.R [outdir]
 
 this.file <- sub("^--file=", "", grep("^--file=", commandArgs(), value = TRUE)[1])
@@ -16,7 +19,7 @@ suppressPackageStartupMessages({library(ggplot2); library(patchwork)})
 
 args   <- commandArgs(trailingOnly = TRUE)
 outdir <- if (length(args) >= 1) args[1] else
-  file.path(dirname(BAYRC_OUTPUT_DIR), "paper", "demos", "figure4")
+  file.path(dirname(BAYRC_OUTPUT_DIR), "paper", "figures")
 dir.create(outdir, recursive = TRUE, showWarnings = FALSE)
 
 stage2_q <- 0.05
@@ -100,8 +103,8 @@ b <- ggplot(comp, aes(100 * frac, pathway, fill = status)) +
        x = "Percentage of expected rhythmic genes", y = NULL, tag = "B") + common
 
 fig <- a / b + plot_layout(heights = c(1, 1))
-ggsave(file.path(outdir, "Figure_4_demo.pdf"), fig, width = 15, height = 12)
-ggsave(file.path(outdir, "Figure_4_demo.png"), fig, width = 15, height = 12,
+ggsave(file.path(outdir, "Figure_4.pdf"), fig, width = 15, height = 12)
+ggsave(file.path(outdir, "Figure_4.png"), fig, width = 15, height = 12,
        dpi = 200, bg = "white")
 
 cat("\nenriched rows:", nrow(sig), "over", nlevels(droplevels(sig$pathway)),
