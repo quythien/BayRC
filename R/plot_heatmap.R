@@ -42,6 +42,9 @@
 #' @param legend_path Character or \code{NULL}; when given, the legends are
 #'   also packed horizontally and written on their own to
 #'   \code{<legend_path>.pdf}, for a figure whose panels share one legend.
+#' @param show_title Logical; draw \code{pathway_name} above the heatmap
+#'   (default \code{TRUE}). Set \code{FALSE} for a panel whose figure carries
+#'   one title over several panels.
 #' @param show_legend Logical; draw the heatmap and annotation legends
 #'   (default \code{TRUE}). Set \code{FALSE} for a panel that shares the
 #'   legend of another panel in the same figure.
@@ -67,6 +70,7 @@ plot_heatmap <- function(data1, data2,
                           col_phase2 = circlize::colorRamp2(c(0, 0.5, 1), c("white", "#fc9272", "#a50f15")),
                           legend_names = group_names,
                           legend_path = NULL,
+                          show_title = TRUE,
                           show_legend = TRUE,
                           legend_side = "left",
                           versions = c("full", "rhythmic_only", "both")) {
@@ -289,6 +293,7 @@ plot_heatmap <- function(data1, data2,
     
     annotation_name_side = "bottom",
     annotation_name_gp = gpar(fontsize = 9, fontface = "bold"),
+    simple_anno_size = unit(3, "mm"),
     na_col = "white"
   )
   
@@ -424,7 +429,7 @@ plot_heatmap <- function(data1, data2,
     column_title_side = "bottom",
     column_title = NULL,
     show_heatmap_legend = FALSE,
-    width = unit(4, "cm"),
+    width = unit(5, "cm"),
     border = TRUE,
     rect_gp = gpar(col = "white", lwd = 0.5)
   )
@@ -443,7 +448,7 @@ plot_heatmap <- function(data1, data2,
     column_title_side = "bottom",
     column_title = NULL,
     show_heatmap_legend = FALSE,
-    width = unit(4, "cm"),
+    width = unit(5, "cm"),
     border = TRUE,
     rect_gp = gpar(col = "white", lwd = 0.5)
   )
@@ -568,16 +573,16 @@ plot_heatmap <- function(data1, data2,
          show_heatmap_legend = show_legend,
          show_annotation_legend = show_legend,
          merge_legend = TRUE,
+         ht_gap = unit(1.2, "mm"),
          padding = unit(c(2, 2, 2, 2), "mm"))
 
-    title_text <- pathway_name
-
-    grid.text(
-      title_text,
-      x = unit(0.5, "npc"),
-      y = unit(1, "npc") - unit(3, "mm"),
-      gp = gpar(fontsize = 14, fontface = "bold")
-    )
+    if (show_title)
+      grid.text(
+        pathway_name,
+        x = unit(0.5, "npc"),
+        y = unit(1, "npc") - unit(3, "mm"),
+        gp = gpar(fontsize = 14, fontface = "bold")
+      )
     
     # Add peak time titles
     decorate_heatmap_body(paste0("Phase_", group_names[1]), {
@@ -608,15 +613,17 @@ plot_heatmap <- function(data1, data2,
          show_heatmap_legend = show_legend,
          show_annotation_legend = show_legend,
          merge_legend = TRUE,
+         ht_gap = unit(1.2, "mm"),
          padding = unit(c(2, 2, 2, 2), "mm"))
 
     # Add centered main title at the top
-    grid.text(
-      pathway_name,
-      x = unit(0.5, "npc"),
-      y = unit(1, "npc") - unit(3, "mm"),
-      gp = gpar(fontsize = 14, fontface = "bold")
-    )
+    if (show_title)
+      grid.text(
+        pathway_name,
+        x = unit(0.5, "npc"),
+        y = unit(1, "npc") - unit(3, "mm"),
+        gp = gpar(fontsize = 14, fontface = "bold")
+      )
     
     # Add peak time titles
     decorate_heatmap_body(paste0("Phase_", group_names[1]), {

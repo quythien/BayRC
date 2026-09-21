@@ -20,6 +20,7 @@ plot_heatmap(
   col_phase2 = circlize::colorRamp2(c(0, 0.5, 1), c("white", "#fc9272", "#a50f15")),
   legend_names = group_names,
   legend_path = NULL,
+  show_title = TRUE,
   show_legend = TRUE,
   legend_side = "left",
   versions = c("full", "rhythmic_only", "both")
@@ -69,6 +70,10 @@ peak-time annotations keep the names in \code{group_names}.}
 \item{legend_path}{Character or \code{NULL}; when given, the legends are
 also packed horizontally and written on their own to
 \code{<legend_path>.pdf}, for a figure whose panels share one legend.}
+
+\item{show_title}{Logical; draw \code{pathway_name} above the heatmap
+(default \code{TRUE}). Set \code{FALSE} for a panel whose figure carries
+one title over several panels.}
 
 \item{show_legend}{Logical; draw the heatmap and annotation legends
 (default \code{TRUE}). Set \code{FALSE} for a panel that shares the

@@ -197,7 +197,7 @@ for (pw in panel_pathways) {
                transition_results = trans,
                group_names = c("Baboon PUT", "Baboon SUN"),
                versions = "both", save_path = fig.dir,
-               show_legend = FALSE, legend_side = "bottom")
+               show_title = FALSE, show_legend = FALSE, legend_side = "bottom")
 }
 
 write_run_record(file.path(fig.dir, "run_record.txt"), "applications/Baboon_PUT_SUN.R",

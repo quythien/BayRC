@@ -203,7 +203,7 @@ for (pw in panel_pathways) {
                group_names = c("Baboon PUT", "Baboon VIC"),
                legend_names = c("Baboon PUT", "the compared region"),
                versions = "both", save_path = fig.dir,
-               show_legend = FALSE,
+               show_title = FALSE, show_legend = FALSE,
                legend_path = file.path(fig.dir, "parkinson_heatmap_legend"))
 }
 

@@ -158,6 +158,11 @@ stacked.figures <- "Figure_5"
 # A figure listed here is drawn with its panels carrying no legend of their own
 # and this one placed under the row. The panels' scales have to match for that
 # to be right, which for Figure 4 is what q_limits and size_limits fix.
+# A figure whose panels share one subject carries its title once, above the
+# pair, and the panels are drawn with show_title = FALSE.
+figure.titles <- list(Figure_5 = "KEGG Parkinson disease",
+                      Figure_5_row = "KEGG Parkinson disease")
+
 shared.legends <- list(Figure_2 = "F2L_concordance_legend.pdf",
                        Figure_3 = "F3L_phase_class_legend.pdf",
                        Figure_4 = "F4L_transition_enrichment_legend.pdf",
@@ -208,7 +213,8 @@ page_size <- function(pdf) {
 
 side_by_side <- function(inputs, output, labels = LETTERS[seq_along(inputs)],
                          panel.width = 324, gutter = 9, margin = 9,
-                         label.space = 22, below = NA_character_) {
+                         label.space = 22, below = NA_character_,
+                         title = NA_character_) {
   if (!nzchar(Sys.which("pdflatex")) || !nzchar(Sys.which("pdfinfo")))
     return(FALSE)
   size <- lapply(inputs, page_size)
@@ -216,6 +222,11 @@ side_by_side <- function(inputs, output, labels = LETTERS[seq_along(inputs)],
   paper.w <- length(inputs) * panel.width +
              (length(inputs) - 1) * gutter + 2 * margin
   paper.h <- max(scaled.h) + label.space + 2 * margin
+  head <- ""
+  if (!is.na(title)) {
+    paper.h <- paper.h + 24
+    head <- sprintf("\\centerline{\\sffamily\\bfseries\\large %s}\\vspace{8bp}\n\n\\noindent ", title)
+  }
 
   # a legend the panels share sits centred under the row, at its own width
   strip <- ""
@@ -237,8 +248,8 @@ side_by_side <- function(inputs, output, labels = LETTERS[seq_along(inputs)],
     "\\usepackage{graphicx}", "\\pagestyle{empty}",
     "\\setlength{\\parindent}{0pt}",
     "\\begin{document}\\noindent",
-    paste0(paste(vapply(seq_along(inputs), panel, character(1)),
-                 collapse = sprintf("\\hspace{%.1fbp}\n", gutter)), strip),
+    paste0(head, paste(vapply(seq_along(inputs), panel, character(1)),
+                       collapse = sprintf("\\hspace{%.1fbp}\n", gutter)), strip),
     "\\end{document}")
 
   work <- file.path(tempdir(), "assemble")
@@ -255,7 +266,8 @@ side_by_side <- function(inputs, output, labels = LETTERS[seq_along(inputs)],
 
 stacked <- function(inputs, output, labels = LETTERS[seq_along(inputs)],
                     panel.width = 468, gap = 14, margin = 9,
-                    label.space = 22, below = NA_character_) {
+                    label.space = 22, below = NA_character_,
+                    title = NA_character_) {
   if (!nzchar(Sys.which("pdflatex")) || !nzchar(Sys.which("pdfinfo")))
     return(FALSE)
   size <- lapply(inputs, page_size)
@@ -263,6 +275,11 @@ stacked <- function(inputs, output, labels = LETTERS[seq_along(inputs)],
   paper.w <- panel.width + 2 * margin
   paper.h <- sum(scaled.h) + length(inputs) * label.space +
              (length(inputs) - 1) * gap + 2 * margin
+  head <- ""
+  if (!is.na(title)) {
+    paper.h <- paper.h + 24
+    head <- sprintf("\\centerline{\\sffamily\\bfseries\\large %s}\\vspace{8bp}\n\n\\noindent ", title)
+  }
 
   # a legend the panels share sits centred under the stack, at its own width
   strip <- ""
@@ -284,8 +301,8 @@ stacked <- function(inputs, output, labels = LETTERS[seq_along(inputs)],
     "\\usepackage{graphicx}", "\\pagestyle{empty}",
     "\\setlength{\\parindent}{0pt}",
     "\\begin{document}\\noindent",
-    paste0(paste(vapply(seq_along(inputs), panel, character(1)),
-                 collapse = sprintf("\\\\[%.1fbp]\n", gap)), strip),
+    paste0(head, paste(vapply(seq_along(inputs), panel, character(1)),
+                       collapse = sprintf("\\\\[%.1fbp]\n", gap)), strip),
     "\\end{document}")
 
   work <- file.path(tempdir(), "assemble")
@@ -309,8 +326,10 @@ for (nm in names(figures)) {
   down <- nm %in% stacked.figures
   legend <- file.path(sub.dir, shared.legends[[nm]])
   legend <- if (length(legend) && file.exists(legend)) legend else NA_character_
-  merge_panels <- if (down) function(...) stacked(..., below = legend) else
-    function(...) side_by_side(..., below = legend)
+  title <- if (is.null(figure.titles[[nm]])) NA_character_ else figure.titles[[nm]]
+  merge_panels <- if (down)
+    function(...) stacked(..., below = legend, title = title) else
+    function(...) side_by_side(..., below = legend, title = title)
   if (length(have) == 1L && is.na(legend)) {
     file.copy(have, out, overwrite = TRUE)
     cat("wrote", basename(out), "\n")
