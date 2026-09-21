@@ -14,8 +14,11 @@ save_plot_legend <- function(plot, path, side = "bottom") {
   box <- g$grobs[[which(g$layout$name == paste0("guide-box-", side))]]
   # the outermost break label overhangs the colour bar, so the box gets a margin
   box <- gtable::gtable_add_padding(box, unit(c(1, 4, 1, 4), "mm"))
+  # measuring the box needs a device open, and the sizes then set the real one
+  pdf(NULL)
   w <- convertWidth(sum(box$widths), "in", valueOnly = TRUE)
   h <- convertHeight(sum(box$heights), "in", valueOnly = TRUE)
+  dev.off()
   pdf(paste0(path, ".pdf"), width = max(w, 1), height = max(h, 0.4))
   grid.newpage()
   grid.draw(box)
