@@ -178,8 +178,10 @@ qq_ordered   <- qq_grobs[ordered_keys]
 rt_ordered   <- rt_grobs[ordered_keys]
 
 # ── Save PDFs ─────────────────────────────────────────────────────────────────
-pdf_width  <- n_cols * 3
-pdf_height <- length(TISSUES) * 3
+# the supplementary scales this to a 6.5 in text block, so a panel wider than
+# about 1.75 in puts the axis labels below 5 pt in print
+pdf_width  <- n_cols * 1.75
+pdf_height <- length(TISSUES) * 1.75
 
 qq_file <- file.path(outdir, "Cosinor_QQ_Baboon_LUN_PUT_SUN.pdf")
 pdf(qq_file, width = pdf_width, height = pdf_height)
