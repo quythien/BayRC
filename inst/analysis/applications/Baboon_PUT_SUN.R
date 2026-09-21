@@ -215,8 +215,9 @@ for (pw in panel_pathways) {
                transition_results = trans,
                group_names = c("Putamen", "Substantia nigra"),
                # the blocks are a fixed 16 cm, so the default canvas leaves
-               # margin that the assembler then scales the type down with
-               canvas_width = 7.5,
+               # margin that the assembler then scales the type down with.
+               # 8 in is the 16 cm of blocks plus room for the longest gene name
+               canvas_width = 8,
                versions = "both", save_path = fig.dir,
                show_title = FALSE, show_legend = FALSE, legend_side = "bottom")
 }
