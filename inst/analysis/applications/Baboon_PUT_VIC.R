@@ -171,7 +171,8 @@ metrics <- if (!length(selected)) NULL else multi_conservation(
 write.csv(union_res[order(union_res$pval), c("pathway", "size", "pval", "q")],
           file.path(fig.dir, "stage1_union.csv"), row.names = FALSE)
 write.csv(sig[order(sig$direction, sig$pval),
-              c("pathway", "direction", "size", "pval", "q")],
+              c("pathway", "direction", "size", "pval", "q",
+                "Expected_N_Gain", "Expected_N_Loss", "Expected_N_Conserved")],
           file.path(fig.dir, "stage2_significant.csv"), row.names = FALSE)
 if (!is.null(metrics))
   write.csv(metrics, file.path(fig.dir, "pathway_metrics.csv"), row.names = FALSE)
