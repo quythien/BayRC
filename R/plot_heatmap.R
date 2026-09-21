@@ -536,7 +536,7 @@ plot_heatmap <- function(data1, data2,
   # and places this file beneath the pair. The strip is placed at its own width
   # rather than a panel's, so its type is set smaller than the in-panel text.
   if (!is.null(legend_path) && current_version == versions_to_run[1]) {
-    shared <- packLegend(
+    base_legends <- list(
       Legend(title = "Rhythmicity Status", labels = names(conc_colors),
              legend_gp = gpar(fill = conc_colors),
              title_gp = gpar(fontsize = 10, fontface = "bold"),
@@ -554,9 +554,10 @@ plot_heatmap <- function(data1, data2,
                         "Non-classified"),
              legend_gp = gpar(fill = c("#E63946", "#4361EE", "#06A77D", "#E0E0E0")),
              title_gp = gpar(fontsize = 10, fontface = "bold"),
-             labels_gp = gpar(fontsize = 8)),
-      list = extra_legends,
-      direction = "horizontal", gap = unit(6, "mm"))
+             labels_gp = gpar(fontsize = 8)))
+    shared <- do.call(packLegend,
+                      c(base_legends, extra_legends,
+                        list(direction = "horizontal", gap = unit(6, "mm"))))
     pdf(NULL)
     lw <- convertWidth(grobWidth(shared@grob), "in", valueOnly = TRUE)
     lh <- convertHeight(grobHeight(shared@grob), "in", valueOnly = TRUE)
