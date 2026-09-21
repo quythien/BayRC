@@ -162,6 +162,9 @@ figures <- list(
 # other multi-panel figure runs its panels along a row.
 stacked.figures <- "Figure_5"
 
+# A figure listed here wraps its panels into rows of this many.
+figure.columns <- list(Figure_3 = 2)
+
 # A figure listed here is drawn with its panels carrying no legend of their own
 # and this one placed under the row. The panels' scales have to match for that
 # to be right, which for Figure 4 is what q_limits and size_limits fix.
@@ -224,14 +227,19 @@ page_size <- function(pdf) {
 side_by_side <- function(inputs, output, labels = LETTERS[seq_along(inputs)],
                          panel.width = 324, gutter = 9, margin = 9,
                          label.space = 22, below = NA_character_,
-                         title = NA_character_) {
+                         title = NA_character_, ncol = NULL) {
   if (!nzchar(Sys.which("pdflatex")) || !nzchar(Sys.which("pdfinfo")))
     return(FALSE)
+  if (is.null(ncol)) ncol <- length(inputs)
   size <- lapply(inputs, page_size)
   scaled.h <- vapply(size, function(d) panel.width * d[2] / d[1], numeric(1))
-  paper.w <- length(inputs) * panel.width +
-             (length(inputs) - 1) * gutter + 2 * margin
-  paper.h <- max(scaled.h) + label.space + 2 * margin
+  # panels fill each row in turn, and a row is as tall as its tallest panel
+  row.of <- ceiling(seq_along(inputs) / ncol)
+  paper.w <- min(ncol, length(inputs)) * panel.width +
+             (min(ncol, length(inputs)) - 1) * gutter + 2 * margin
+  paper.h <- sum(tapply(scaled.h, row.of, max)) +
+             length(unique(row.of)) * label.space +
+             (length(unique(row.of)) - 1) * gutter + 2 * margin
   head <- ""
   if (!is.na(title)) {
     paper.h <- paper.h + 24
@@ -258,8 +266,10 @@ side_by_side <- function(inputs, output, labels = LETTERS[seq_along(inputs)],
     "\\usepackage{graphicx}", "\\pagestyle{empty}",
     "\\setlength{\\parindent}{0pt}",
     "\\begin{document}\\noindent",
-    paste0(head, paste(vapply(seq_along(inputs), panel, character(1)),
-                       collapse = sprintf("\\hspace{%.1fbp}\n", gutter)), strip),
+    paste0(head, paste(vapply(split(seq_along(inputs), row.of), function(ix)
+             paste(vapply(ix, panel, character(1)),
+                   collapse = sprintf("\\hspace{%.1fbp}\n", gutter)), character(1)),
+             collapse = sprintf("\\\\[%.1fbp]\n", gutter + label.space)), strip),
     "\\end{document}")
 
   work <- file.path(tempdir(), "assemble")
@@ -339,7 +349,8 @@ for (nm in names(figures)) {
   title <- if (is.null(figure.titles[[nm]])) NA_character_ else figure.titles[[nm]]
   merge_panels <- if (down)
     function(...) stacked(..., below = legend, title = title) else
-    function(...) side_by_side(..., below = legend, title = title)
+    function(...) side_by_side(..., below = legend, title = title,
+                              ncol = figure.columns[[nm]])
   if (length(have) == 1L && is.na(legend)) {
     file.copy(have, out, overwrite = TRUE)
     cat("wrote", basename(out), "\n")

@@ -223,9 +223,8 @@ if (!file.exists(clock_ref)) {
     theme_bayrc(base_size = 12) +
     theme(axis.text.x = element_text(face = "italic"),
           panel.grid = element_blank())
-  bayrc_save(fig3d + theme(legend.position = "none"),
-             file.path(fig.dir, "SCN_clock_reference"), width = 2.6, height = 4.4)
-  save_plot_legend(fig3d, file.path(fig.dir, "clock_reference_legend"))
+  bayrc_save(fig3d, file.path(fig.dir, "SCN_clock_reference"),
+             width = 3.6, height = 4.4)
 
   cat("\nclock genes rhythmic in SCN, against", nlevels(ref$tissue), "tissues\n")
   print(with(ref[ref$status == "Maintained", ],
