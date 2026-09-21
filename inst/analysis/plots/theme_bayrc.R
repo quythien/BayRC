@@ -25,8 +25,8 @@ if (bayrc_family == "Nimbus Sans" &&
     "Nimbus Sans", grDevices::postscriptFonts()$Helvetica$metrics))
 }
 
-bayrc_ink   <- "#0b0b0b"   # titles, emphasis
-bayrc_ink2  <- "#52514e"   # axis text and labels
+bayrc_ink   <- "#0b0b0b"   # all text, axis lines and ticks
+bayrc_ink2  <- "#52514e"   # mid grey, for marks that sit behind text
 bayrc_ink3  <- "#7a7974"   # reference lines
 bayrc_grid  <- "#e4e3de"   # gridlines
 
@@ -50,21 +50,21 @@ theme_bayrc <- function(base_size = 12) {
       plot.background   = element_rect(fill = NA, colour = NA),
       panel.background  = element_rect(fill = NA, colour = NA),
       panel.grid        = element_blank(),
-      axis.line         = element_line(colour = bayrc_ink2, linewidth = 0.5),
-      axis.ticks        = element_line(colour = bayrc_ink2, linewidth = 0.5),
+      axis.line         = element_line(colour = bayrc_ink, linewidth = 0.5),
+      axis.ticks        = element_line(colour = bayrc_ink, linewidth = 0.5),
       axis.ticks.length = unit(3.5, "pt"),
-      axis.text         = element_text(colour = bayrc_ink2, size = base_size * 0.85),
-      axis.title        = element_text(colour = bayrc_ink2, size = base_size),
+      axis.text         = element_text(colour = bayrc_ink, size = base_size * 0.85),
+      axis.title        = element_text(colour = bayrc_ink, size = base_size),
       plot.title        = element_text(colour = bayrc_ink, size = base_size * 1.05,
                                        face = "bold", hjust = 0.5),
-      plot.subtitle     = element_text(colour = bayrc_ink2, size = base_size * 0.85,
+      plot.subtitle     = element_text(colour = bayrc_ink, size = base_size * 0.85,
                                        hjust = 0.5),
       plot.tag          = element_text(colour = bayrc_ink, size = base_size * 1.3,
                                        face = "bold"),
       legend.background = element_rect(fill = NA, colour = NA),
       legend.key        = element_rect(fill = NA, colour = NA),
-      legend.title      = element_text(colour = bayrc_ink2, size = base_size * 0.85),
-      legend.text       = element_text(colour = bayrc_ink2, size = base_size * 0.8),
+      legend.title      = element_text(colour = bayrc_ink, size = base_size * 0.85),
+      legend.text       = element_text(colour = bayrc_ink, size = base_size * 0.8),
       strip.text        = element_text(colour = bayrc_ink, size = base_size,
                                        face = "bold")
     )

@@ -292,7 +292,7 @@ plot_heatmap <- function(data1, data2,
                `Phase Status` = phase_colors),
     
     annotation_name_side = "bottom",
-    annotation_name_gp = gpar(fontsize = 9, fontface = "bold"),
+    annotation_name_gp = gpar(fontsize = 14, fontface = "bold"),
     simple_anno_size = unit(3, "mm"),
     na_col = "white"
   )
@@ -317,7 +317,7 @@ plot_heatmap <- function(data1, data2,
     
     column_names_side = "bottom",
     column_names_centered = TRUE,
-    column_names_gp = gpar(fontsize = 9, fontface = "bold"),
+    column_names_gp = gpar(fontsize = 15, fontface = "bold"),
     column_title_side = "top",
     column_title = NULL,
     column_title_gp = gpar(fontsize = 12, fontface = "bold"),
@@ -333,7 +333,7 @@ plot_heatmap <- function(data1, data2,
     
     heatmap_legend_param = list(
       title = expression(Pr(rho == 1)),
-      title_gp = gpar(fontsize = 10, fontface = "bold")
+      title_gp = gpar(fontsize = 15, fontface = "bold")
     )
   )
   
@@ -424,7 +424,7 @@ plot_heatmap <- function(data1, data2,
     show_row_names = FALSE,
     show_column_names = TRUE,
     column_names_side = "bottom",
-    column_names_gp = gpar(fontsize = 8),
+    column_names_gp = gpar(fontsize = 15),
     column_names_centered = TRUE,
     column_title_side = "bottom",
     column_title = NULL,
@@ -443,7 +443,7 @@ plot_heatmap <- function(data1, data2,
     show_row_names = FALSE,
     show_column_names = TRUE,
     column_names_side = "bottom",
-    column_names_gp = gpar(fontsize = 8),
+    column_names_gp = gpar(fontsize = 15),
     column_names_centered = TRUE,
     column_title_side = "bottom",
     column_title = NULL,
@@ -481,8 +481,8 @@ plot_heatmap <- function(data1, data2,
     title = "Delta Peak",
     labels = c(paste0(legend_names[2], " later"), paste0(legend_names[2], " earlier"), "Conserved", "Non-classified"),
     legend_gp = gpar(fill = c("#E63946", "#4361EE", "#06A77D", "#E0E0E0")),
-    title_gp = gpar(fontsize = 10, fontface = "bold"),
-    labels_gp = gpar(fontsize = 8)
+    title_gp = gpar(fontsize = 15, fontface = "bold"),
+    labels_gp = gpar(fontsize = 13)
   )
 
   right_ha <- rowAnnotation(
@@ -496,13 +496,13 @@ plot_heatmap <- function(data1, data2,
         labels = c(paste0("-", axis_limit), paste0("-", axis_limit/2), "0",
                    as.character(axis_limit/2), as.character(axis_limit)),
         side = "bottom",
-        gp = gpar(fontsize = 8)
+        gp = gpar(fontsize = 14)
       ),
       ylim = c(-axis_limit, axis_limit),
       width = unit(3, "cm")
     ),
     annotation_name_side = "bottom",
-    annotation_name_gp = gpar(fontsize = 9, fontface = "bold")
+    annotation_name_gp = gpar(fontsize = 14, fontface = "bold")
   )
   
   # ==========================================================================
@@ -512,9 +512,9 @@ plot_heatmap <- function(data1, data2,
   gene_ha <- rowAnnotation(
     Genes = anno_text(
       genes_ord,
-      gp = gpar(fontsize = 7),
+      gp = gpar(fontsize = 15),
       just = "left",
-      width = max_text_width(genes_ord, gp = gpar(fontsize = 7)) + unit(2, "mm")
+      width = max_text_width(genes_ord, gp = gpar(fontsize = 15)) + unit(2, "mm")
     ),
     show_annotation_name = FALSE
   )
@@ -526,7 +526,8 @@ plot_heatmap <- function(data1, data2,
   ht_list <- ht_main + ht_phase1 + ht_phase2 + right_ha + gene_ha
 
   # A figure whose panels share one legend draws them with show_legend = FALSE
-  # and places this file beneath the pair.
+  # and places this file beneath the pair. The strip is placed at its own width
+  # rather than a panel's, so its type is set smaller than the in-panel text.
   if (!is.null(legend_path) && current_version == versions_to_run[1]) {
     shared <- packLegend(
       Legend(title = "Rhythmicity Status", labels = names(conc_colors),
@@ -540,7 +541,13 @@ plot_heatmap <- function(data1, data2,
       Legend(title = expression(Pr(rho == 1)), col_fun = col_main, at = c(0, 0.5, 1),
              title_gp = gpar(fontsize = 10, fontface = "bold"),
              labels_gp = gpar(fontsize = 8), direction = "horizontal"),
-      delta_peak_legend,
+      Legend(title = "Delta Peak",
+             labels = c(paste0(legend_names[2], " later"),
+                        paste0(legend_names[2], " earlier"), "Conserved",
+                        "Non-classified"),
+             legend_gp = gpar(fill = c("#E63946", "#4361EE", "#06A77D", "#E0E0E0")),
+             title_gp = gpar(fontsize = 10, fontface = "bold"),
+             labels_gp = gpar(fontsize = 8)),
       direction = "horizontal", gap = unit(6, "mm"))
     pdf(NULL)
     lw <- convertWidth(grobWidth(shared@grob), "in", valueOnly = TRUE)
@@ -558,8 +565,8 @@ plot_heatmap <- function(data1, data2,
     # Add version suffix to filename
     version_suffix <- if (current_version == "rhythmic_only") "_rhythmic_only" else ""
     filename <- paste0(save_path, "/", gsub("[^A-Za-z0-9]", "_", pathway_name), "_integrated", version_suffix, ".pdf")
-    fig_height <- 4 + (n_genes * 0.15)
-    fig_height <- max(6, min(fig_height, 20))
+    fig_height <- 4 + (n_genes * 0.24)
+    fig_height <- max(6, min(fig_height, 26))
     # legends laid out in a row below the heatmap need their own band
     if (show_legend && legend_side == "bottom") fig_height <- fig_height + 1.2
     cat("Saving:", filename, "\n")
@@ -581,7 +588,7 @@ plot_heatmap <- function(data1, data2,
         pathway_name,
         x = unit(0.5, "npc"),
         y = unit(1, "npc") - unit(3, "mm"),
-        gp = gpar(fontsize = 14, fontface = "bold")
+        gp = gpar(fontsize = 22, fontface = "bold")
       )
     
     # Add peak time titles
@@ -590,7 +597,7 @@ plot_heatmap <- function(data1, data2,
         paste0(group_names[1], " Peak Time"),
         x = unit(0.5, "npc"),
         y = unit(0, "npc") - unit(9, "mm"),
-        gp = gpar(fontsize = 9, fontface = "bold")
+        gp = gpar(fontsize = 15, fontface = "bold")
       )
     })
     
@@ -599,7 +606,7 @@ plot_heatmap <- function(data1, data2,
         paste0(group_names[2], " Peak Time"),
         x = unit(0.5, "npc"),
         y = unit(0, "npc") - unit(9, "mm"),
-        gp = gpar(fontsize = 9, fontface = "bold")
+        gp = gpar(fontsize = 15, fontface = "bold")
       )
     })
     
@@ -622,7 +629,7 @@ plot_heatmap <- function(data1, data2,
         pathway_name,
         x = unit(0.5, "npc"),
         y = unit(1, "npc") - unit(3, "mm"),
-        gp = gpar(fontsize = 14, fontface = "bold")
+        gp = gpar(fontsize = 22, fontface = "bold")
       )
     
     # Add peak time titles
@@ -631,7 +638,7 @@ plot_heatmap <- function(data1, data2,
         paste0(group_names[1], " Peak Time"),
         x = unit(0.5, "npc"),
         y = unit(0, "npc") - unit(7, "mm"),
-        gp = gpar(fontsize = 9, fontface = "bold")
+        gp = gpar(fontsize = 15, fontface = "bold")
       )
     })
     
@@ -640,7 +647,7 @@ plot_heatmap <- function(data1, data2,
         paste0(group_names[2], " Peak Time"),
         x = unit(0.5, "npc"),
         y = unit(0, "npc") - unit(7, "mm"),
-        gp = gpar(fontsize = 9, fontface = "bold")
+        gp = gpar(fontsize = 15, fontface = "bold")
       )
     })
   }
