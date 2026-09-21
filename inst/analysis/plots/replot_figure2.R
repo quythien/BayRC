@@ -55,6 +55,7 @@ for (stem in names(panels)) {
            breaks        = concordance_breaks,
            border_color  = NA,
            main          = p$title,
+           fontsize      = 14,
            legend        = FALSE)
   dev.off()
 

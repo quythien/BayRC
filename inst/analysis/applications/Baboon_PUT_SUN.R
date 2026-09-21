@@ -74,7 +74,7 @@ p <- peak_concordance_plot(
   xlab = "Peak Hour - Putamen (ZT)",
   ylab = "Peak Hour - Substantia nigra (ZT)", window = shift)
 bayrc_save(p + theme(legend.position = "none"), file.path(fig.dir, "Baboon_PUT_SUN_Peak_Concordance"),
-           width = 9, height = 8)
+           width = 5, height = 4.4)
 
 # gene sets cut to the measured genes before the enrichment sees them
 kegg <- readRDS(file.path(BAYRC_PATHWAY_DIR, "kegg_pathway_list_hsa.rds"))

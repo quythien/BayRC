@@ -66,7 +66,7 @@ p <- peak_concordance_plot(
   xlab = "Peak Hour - Suprachiasmatic nucleus (ZT)",
   ylab = "Peak Hour - Hippocampus (ZT)", window = shift)
 bayrc_save(p + theme(legend.position = "none"), file.path(fig.dir, "Baboon_SCN_HIP_Peak_Concordance"),
-           width = 9, height = 8)
+           width = 5, height = 4.4)
 # the legend the three Figure 3 panels share
 save_plot_legend(p, file.path(fig.dir, "phase_class_legend"))
 
