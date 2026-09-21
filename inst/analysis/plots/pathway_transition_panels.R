@@ -36,7 +36,10 @@ read_pair <- function(p) {
 
 sig <- do.call(rbind, lapply(pairs, read_pair))
 sig$pathway <- sub("^KEGG ", "", sig$pathway)
-sig$direction <- factor(sig$direction, levels = c("gain", "loss", "conserved"))
+## the axis and the legend name the same three classes, so they are capitalised
+## the same way
+sig$direction <- factor(sig$direction, levels = c("gain", "loss", "conserved"),
+                        labels = c("Gain", "Loss", "Conserved"))
 sig$comparison <- factor(sig$comparison,
                          levels = vapply(pairs, `[[`, character(1), "label"))
 
@@ -57,8 +60,8 @@ common <- theme_classic(base_size = 16, base_family = "Helvetica") +
         plot.tag = element_text(face = "bold", size = 18))
 
 ## A. both comparisons on the same pathway rows, so the contrast is one scan
-sig$expected <- with(sig, ifelse(direction == "gain", Expected_N_Gain,
-                          ifelse(direction == "loss", Expected_N_Loss,
+sig$expected <- with(sig, ifelse(direction == "Gain", Expected_N_Gain,
+                          ifelse(direction == "Loss", Expected_N_Loss,
                                  Expected_N_Conserved)))
 a <- ggplot(sig, aes(direction, pathway)) +
   geom_point(aes(size = expected, colour = -log10(q))) +
@@ -78,7 +81,7 @@ comp <- do.call(rbind, lapply(split(sig, list(sig$comparison, sig$pathway),
              status = c("Gain", "Loss", "Conserved"),
              frac = c(r$Expected_N_Gain, r$Expected_N_Loss,
                       r$Expected_N_Conserved) / tot,
-             starred = c("gain", "loss", "conserved") %in% s$direction)
+             starred = c("Gain", "Loss", "Conserved") %in% s$direction)
 }))
 comp$pathway    <- factor(comp$pathway, levels = lev)
 comp$status     <- factor(comp$status, levels = c("Gain", "Loss", "Conserved"))

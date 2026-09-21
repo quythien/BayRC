@@ -37,7 +37,7 @@ read_pair <- function(s) {
   d <- ifelse(d > 12, d - 24, d)
   list(label = s$label,
        trans = c(Gain = sum(status == "Gain"),
-                 Maintained = sum(status == "Maintained"),
+                 Conserved = sum(status == "Maintained"),
                  Loss = sum(status == "Loss")),
        phase = c(Aligned = sum(cls == "Phase-conserved"),
                  Shifted = sum(cls == "Phase-shifted"),
@@ -57,7 +57,7 @@ phase$percent <- 100 * phase$n / phase$total
 
 trans$pair   <- factor(trans$pair, levels = rev(pairs))
 phase$pair   <- factor(phase$pair, levels = rev(pairs))
-trans$status <- factor(trans$status, levels = c("Gain", "Maintained", "Loss"))
+trans$status <- factor(trans$status, levels = c("Gain", "Conserved", "Loss"))
 phase$status <- factor(phase$status,
                        levels = c("Aligned", "Shifted", "Undetermined"))
 
@@ -77,7 +77,7 @@ d <- ggplot(trans, aes(n, pair, fill = status)) +
   geom_col(position = position_dodge(width = .8), width = .7) +
   geom_text(aes(label = n), position = position_dodge(width = .8),
             hjust = -.2, size = 4.6) +
-  scale_fill_manual(values = c(Gain = "#4393C3", Maintained = "#35978F",
+  scale_fill_manual(values = c(Gain = "#4393C3", Conserved = "#35978F",
                                Loss = "#D8A65D")) +
   scale_x_continuous(expand = expansion(mult = c(0, .13))) +
   labs(title = "Rhythmicity transitions",
@@ -100,10 +100,10 @@ e <- ggplot(phase, aes(percent, pair, fill = status)) +
                                Undetermined = "#8274B5"),
                     labels = c("Phase-conserved", "Phase-shifted",
                                "Undetermined")) +
-  labs(title = "Timing among maintained genes",
+  labs(title = "Timing among conserved genes",
        subtitle = sprintf("Posterior phase classification | ±%g h window, BFDR = %.2f",
                           shift, bfdr_alpha),
-       x = "Percentage of maintained genes", tag = "E") + common
+       x = "Percentage of conserved genes", tag = "E") + common
 
 fig <- d + e + plot_layout(widths = c(1, 1.12))
 ggsave(file.path(outdir, "summary_panels.pdf"), fig, width = 15, height = 5.2)
