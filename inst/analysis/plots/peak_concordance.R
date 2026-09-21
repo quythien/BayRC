@@ -43,11 +43,13 @@ peak_concordance_plot <- function(peak_x, peak_y, phase_class, label_genes,
                 linetype = "dotted", linewidth = 1.1) +
     geom_point(size = 3, alpha = 0.9) +
     scale_color_manual(values = phase_colors) +
+    # the repel search starts from a random layout, so it is seeded to make
+    # every rebuild of a panel place its labels the same way
     geom_text_repel(data = d[d$Gene %in% label_genes, ], aes(label = Gene),
                     color = "black", fontface = "bold.italic", size = 4,
                     segment.color = "gray50", box.padding = 1.2,
                     point.padding = 1.5, min.segment.length = 0,
-                    force_pull = 0.3, max.overlaps = Inf) +
+                    force_pull = 0.3, max.overlaps = Inf, seed = 1) +
     labs(title = title, subtitle = subtitle, x = xlab, y = ylab,
          color = "Phase class") +
     scale_x_continuous(breaks = seq(-6, 18, 6),
