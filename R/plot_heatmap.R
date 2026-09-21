@@ -296,8 +296,7 @@ plot_heatmap <- function(data1, data2,
       `Phase Status` = list(title_gp = gpar(fontsize = 18, fontface = "bold"),
                             labels_gp = gpar(fontsize = 16))),
     
-    annotation_name_side = "bottom",
-    annotation_name_gp = gpar(fontsize = 14, fontface = "bold"),
+    show_annotation_name = FALSE,
     simple_anno_size = unit(3, "mm"),
     na_col = "white"
   )
@@ -575,6 +574,8 @@ plot_heatmap <- function(data1, data2,
     fig_height <- max(6, min(fig_height, 26))
     # legends laid out in a row below the heatmap need their own band
     if (show_legend && legend_side == "bottom") fig_height <- fig_height + 1.2
+    # the block labels sit 15 mm under the body and need that room on the page
+    fig_height <- fig_height + 0.4
     cat("Saving:", filename, "\n")
     pdf(filename, width = 10, height = fig_height)
 
@@ -600,18 +601,18 @@ plot_heatmap <- function(data1, data2,
     # Add peak time titles
     decorate_heatmap_body(paste0("Phase_", group_names[1]), {
       grid.text(
-        paste0(group_names[1], " Peak Time"),
+        paste0(sub("^Baboon ", "", group_names[1]), " peak time"),
         x = unit(0.5, "npc"),
-        y = unit(0, "npc") - unit(9, "mm"),
+        y = unit(0, "npc") - unit(15, "mm"),
         gp = gpar(fontsize = 15, fontface = "bold")
       )
     })
     
     decorate_heatmap_body(paste0("Phase_", group_names[2]), {
       grid.text(
-        paste0(group_names[2], " Peak Time"),
+        paste0(sub("^Baboon ", "", group_names[2]), " peak time"),
         x = unit(0.5, "npc"),
-        y = unit(0, "npc") - unit(9, "mm"),
+        y = unit(0, "npc") - unit(15, "mm"),
         gp = gpar(fontsize = 15, fontface = "bold")
       )
     })
@@ -641,18 +642,18 @@ plot_heatmap <- function(data1, data2,
     # Add peak time titles
     decorate_heatmap_body(paste0("Phase_", group_names[1]), {
       grid.text(
-        paste0(group_names[1], " Peak Time"),
+        paste0(sub("^Baboon ", "", group_names[1]), " peak time"),
         x = unit(0.5, "npc"),
-        y = unit(0, "npc") - unit(7, "mm"),
+        y = unit(0, "npc") - unit(15, "mm"),
         gp = gpar(fontsize = 15, fontface = "bold")
       )
     })
     
     decorate_heatmap_body(paste0("Phase_", group_names[2]), {
       grid.text(
-        paste0(group_names[2], " Peak Time"),
+        paste0(sub("^Baboon ", "", group_names[2]), " peak time"),
         x = unit(0.5, "npc"),
-        y = unit(0, "npc") - unit(7, "mm"),
+        y = unit(0, "npc") - unit(15, "mm"),
         gp = gpar(fontsize = 15, fontface = "bold")
       )
     })
