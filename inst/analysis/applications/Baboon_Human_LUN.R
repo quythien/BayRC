@@ -75,9 +75,9 @@ p <- peak_concordance_plot(
   title = "Baboon versus human lung",
   xlab = "Peak Hour - Baboon lung (ZT)",
   ylab = "Peak Hour - Human lung (ZT)", window = shift)
-# the phase-class key is carried by the strip beneath the pair, not per panel.
-# the aspect matches the circadian heatmap beside it so the two panels finish at
-# the same height and the shared legend sits close under both
+# the phase-class key sits in the scatter's empty lower-right, so the strip
+# beneath the pair carries only the heatmap's own keys. the aspect matches the
+# heatmap beside it so the two panels finish at the same height
 bayrc_save(p + theme(legend.position = c(0.98, 0.02),
                      legend.justification = c(1, 0),
                      legend.direction = "vertical",
