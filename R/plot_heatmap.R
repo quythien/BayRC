@@ -506,9 +506,7 @@ plot_heatmap <- function(data1, data2,
       ylim = c(-axis_limit, axis_limit),
       width = unit(3, "cm")
     ),
-    annotation_name_side = "bottom",
-    annotation_name_offset = unit(6, "mm"),
-    annotation_name_gp = gpar(fontsize = 14, fontface = "bold")
+    show_annotation_name = FALSE
   )
   
   # ==========================================================================
