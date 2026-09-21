@@ -220,11 +220,11 @@ if (!file.exists(clock_ref)) {
                          na.value = "#f4f2ee", name = "Δφ from SCN (h)",
                          breaks = c(-6, 0, 6)) +
     labs(title = "Clock genes against SCN", x = NULL, y = NULL) +
-    theme_bayrc(base_size = 12) +
+    theme_bayrc(base_size = 10) +
     theme(axis.text.x = element_text(face = "italic"),
           panel.grid = element_blank())
   bayrc_save(fig3d, file.path(fig.dir, "SCN_clock_reference"),
-             width = 3.6, height = 4.4)
+             width = 9, height = 4.2)
 
   cat("\nclock genes rhythmic in SCN, against", nlevels(ref$tissue), "tissues\n")
   print(with(ref[ref$status == "Maintained", ],

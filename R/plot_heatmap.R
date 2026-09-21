@@ -39,6 +39,9 @@
 #'   in the legend text, which defaults to \code{group_names}. One legend
 #'   shared by two panels needs wording that fits both, while the column and
 #'   peak-time annotations keep the names in \code{group_names}.
+#' @param extra_legends List of \code{ComplexHeatmap::Legend} objects packed
+#'   into the shared legend file alongside the heatmap's own, so a figure whose
+#'   panels are not all heatmaps still has one legend region.
 #' @param legend_path Character or \code{NULL}; when given, the legends are
 #'   also packed horizontally and written on their own to
 #'   \code{<legend_path>.pdf}, for a figure whose panels share one legend.
@@ -70,6 +73,7 @@ plot_heatmap <- function(data1, data2,
                           col_phase2 = circlize::colorRamp2(c(0, 0.5, 1), c("white", "#fc9272", "#a50f15")),
                           legend_names = group_names,
                           legend_path = NULL,
+                          extra_legends = list(),
                           show_title = TRUE,
                           show_legend = TRUE,
                           legend_side = "left",
@@ -317,7 +321,7 @@ plot_heatmap <- function(data1, data2,
     cluster_rows = FALSE,
     cluster_columns = FALSE,
     show_row_names = FALSE,
-    show_column_names = TRUE,
+    show_column_names = FALSE,
     
     column_names_side = "bottom",
     column_names_centered = TRUE,
@@ -551,6 +555,7 @@ plot_heatmap <- function(data1, data2,
              legend_gp = gpar(fill = c("#E63946", "#4361EE", "#06A77D", "#E0E0E0")),
              title_gp = gpar(fontsize = 10, fontface = "bold"),
              labels_gp = gpar(fontsize = 8)),
+      list = extra_legends,
       direction = "horizontal", gap = unit(6, "mm"))
     pdf(NULL)
     lw <- convertWidth(grobWidth(shared@grob), "in", valueOnly = TRUE)

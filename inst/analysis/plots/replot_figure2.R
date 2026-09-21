@@ -31,11 +31,11 @@ fig_dir <- BAYRC_OUTPUT_DIR
 panels <- list(
   Fig2A_genomewide = list(
     csv   = file.path(fig_dir, "all_plots", "Baboon_Concordance_Matrix.csv"),
-    title = "Baboon Genome-wide Rhythmicity Concordance Heatmap"),
+    title = "Genome-wide"),
   Fig2B_circadian = list(
     csv   = file.path(fig_dir, "heatmap_circadian_pairs", "within_baboon",
                       "pairwise_concordance_baboon_circadian_Matrix.csv"),
-    title = "Baboon Circadian Pathway Concordance Heatmap")
+    title = "Circadian pathway")
 )
 
 for (stem in names(panels)) {

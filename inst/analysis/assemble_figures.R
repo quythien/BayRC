@@ -163,14 +163,15 @@ figures <- list(
 stacked.figures <- "Figure_5"
 
 # A figure listed here wraps its panels into rows of this many.
-figure.columns <- list(Figure_3 = 2)
+figure.columns <- list(Figure_3 = 3)
 
 # A figure listed here is drawn with its panels carrying no legend of their own
 # and this one placed under the row. The panels' scales have to match for that
 # to be right, which for Figure 4 is what q_limits and size_limits fix.
 # A figure whose panels share one subject carries its title once, above the
 # pair, and the panels are drawn with show_title = FALSE.
-figure.titles <- list(Figure_3 = "Circadian peak concordance",
+figure.titles <- list(Figure_2 = "Rhythmic concordance across baboon tissues",
+                      Figure_3 = "Circadian peak concordance",
                       Figure_5 = "KEGG Parkinson disease",
                       Figure_5_row = "KEGG Parkinson disease",
                       Figure_6 = "Cross-species lung")
@@ -232,11 +233,16 @@ side_by_side <- function(inputs, output, labels = LETTERS[seq_along(inputs)],
     return(FALSE)
   if (is.null(ncol)) ncol <- length(inputs)
   size <- lapply(inputs, page_size)
-  scaled.h <- vapply(size, function(d) panel.width * d[2] / d[1], numeric(1))
-  # panels fill each row in turn, and a row is as tall as its tallest panel
+  # panels fill each row in turn; a row with fewer panels spreads them over the
+  # same content width, and a row is as tall as its tallest panel
   row.of <- ceiling(seq_along(inputs) / ncol)
-  paper.w <- min(ncol, length(inputs)) * panel.width +
-             (min(ncol, length(inputs)) - 1) * gutter + 2 * margin
+  content.w <- min(ncol, length(inputs)) * panel.width +
+               (min(ncol, length(inputs)) - 1) * gutter
+  paper.w <- content.w + 2 * margin
+  width.of <- vapply(row.of, function(r) {
+    k <- sum(row.of == r); (content.w - (k - 1) * gutter) / k }, numeric(1))
+  scaled.h <- vapply(seq_along(inputs), function(i)
+    width.of[i] * size[[i]][2] / size[[i]][1], numeric(1))
   paper.h <- sum(tapply(scaled.h, row.of, max)) +
              length(unique(row.of)) * label.space +
              (length(unique(row.of)) - 1) * gutter + 2 * margin
@@ -258,7 +264,7 @@ side_by_side <- function(inputs, output, labels = LETTERS[seq_along(inputs)],
 
   panel <- function(i) sprintf(
     "\\begin{minipage}[t]{%.1fbp}\\raggedright\\textbf{\\sffamily\\large %s}\\\\[2bp]\n\\includegraphics[width=%.1fbp]{%s}\\end{minipage}",
-    panel.width, labels[i], panel.width, inputs[i])
+    width.of[i], labels[i], width.of[i], inputs[i])
 
   tex <- c("\\documentclass[11pt]{article}",
     sprintf("\\usepackage[paperwidth=%.1fbp,paperheight=%.1fbp,margin=%.1fbp]{geometry}",

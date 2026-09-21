@@ -150,6 +150,11 @@ for (pw in panel_pathways) {
                group_names = c("Baboon lung", "Human lung"),
                show_legend = FALSE,
                legend_path = file.path(fig.dir, "circadian_heatmap_legend"),
+               extra_legends = list(ComplexHeatmap::Legend(
+                 title = "Phase class", labels = names(phase_colors),
+                 legend_gp = grid::gpar(fill = unname(phase_colors)),
+                 title_gp = grid::gpar(fontsize = 10, fontface = "bold"),
+                 labels_gp = grid::gpar(fontsize = 8))),
                versions = "both", save_path = fig.dir)
 }
 

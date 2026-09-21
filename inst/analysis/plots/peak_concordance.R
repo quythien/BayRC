@@ -64,7 +64,6 @@ peak_concordance_plot <- function(peak_x, peak_y, phase_class, label_genes,
           axis.text = element_text(size = 12),
           legend.position = "bottom",
           legend.title = element_text(face = "bold"),
-          legend.background = element_rect(color = "gray70", fill = "white"),
           legend.key = element_rect(fill = "white", color = NA),
           plot.margin = margin(15, 15, 15, 15))
 }
