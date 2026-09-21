@@ -282,6 +282,27 @@ cat("\n=== detection counts ===\n")
 print(s5_table, row.names = FALSE)
 write.csv(s5_table, file.path(outdir, "S5_detection_counts.csv"), row.names = FALSE)
 
+# ── Where BF > 3 sits against the cosinor thresholds ──────────────────────────
+# The same merged set, crossed against four cosinor cut-offs rather than one, so
+# the comparison is not tied to a single uncorrected p-value.
+cos_cuts <- list(
+  "p < 0.05"          = merged$pval < 0.05,
+  "p < 0.01"          = merged$pval < 0.01,
+  "BH q < 0.05"       = p.adjust(merged$pval, "BH") < 0.05,
+  "Bonferroni < 0.05" = p.adjust(merged$pval, "bonferroni") < 0.05)
+s5_thresholds <- do.call(rbind, lapply(names(cos_cuts), function(nm) {
+  cos <- cos_cuts[[nm]]
+  data.frame(threshold = nm, cosinor_total = sum(cos),
+             both = sum(bay_rhy & cos), bayesian_only = sum(bay_rhy & !cos),
+             cosinor_only = sum(!bay_rhy & cos),
+             neither = sum(!bay_rhy & !cos))
+}))
+cat("\n=== BF > 3 against cosinor thresholds ===\n")
+cat("genes compared:", N_total, " Bayesian total (BF > 3):", sum(bay_rhy), "\n")
+print(s5_thresholds, row.names = FALSE)
+write.csv(s5_thresholds, file.path(outdir, "S5_threshold_comparison.csv"),
+          row.names = FALSE)
+
 cat("\n=== summary statistics ===\n")
 cat(sprintf("top 5%% cutoff k = %d of %d; overlap = %d (%.0f%%)\n",
             top5_k, N_total, overlap_k[min(top5_k, MAX_K)],
