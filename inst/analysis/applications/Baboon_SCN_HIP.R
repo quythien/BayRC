@@ -75,7 +75,7 @@ p <- peak_concordance_plot(
   peak_x = phase$peak1[maintained], peak_y = phase$peak2[maintained],
   phase_class = phase_class, label_genes = clock_genes,
   title = "SCN versus hippocampus",
-  xlab = "Peak Hour - Suprachiasmatic nucleus (ZT)",
+  xlab = "Peak Hour - SCN (ZT)",
   ylab = "Peak Hour - Hippocampus (ZT)", window = shift)
 bayrc_save(p + theme(legend.position = "none"), file.path(fig.dir, "Baboon_SCN_HIP_Peak_Concordance"),
            width = 5, height = 4.4)

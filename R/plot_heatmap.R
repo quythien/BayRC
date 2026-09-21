@@ -95,8 +95,9 @@ plot_heatmap <- function(data1, data2,
 
   versions <- match.arg(versions)
   fs <- function(size) size * font_scale
-  # the region names sit under blocks of a fixed width, so they run into each
-  # other if they take the full scaling
+  # the region names sit under blocks of a fixed width and the title sits a
+  # fixed distance above the body, so both run into their neighbours if they
+  # take the full scaling
   fs_block <- function(size) size * min(font_scale, 1.1)
   
   if(!requireNamespace("ComplexHeatmap", quietly = TRUE)) {
@@ -630,7 +631,7 @@ plot_heatmap <- function(data1, data2,
         pathway_name,
         x = unit(0.5, "npc"),
         y = unit(1, "npc") - unit(3, "mm"),
-        gp = gpar(fontsize = fs(22), fontface = "bold")
+        gp = gpar(fontsize = fs_block(22), fontface = "bold")
       )
     
     # Add peak time titles
@@ -684,7 +685,7 @@ plot_heatmap <- function(data1, data2,
         pathway_name,
         x = unit(0.5, "npc"),
         y = unit(1, "npc") - unit(3, "mm"),
-        gp = gpar(fontsize = fs(22), fontface = "bold")
+        gp = gpar(fontsize = fs_block(22), fontface = "bold")
       )
     
     # Add peak time titles

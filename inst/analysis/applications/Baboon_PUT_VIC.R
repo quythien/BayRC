@@ -219,6 +219,9 @@ for (pw in panel_pathways) {
                pathway_name = pw, phase_results = phase,
                transition_results = trans,
                group_names = c("Putamen", "Visual cortex"),
+               # the blocks are a fixed 16 cm, so the default canvas leaves
+               # margin that the assembler then scales the type down with
+               canvas_width = 7.5,
                legend_names = c("Putamen", "the compared region"),
                versions = "both", save_path = fig.dir,
                show_title = FALSE, show_legend = FALSE,

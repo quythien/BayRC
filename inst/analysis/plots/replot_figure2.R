@@ -49,7 +49,9 @@ for (stem in names(panels)) {
   diag(m) <- 1
   d <- as.dist(1 - m)
 
-  cairo_pdf(file.path(outdir, paste0(stem, ".pdf")), width = 9, height = 8)
+  # the assembler gives each panel half the figure width, so a wide canvas is
+  # scaled down twice over and the tissue codes stop being readable in print
+  cairo_pdf(file.path(outdir, paste0(stem, ".pdf")), width = 7, height = 7)
   pheatmap(m,
            cluster_rows  = hclust(d, method = "ward.D2"),
            cluster_cols  = hclust(d, method = "ward.D2"),

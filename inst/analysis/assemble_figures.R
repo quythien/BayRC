@@ -218,7 +218,7 @@ page_size <- function(pdf) {
 
 side_by_side <- function(inputs, output, labels = LETTERS[seq_along(inputs)],
                          panel.width = 324, gutter = 9, margin = 9,
-                         label.space = 22, below = NA_character_,
+                         label.space = 28, below = NA_character_,
                          below.under = NA_integer_,
                          below.after = NA_integer_,
                          title = NA_character_, ncol = NULL) {
@@ -283,7 +283,7 @@ side_by_side <- function(inputs, output, labels = LETTERS[seq_along(inputs)],
   }
 
   panel <- function(i) sprintf(
-    "\\begin{minipage}[t]{%.1fbp}\\raggedright\\textbf{\\sffamily\\large %s}\\\\[2bp]\n\\includegraphics[width=%.1fbp]{%s}\\end{minipage}",
+    "\\begin{minipage}[t]{%.1fbp}\\raggedright\\textbf{\\sffamily\\LARGE %s}\\\\[2bp]\n\\includegraphics[width=%.1fbp]{%s}\\end{minipage}",
     width.of[i], labels[i], width.of[i], inputs[i])
 
   tex <- c("\\documentclass[11pt]{article}",
@@ -317,7 +317,7 @@ side_by_side <- function(inputs, output, labels = LETTERS[seq_along(inputs)],
 
 stacked <- function(inputs, output, labels = LETTERS[seq_along(inputs)],
                     panel.width = 468, gap = 14, margin = 9,
-                    label.space = 22, below = NA_character_,
+                    label.space = 28, below = NA_character_,
                     title = NA_character_) {
   if (!nzchar(Sys.which("pdflatex")) || !nzchar(Sys.which("pdfinfo")))
     return(FALSE)
@@ -343,7 +343,7 @@ stacked <- function(inputs, output, labels = LETTERS[seq_along(inputs)],
   }
 
   panel <- function(i) sprintf(
-    "\\textbf{\\sffamily\\large %s}\\\\[2bp]\n\\includegraphics[width=%.1fbp]{%s}",
+    "\\textbf{\\sffamily\\LARGE %s}\\\\[2bp]\n\\includegraphics[width=%.1fbp]{%s}",
     labels[i], panel.width, inputs[i])
 
   tex <- c("\\documentclass[11pt]{article}",
