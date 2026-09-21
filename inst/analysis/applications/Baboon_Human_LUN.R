@@ -75,8 +75,10 @@ p <- peak_concordance_plot(
   title = "Baboon versus human lung",
   xlab = "Peak Hour - Baboon lung (ZT)",
   ylab = "Peak Hour - Human lung (ZT)", window = shift)
-bayrc_save(p, file.path(fig.dir, "Baboon_Human_LUN_Peak_Concordance"),
-           width = 5, height = 4.4)
+# the phase-class key is carried by the strip beneath the pair, not per panel
+bayrc_save(p + theme(legend.position = "none"),
+           file.path(fig.dir, "Baboon_Human_LUN_Peak_Concordance"),
+           width = 5, height = 5.6)
 
 # gene sets cut to the measured genes before the enrichment sees them
 kegg <- readRDS(file.path(BAYRC_PATHWAY_DIR, "kegg_pathway_list_hsa.rds"))
