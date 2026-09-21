@@ -1,11 +1,17 @@
-# Scatter plot 
-current_wd <- "/Users/thienpham/Library/CloudStorage/OneDrive-UniversityofPittsburgh/Projects"
-load(file.path(current_wd, "Collaborative/GTEXdata/data/CAMO.bab.hum.RData"))
+# Scatter plot
+this.file <- sub("^--file=", "", grep("^--file=", commandArgs(), value = TRUE)[1])
+analysis.dir <- if (is.na(this.file)) getwd() else dirname(normalizePath(this.file))
+while (!file.exists(file.path(analysis.dir, "config.R")) &&
+       dirname(analysis.dir) != analysis.dir) analysis.dir <- dirname(analysis.dir)
+bayrc.needs.summary <- FALSE
+source(file.path(analysis.dir, "config.R"))
+
+load(file.path(BAYRC_GTEX_DIR, "data", "CAMO.bab.hum.RData"))
 # Baboon Lung
 library(dplyr)
 library(tidyr)
 library(purrr)
-source("/Users/thienpham/Library/CloudStorage/OneDrive-UniversityofPittsburgh/Projects/Pipeline/one_cosinor_OLS_new.R")
+source(file.path(BAYRC_PIPELINE_DIR, "one_cosinor_OLS_new.R"))
 
 # Plot for baboon
 baboon_LUN = list(

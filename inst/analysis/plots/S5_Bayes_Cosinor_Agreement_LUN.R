@@ -20,9 +20,6 @@ while (!file.exists(file.path(analysis.dir, "config.R")) &&
 source(file.path(analysis.dir, "config.R"))
 
 outdir <- BAYRC_FIGURE_DIR
-# one_cosinor_OLS lives beside the collaborative data rather than in the package
-BAYRC_PIPELINE_DIR <- Sys.getenv("BAYRC_PIPELINE_DIR",
-                        unset = file.path(dirname(BAYRC_DATA_DIR), "Pipeline"))
 
 # ── Libraries ─────────────────────────────────────────────────────────────────
 library(dplyr)

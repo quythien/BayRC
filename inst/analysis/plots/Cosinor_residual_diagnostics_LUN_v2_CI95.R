@@ -9,13 +9,19 @@
 
 rm(list = ls())
 
-current_wd <- "/home/qtp1/Projects"
-outdir     <- "/home/qtp1/Projects/Collaborative/Paper/Congruence/PNAS_aging/all_plots"
-N_TOP      <- 6
-TISSUES    <- c("LUN", "PUT", "SUN")
+this.file <- sub("^--file=", "", grep("^--file=", commandArgs(), value = TRUE)[1])
+analysis.dir <- if (is.na(this.file)) getwd() else dirname(normalizePath(this.file))
+while (!file.exists(file.path(analysis.dir, "config.R")) &&
+       dirname(analysis.dir) != analysis.dir) analysis.dir <- dirname(analysis.dir)
+bayrc.needs.summary <- FALSE
+source(file.path(analysis.dir, "config.R"))
 
-load(file.path(current_wd, "Collaborative/GTEXdata/data/CAMO.bab.hum.RData"))
-source("/home/qtp1/Projects/Pipeline/one_cosinor_OLS_new.R")
+outdir  <- BAYRC_FIGURE_DIR
+N_TOP   <- 6
+TISSUES <- c("LUN", "PUT", "SUN")
+
+load(file.path(BAYRC_GTEX_DIR, "data", "CAMO.bab.hum.RData"))
+source(file.path(BAYRC_PIPELINE_DIR, "one_cosinor_OLS_new.R"))
 
 library(dplyr)
 library(ggplot2)

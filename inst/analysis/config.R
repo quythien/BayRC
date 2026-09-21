@@ -30,6 +30,9 @@ BAYRC_THIEN_DIR   <- Sys.getenv("BAYRC_THIEN_DIR",
                                          "R", "Thien"))
 BAYRC_GTEX_DIR    <- Sys.getenv("BAYRC_GTEX_DIR",
                        unset = file.path(BAYRC_DATA_DIR, "GTEXdata"))
+# one_cosinor_OLS_new.R lives beside the collaborative data, not in the package
+BAYRC_PIPELINE_DIR <- Sys.getenv("BAYRC_PIPELINE_DIR",
+                       unset = file.path(dirname(BAYRC_DATA_DIR), "Pipeline"))
 
 # Per-tissue MCMC output, and the rho/phi summaries built from it by
 # pipeline/summarize_rho_phi.R. Point BAYRC_RESULT_DIR at result_fixed/ to run
