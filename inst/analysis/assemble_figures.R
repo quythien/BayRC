@@ -274,10 +274,17 @@ side_by_side <- function(inputs, output, labels = LETTERS[seq_along(inputs)],
     paper.h <- paper.h + strip.w * d[2] / d[1] + gutter
   }
 
-  # a legend placed after a given row is emitted with the rows, not after them
+  # A legend placed after a given row is emitted with the rows rather than after
+  # them. It cannot use \centerline, which ends the paragraph and leaves the
+  # following \\ with nothing to break, so the later rows are lost; a minipage
+  # spanning the content width keeps it inline.
   mid.strip <- character(0)
-  if (length(below.after) == 1 && !is.na(below.after) && nzchar(strip)) {
-    mid.strip <- sub("^\n\n", "", strip)
+  if (length(below.after) == 1 && !is.na(below.after) && !is.na(below)) {
+    d <- page_size(below)
+    strip.w <- min(d[1], content.w)
+    mid.strip <- sprintf(
+      "\\begin{minipage}{%.1fbp}\\centering\\includegraphics[width=%.1fbp]{%s}\\end{minipage}",
+      content.w, strip.w, below)
     strip <- ""
   } else {
     below.after <- length(unique(row.of))
