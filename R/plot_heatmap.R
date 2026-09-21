@@ -434,7 +434,7 @@ plot_heatmap <- function(data1, data2,
     column_title_side = "bottom",
     column_title = NULL,
     show_heatmap_legend = FALSE,
-    width = unit(5, "cm"),
+    width = unit(4, "cm"),
     border = TRUE,
     rect_gp = gpar(col = "white", lwd = 0.5)
   )
@@ -453,7 +453,7 @@ plot_heatmap <- function(data1, data2,
     column_title_side = "bottom",
     column_title = NULL,
     show_heatmap_legend = FALSE,
-    width = unit(5, "cm"),
+    width = unit(4, "cm"),
     border = TRUE,
     rect_gp = gpar(col = "white", lwd = 0.5)
   )
@@ -497,13 +497,13 @@ plot_heatmap <- function(data1, data2,
       bar_width = 1,
       gp = gpar(fill = delta_colors, col = NA),
       axis_param = list(
-        at = c(-axis_limit/2, 0, axis_limit/2),
-        labels = c(paste0("-", axis_limit/2), "0", as.character(axis_limit/2)),
+        at = seq(-axis_limit, axis_limit, by = 6),
+        labels = as.character(seq(-axis_limit, axis_limit, by = 6)),
         side = "bottom",
         gp = gpar(fontsize = 14)
       ),
       ylim = c(-axis_limit, axis_limit),
-      width = unit(3, "cm")
+      width = unit(5, "cm")
     ),
     show_annotation_name = FALSE
   )

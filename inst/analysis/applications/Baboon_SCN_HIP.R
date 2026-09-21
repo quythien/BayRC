@@ -194,3 +194,44 @@ if (nrow(sig))
   print(sig[order(sig$direction, sig$pval), c("pathway", "direction", "pval", "q")],
         row.names = FALSE)
 cat("\nfigures:", fig.dir, "\n")
+
+# Figure 3D: how the four clock genes rhythmic in SCN hold their SCN phase
+# across the rest of the atlas. Drawn from the table scn_clock_reference.R
+# writes, so this script does not repeat that scan.
+clock_ref <- file.path(BAYRC_OUTPUT_DIR, "scn_clock_reference.csv")
+if (!file.exists(clock_ref)) {
+  message("no scn_clock_reference.csv under ", BAYRC_OUTPUT_DIR,
+          "; skipping the clock reference panel")
+} else {
+  ref <- read.csv(clock_ref, stringsAsFactors = FALSE)
+  # the five clock genes that are not rhythmic in SCN would draw empty columns
+  ref <- ref[ref$gene %in% c("BMAL1", "PER1", "DBP", "NR1D1"), ]
+  ref$dphi[ref$status != "Maintained"] <- NA
+
+  # tissues ordered by how much of the clock they hold with SCN
+  held <- tapply(ref$status == "Maintained", ref$tissue, sum)
+  ref$tissue <- factor(ref$tissue, levels = names(sort(held)))
+  ref$gene <- factor(ref$gene, levels = c("BMAL1", "PER1", "DBP", "NR1D1"))
+
+  lim <- max(abs(ref$dphi), na.rm = TRUE)
+  fig3d <- ggplot(ref, aes(x = gene, y = tissue, fill = dphi)) +
+    geom_tile(colour = "white", linewidth = 0.4) +
+    scale_fill_gradientn(colours = bayrc_div(256), limits = c(-lim, lim),
+                         na.value = "#f4f2ee", name = "Δφ from SCN (h)",
+                         breaks = c(-6, 0, 6)) +
+    labs(title = "Clock genes against SCN", x = NULL, y = NULL) +
+    theme_bayrc(base_size = 12) +
+    theme(axis.text.x = element_text(face = "italic"),
+          panel.grid = element_blank())
+  bayrc_save(fig3d + theme(legend.position = "none"),
+             file.path(fig.dir, "SCN_clock_reference"), width = 2.6, height = 4.4)
+  save_plot_legend(fig3d, file.path(fig.dir, "clock_reference_legend"))
+
+  cat("\nclock genes rhythmic in SCN, against", nlevels(ref$tissue), "tissues\n")
+  print(with(ref[ref$status == "Maintained", ],
+             data.frame(gene = levels(gene),
+                        maintained = as.vector(table(gene)),
+                        phase_conserved = as.vector(tapply(conserved, gene, sum)),
+                        median_dphi = round(as.vector(tapply(dphi, gene, median)), 2))),
+        row.names = FALSE)
+}

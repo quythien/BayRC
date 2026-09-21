@@ -93,6 +93,9 @@ panels <- list(
   list(dir = putvic.dir, pattern = "^Baboon_PUT_VIC_Peak_Concordance[.]pdf$",
        to = "F3C_baboon_PUT_VIC_phase_concordance.pdf",
        script = "applications/Baboon_PUT_VIC.R"),
+  list(dir = scnhip.dir, pattern = "^SCN_clock_reference[.]pdf$",
+       to = "F3D_baboon_SCN_clock_reference.pdf",
+       script = "applications/Baboon_SCN_HIP.R"),
 
   # Figure 4: pathway transition enrichment in the two putamen circuits
   list(dir = putsun.dir, pattern = "^PUT_SUN_transition_enrichment[.]pdf$",
@@ -142,7 +145,8 @@ figures <- list(
                "F2B_baboon_circadian_concordance.pdf"),
   Figure_3 = c("F3A_baboon_SCN_HIP_phase_concordance.pdf",
                "F3B_baboon_PUT_SUN_phase_concordance.pdf",
-               "F3C_baboon_PUT_VIC_phase_concordance.pdf"),
+               "F3C_baboon_PUT_VIC_phase_concordance.pdf",
+               "F3D_baboon_SCN_clock_reference.pdf"),
   Figure_4 = c("F4A_PUT_SUN_transition_enrichment.pdf",
                "F4B_PUT_VIC_transition_enrichment.pdf"),
   Figure_5 = c("F5A_PUT_SUN_KEGG_Parkinson_heatmap.pdf",
