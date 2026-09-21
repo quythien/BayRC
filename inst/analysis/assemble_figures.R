@@ -165,15 +165,16 @@ stacked.figures <- "Figure_5"
 # A figure listed here wraps its panels into rows of this many.
 figure.columns <- list(Figure_3 = 3)
 # a legend that belongs to one panel rather than the row sits under that panel
-legend.under <- list(Figure_6 = 2L)
+legend.under <- list(Figure_6 = 2L, Figure_5_row = 1L)
+# a legend that belongs to the panels in one row sits directly beneath that row
+legend.after.row <- list(Figure_3 = 1L)
 
 # A figure listed here is drawn with its panels carrying no legend of their own
 # and this one placed under the row. The panels' scales have to match for that
 # to be right, which for Figure 4 is what q_limits and size_limits fix.
 # A figure whose panels share one subject carries its title once, above the
 # pair, and the panels are drawn with show_title = FALSE.
-figure.titles <- list(Figure_3 = "Circadian peak concordance",
-                      Figure_5 = "KEGG Parkinson disease",
+figure.titles <- list(Figure_5 = "KEGG Parkinson disease",
                       Figure_5_row = "KEGG Parkinson disease",
                       Figure_6 = "Cross-species lung")
 
@@ -230,6 +231,7 @@ side_by_side <- function(inputs, output, labels = LETTERS[seq_along(inputs)],
                          panel.width = 324, gutter = 9, margin = 9,
                          label.space = 22, below = NA_character_,
                          below.under = NA_integer_,
+                         below.after = NA_integer_,
                          title = NA_character_, ncol = NULL) {
   if (!nzchar(Sys.which("pdflatex")) || !nzchar(Sys.which("pdfinfo")))
     return(FALSE)
@@ -272,6 +274,15 @@ side_by_side <- function(inputs, output, labels = LETTERS[seq_along(inputs)],
     paper.h <- paper.h + strip.w * d[2] / d[1] + gutter
   }
 
+  # a legend placed after a given row is emitted with the rows, not after them
+  mid.strip <- character(0)
+  if (length(below.after) == 1 && !is.na(below.after) && nzchar(strip)) {
+    mid.strip <- sub("^\n\n", "", strip)
+    strip <- ""
+  } else {
+    below.after <- length(unique(row.of))
+  }
+
   panel <- function(i) sprintf(
     "\\begin{minipage}[t]{%.1fbp}\\raggedright\\textbf{\\sffamily\\large %s}\\\\[2bp]\n\\includegraphics[width=%.1fbp]{%s}\\end{minipage}",
     width.of[i], labels[i], width.of[i], inputs[i])
@@ -282,9 +293,14 @@ side_by_side <- function(inputs, output, labels = LETTERS[seq_along(inputs)],
     "\\usepackage{graphicx}", "\\pagestyle{empty}",
     "\\setlength{\\parindent}{0pt}",
     "\\begin{document}\\noindent",
-    paste0(head, paste(vapply(split(seq_along(inputs), row.of), function(ix)
-             paste(vapply(ix, panel, character(1)),
-                   collapse = sprintf("\\hspace{%.1fbp}\n", gutter)), character(1)),
+    paste0(head, paste(append(
+             vapply(split(seq_along(inputs), row.of), function(ix)
+               paste(vapply(ix, panel, character(1)),
+                     collapse = sprintf("\\hspace{%.1fbp}\n", gutter)),
+               character(1)),
+             # a legend belonging to the panels above it goes between the rows
+             # rather than at the foot of the figure
+             values = mid.strip, after = below.after),
              collapse = sprintf("\\\\[%.1fbp]\n", gutter + label.space)), strip),
     "\\end{document}")
 
@@ -367,7 +383,8 @@ for (nm in names(figures)) {
     function(...) stacked(..., below = legend, title = title) else
     function(...) side_by_side(..., below = legend, title = title,
                               ncol = figure.columns[[nm]],
-                              below.under = legend.under[[nm]])
+                              below.under = legend.under[[nm]],
+                              below.after = legend.after.row[[nm]])
   if (length(have) == 1L && is.na(legend)) {
     file.copy(have, out, overwrite = TRUE)
     cat("wrote", basename(out), "\n")

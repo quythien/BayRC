@@ -224,7 +224,7 @@ if (!file.exists(clock_ref)) {
     geom_tile(colour = "white", linewidth = 0.4) +
     scale_fill_gradientn(colours = bayrc_div(256), limits = c(-lim, lim),
                          oob = scales::squish,
-                         na.value = "#f4f2ee", name = "Δφ from SCN (h)",
+                         na.value = "#bdbab3", name = "Δφ from SCN (h)",
                          breaks = seq(-6, 6, by = 2)) +
     labs(title = "Clock genes against SCN", x = NULL, y = NULL) +
     theme_bayrc(base_size = 10) +

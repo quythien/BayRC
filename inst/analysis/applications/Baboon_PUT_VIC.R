@@ -222,7 +222,9 @@ for (pw in panel_pathways) {
                legend_names = c("Putamen", "the compared region"),
                versions = "both", save_path = fig.dir,
                show_title = FALSE, show_legend = FALSE,
-               legend_path = file.path(fig.dir, "parkinson_heatmap_legend"))
+               legend_path = file.path(fig.dir, "parkinson_heatmap_legend"),
+               # the strip sits under panel A alone, so it wraps to that width
+               legend_max_width = 11)
 }
 
 write_run_record(file.path(fig.dir, "run_record.txt"), "applications/Baboon_PUT_VIC.R",
