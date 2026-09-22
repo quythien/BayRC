@@ -28,7 +28,6 @@
 #'       each pathway.}
 #'   }
 #'
-# Observed pathway conservation scores with pathway metadata
 conservation_pathway_circadian <- function(dat1, dat2, select.pathway.list,
                                            delta = 3, units = "hours") {
   
@@ -83,8 +82,7 @@ conservation_pathway_circadian <- function(dat1, dat2, select.pathway.list,
     conservation_scores[k, "loss_index"] <- cons_result$loss_index
     conservation_scores[k, "gain_loss_ratio"] <- cons_result$gain_loss_ratio
     
-    # Calculate and store union information
-    # Recreate the union calculation from congruence function
+    # Expected union, as computed inside congruence()
     p_A <- rowMeans(matrix1$rho)
     p_B <- rowMeans(matrix2$rho)
     intersection_probs <- p_A * p_B
@@ -122,22 +120,20 @@ conservation_pathway_circadian <- function(dat1, dat2, select.pathway.list,
 #' @param save_intermediate Logical; save each round's output to disk.
 #' @param intermediate_dir Character; directory for intermediate saves.
 #'
-#' @return A named list of K arrays (one per pathway), each B x 4
-#'   containing permuted congruence, gain, loss, and ratio scores.
+#' @return A B x K x 4 array of permuted congruence, gain, loss, and
+#'   ratio scores, with pathways along the second dimension.
 #'
-# Permutation for pathway analysis with improved progress tracking and rounds support
 perm_pathway_circadian <- function(dat1, dat2, select.pathway.list,
                                    delta = 3, units = "hours", B = 1000,
                                    ncores = NULL, parallel = "auto",
                                    rounds = 1, save_intermediate = FALSE,
                                    intermediate_dir = NULL) {
-  
-  # Auto-detect best approach - convert to logical
+
+  # "auto" runs in parallel off Windows when B >= 100
   if (parallel == "auto") {
     parallel <- .Platform$OS.type != "windows" && B >= 100
   }
-  
-  # Ensure parallel is logical
+
   parallel <- as.logical(parallel)
   
   # Set default ncores if using parallel
@@ -219,7 +215,7 @@ perm_pathway_circadian <- function(dat1, dat2, select.pathway.list,
     cat("Round", round_num, "completed\n")
   }
   
-  # If we generated more permutations than requested, trim to exact B
+  # Trim to exactly B permutations
   if (total_B > B) {
     cat("Trimming results to exactly", B, "permutations\n")
     out <- out[1:B, , , drop = FALSE]
@@ -248,7 +244,6 @@ perm_pathway_circadian <- function(dat1, dat2, select.pathway.list,
 #' @return B_round x K x length(metrics) numeric array.
 #'
 #' @keywords internal
-# Helper function to run a single round of permutations
 run_single_round <- function(dat1, dat2, pathway_indices_A, pathway_indices_B,
                              pathway_sizes, K, metrics, delta, units, B_round,
                              parallel, ncores) {
@@ -260,11 +255,7 @@ run_single_round <- function(dat1, dat2, pathway_indices_A, pathway_indices_B,
   if (parallel && .Platform$OS.type != "windows") {
     
     # PARALLEL VERSION (Mac/Linux)
-    # Within-pathway permutation null: gene identities are randomly re-paired
-    # between conditions within each pathway, preserving within-pathway rhythmicity
-    # distributions. Tests gene-specific cross-condition concordance beyond what
-    # the pathway's own rhythmicity levels predict. More conservative than
-    # genome-wide permutation (which is used for the genome-wide c-score).
+    # Within-pathway null: condition B's genes are re-paired with A's inside each pathway
     perm_results <- parallel::mclapply(1:B_round, function(b) {
 
       # Initialize results for this permutation
@@ -273,7 +264,7 @@ run_single_round <- function(dat1, dat2, pathway_indices_A, pathway_indices_B,
       
       for (k in 1:K) {
         if (pathway_sizes[k] > 0) {
-          # FIXED indices for dataset A
+          # UNPERMUTED indices for dataset A
           fixed_indices_A <- pathway_indices_A[[k]]
           
           # PERMUTED indices for dataset B
@@ -325,7 +316,7 @@ run_single_round <- function(dat1, dat2, pathway_indices_A, pathway_indices_B,
       
       for (k in 1:K) {
         if (pathway_sizes[k] > 0) {
-          # FIXED indices for dataset A
+          # UNPERMUTED indices for dataset A
           fixed_indices_A <- pathway_indices_A[[k]]
           
           # PERMUTED indices for dataset B
@@ -358,23 +349,18 @@ run_single_round <- function(dat1, dat2, pathway_indices_A, pathway_indices_B,
 #' Compute permutation p-values for pathway conservation scores
 #'
 #' @description
-#' Derives right-tailed (congruence) and three-sided (gain/loss ratio)
-#' permutation p-values for each pathway by comparing observed scores from
-#' \code{conservation_pathway_circadian} against the null distribution from
-#' \code{perm_pathway_circadian}.
+#' Derives right-tailed (congruence) and right, left and two-sided
+#' (gain/loss ratio) permutation p-values for each pathway by comparing
+#' observed scores from \code{conservation_pathway_circadian} against the
+#' null distribution from \code{perm_pathway_circadian}.
 #'
 #' @param observed_scores K x 4 matrix; observed pathway scores.
-#' @param perm_results Named list of K arrays (B x 4); permutation null
-#'   distributions.
+#' @param perm_results B x K x 4 array; permutation null distributions
+#'   from \code{perm_pathway_circadian}.
 #'
-#' @return A data.frame with one row per pathway and columns for observed
-#'   scores, p-values, and q-values (BH-adjusted).
+#' @return A list with \code{congruence}, a K x 1 matrix of p-values, and
+#'   \code{ratio}, a K x 3 matrix of right, left and two-sided p-values.
 #'
-# P-value calculation for pathway analysis
-# For congruence_index: right-sided test only
-# For gain_loss_ratio:
-
-
 p_conservation_pathway <- function(observed_scores, perm_results) {
   K <- nrow(observed_scores)
   pathway_names <- rownames(observed_scores)
@@ -436,7 +422,6 @@ p_conservation_pathway <- function(observed_scores, perm_results) {
   ))
 }
 
-# Main pathway function with rounds support
 #' Pairwise pathway conservation analysis across multiple conditions
 #'
 #' @title Multi-condition pathway circadian conservation analysis
@@ -474,17 +459,15 @@ multi_conservation_pathway <- function(mcmc.merge.list, dataset.names,
                                        intermediate_dir = "intermediate_results",
                                        output.dir = "Conservation_Pathway") {
   
-  # Check if required package is installed
   if (!requireNamespace("openxlsx", quietly = TRUE)) {
     stop("Package 'openxlsx' is required but not installed. Please install it with: install.packages('openxlsx')")
   }
-  
-  # Auto-detect best approach - convert to logical
+
+  # "auto" runs in parallel off Windows when B >= 100
   if (parallel == "auto") {
     parallel <- .Platform$OS.type != "windows" && B >= 100
   }
-  
-  # Ensure parallel is logical
+
   parallel <- as.logical(parallel)
   
   # Set default ncores if using parallel

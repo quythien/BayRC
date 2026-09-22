@@ -12,11 +12,10 @@ compare_variances(p_A, p_B, n_boot = 500)
 \item{n_boot}{Integer; bootstrap replicates (default 500).}
 }
 \value{
-Data.frame with one row per method and columns for method name,
-  z-score, p-value, and variance.
+A list with \code{var_boot}, \code{var_delta}, their
+  \code{ratio}, \code{abs_diff} and \code{rel_diff}.
 }
 \description{
-Applies all four variance estimation approaches (bootstrap Gaussian,
-delta Gaussian, bootstrap Edgeworth, delta Edgeworth) and returns a
-data.frame comparing p-values, z-scores, and variance estimates.
+Compares the bootstrap and delta-method estimates of the permutation
+variance.
 }

@@ -1,24 +1,19 @@
 ################################################################################
 # All pairwise genome-wide concordance, for one set of tissues.
 #
-# Replaces the serial double loop in pairwise_Con.R and the one in
-# plots/heatmap_baboon.R. Each pair is independent, so the OUTER pair loop is
-# what gets parallelised; the permutation and bootstrap loops inside
-# multi_conservation() stay serial, because nesting parallelism there would
-# oversubscribe the node and does not help -- there are far more pairs than
-# cores.
+# The pair loop runs in parallel; the permutation and bootstrap loops inside
+# multi_conservation() stay serial.
 #
 # Usage:
 #   Rscript pairwise_concordance_all.R <mode> [cores]
 #
 #   within_baboon   choose(26, 2) = 325 pairs
 #   within_human    choose(26, 2) = 325 pairs
-#   cross_matched   26 pairs, baboon T against human T -- this is what the
-#                   paper reports; its stored table covers 23 of the 26,
-#                   leaving out MUA, SCN and VIC
-#   cross_species   26 x 26 = 676 pairs, every baboon-human combination. Not
-#                   what the paper reports; useful as a null for how special
-#                   the matched diagonal is.
+#   cross_matched   26 pairs, baboon T against human T, as the paper reports;
+#                   its stored table covers 23 of the 26, leaving out MUA, SCN
+#                   and VIC
+#   cross_species   26 x 26 = 676 pairs, every baboon-human combination, as a
+#                   reference for the matched diagonal
 #
 # Writes <mode>_pairwise_concordance.csv and .rds to BAYRC_OUTPUT_DIR.
 ################################################################################
@@ -37,11 +32,7 @@ args  <- commandArgs(trailingOnly = TRUE)
 mode  <- if (length(args) >= 1) args[1] else "within_baboon"
 cores <- if (length(args) >= 2) as.integer(args[2]) else
   max(1L, parallel::detectCores() - 4L)
-# "infer" adds the permutation p-value and bootstrap CI. Figure 2 does not use
-# them -- plots/heatmap_baboon.R calls multi_conservation() with
-# compute_pvalue = FALSE and compute_ci = FALSE and plots the adjusted
-# concordance alone -- and they cost about three orders of magnitude more time
-# per pair, so they are off unless asked for.
+# "infer" adds the permutation p-value and bootstrap CI; Figure 2 uses neither.
 infer <- length(args) >= 3 && args[3] == "infer"
 
 N_PERM <- 1000
@@ -50,8 +41,7 @@ N_BOOT <- 1000
 load(file.path(BAYRC_SUMMARY_DIR, "mcmc_rho_BF3.RData"))
 load(file.path(BAYRC_SUMMARY_DIR, "phi", "mcmc_phi_BF3.RData"))
 
-# multi_conservation() reads the gene names off attr(rho, "symbols"); the
-# summary builder sets it, but a chain read straight from an RDS may not have.
+# multi_conservation() reads the gene names off attr(rho, "symbols")
 as_dataset <- function(rho, phi) {
   if (is.null(attr(rho, "symbols"))) attr(rho, "symbols") <- rownames(rho)
   list(rho = rho, phi = phi)
@@ -94,10 +84,7 @@ pairs <- switch(mode,
   },
   stop("mode must be within_baboon, within_human, cross_matched or cross_species"))
 
-# Each pair already holds references to the two chains it needs, so the
-# species-level lists can go. They are ~4 GB each, and every forked worker
-# that touches them makes the kernel copy those pages -- with 18 workers that
-# was enough to fill the node.
+# each pair holds its own two chains; drop the ~4 GB species lists before forking
 if (mode == "within_baboon") rm(human)
 if (mode == "within_human")  rm(baboon)
 invisible(gc())
@@ -124,10 +111,8 @@ one_pair <- function(p) {
     compute_pvalue = infer, compute_ci = infer), silent = TRUE)
   if (inherits(res, "try-error")) return(blank_row(p, as.character(res)))
 
-  # multi_conservation() returns a bare data.frame when the inference is
-  # switched off and a list of them when it is on, and its columns are named
-  # "<a>_vs_<b>_<quantity>" rather than by quantity alone. Pull them by
-  # suffix so both shapes work and a missing inference column is just NA.
+  # a data.frame without inference, a list with it; columns are
+  # "<a>_vs_<b>_<quantity>", so match on the suffix
   r <- if (is.data.frame(res)) res else res[[1]]
   if (!is.data.frame(r)) return(blank_row(p, "unexpected result shape"))
   grab <- function(suffix) {
@@ -154,8 +139,7 @@ out <- mclapply(pairs, one_pair, mc.cores = cores, mc.preschedule = FALSE)
 cat("elapsed", round(as.numeric(difftime(Sys.time(), t0, units = "mins")), 1),
     "min\n")
 
-# mclapply returns the condition object rather than throwing when a child dies,
-# so anything that is not a one-row data.frame is a failed pair.
+# mclapply returns the error object when a child dies; keep one-row data.frames
 bad <- !vapply(out, function(x) is.data.frame(x) && nrow(x) == 1L, logical(1))
 if (any(bad)) {
   cat("WARNING:", sum(bad), "pairs failed in the worker\n")

@@ -18,8 +18,8 @@ its circular autocorrelation.}
 \value{
 A list: \code{acceptance_rate}, \code{ess_rho}, \code{ess_phi}
   (all per-gene, named by gene), \code{mean_acceptance_rate},
-  \code{mean_ess_rho}, \code{mean_ess_phi}, \code{n_samples}, and
-  \code{p_rhythmic_posterior}. Also printed as a summary; warns if mean
+  \code{mean_ess_rho}, \code{mean_ess_phi}, \code{n_samples},
+  \code{p_rhythmic_posterior} and \code{phi_posterior_median}. Also printed as a summary; warns if mean
   ESS for rho falls below 100.
 }
 \description{
@@ -27,21 +27,15 @@ Computes the same convergence diagnostics that
 \code{CB_MCMC_single_rj_slice()} attaches when called with
 \code{diagnostics = TRUE} (its default): per-gene RJMCMC acceptance rate,
 per-gene effective sample size (ESS) for the rhythmicity indicator
-\code{rho}, and per-gene ESS for phase \code{phi}. Use this on an MCMC
-result that was run with \code{diagnostics = FALSE}; the underlying
-\code{rho}, \code{phi}, and \code{if.accept.rj} matrices are always
-stored in the returned object regardless of that flag, so diagnostics can
-always be computed after the fact.
+\code{rho}, and per-gene ESS for phase \code{phi}. It applies to any
+result, since \code{rho}, \code{phi} and \code{if.accept.rj} are stored
+whatever the \code{diagnostics} setting.
 }
 \details{
-\code{phi} is periodic (an hour near \code{P} is one step from an hour
-near 0), so its lag-1 autocorrelation is computed on the circle: phase is
-converted to radians and the autocorrelation is the mean cosine of
-successive phase differences, \code{mean(cos(phi_rad[-1] -
-phi_rad[-K]))}, rather than a linear Pearson correlation on the raw
-hour values (which would be distorted by wraparound near \code{0/P}).
-\code{rho} is binary and unaffected by this, so its ESS still uses linear
-lag-1 autocorrelation.
+\code{phi} is periodic, so its lag-1 autocorrelation is computed on the
+circle as the mean cosine of successive phase differences in radians,
+\code{mean(cos(phi_rad[-1] - phi_rad[-K]))}. The ESS for the binary
+\code{rho} uses the linear lag-1 autocorrelation.
 }
 \examples{
 \dontrun{

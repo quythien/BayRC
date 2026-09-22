@@ -84,7 +84,7 @@ Amp   <- ifelse(truth == 1, runif(G, 0.3, 1.2), 0)
 if (!is.na(A_arg)) Amp <- ifelse(truth == 1, A_arg, 0)
 phase <- runif(G, 0, P)
 M     <- rnorm(G, 5, 1)
-if (!is.na(A_arg)) M <- rep(5, G)   # the swept design fixes the mesor, as V7 does
+if (!is.na(A_arg)) M <- rep(5, G)   # the swept design fixes the mesor
 sigma <- if (is.na(S_arg)) 0.5 else S_arg
 Y <- M + Amp * cos(omega * (matrix(tod, G, N, byrow = TRUE) - phase)) +
      matrix(rnorm(G * N, 0, sigma), G, N)

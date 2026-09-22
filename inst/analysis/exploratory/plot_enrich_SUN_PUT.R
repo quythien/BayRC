@@ -70,8 +70,7 @@ ego_mf <- enrichGO(
   readable = TRUE
 )
 
-# KEGG enrichment
-# Use human KEGG (hsa) since symbols are human orthologs
+# KEGG enrichment on hsa, since the symbols are human orthologs
 kegg <- enrichKEGG(
   gene = gene_ids,
   organism = "hsa",
@@ -93,9 +92,7 @@ save_dot_bar <- function(enr, prefix, title_text, show_n = 15) {
     enr@result$Description <- wrap_terms(enr@result$Description, width = 45)
   }
 
-  # clusterProfiler's dotplot/barplot return ggplots, so the shared theme
-  # applies; the term labels stay smaller than the base size because the
-  # pathway names are long.
+  # Term labels are set below the base size because pathway names are long
   g1 <- dotplot(enr, showCategory = show_n) +
     ggtitle(title_text) +
     scale_colour_gradientn(colours = bayrc_seq(256)) +
@@ -112,7 +109,6 @@ save_dot_bar <- function(enr, prefix, title_text, show_n = 15) {
   bayrc_save(g2, file.path(plot_dir, paste0(prefix, "_barplot")),
              width = 9, height = 8)
 
-  # Save table
   write.csv(as.data.frame(enr), file.path(plot_dir, paste0(prefix, ".csv")), row.names = FALSE)
 }
 

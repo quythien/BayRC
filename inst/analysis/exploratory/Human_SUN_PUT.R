@@ -78,7 +78,6 @@ setwd(WD)
 scripts <- list.files("BayRC", pattern="\\.R$", full.names=TRUE)
 sapply(scripts, source)
 
-# Reset wd
 setwd(current_aging)
 
 #---------------------------------------------------------------------------------
@@ -106,7 +105,7 @@ if (!dir.exists(output.dir)) {
 }
 cat("Directory ready:", output.dir, "\n")
 
-# Analyze ALL genes together
+# All genes as one set
 t_start <- Sys.time()
 
 results_global1 <- multi_conservation(
@@ -132,8 +131,8 @@ print(elapsed_time)
 pA    <- rowMeans(human_PUT$rho)
 pB    <- rowMeans(human_SUN$rho)
 
-# BFDR: Rhythmic biomarkers
-rhy   <- detect_rhy(human_PUT, human_SUN, 0.25)
+# Rhythmic genes per region at BFDR 0.25
+rhy  <- detect_rhy(human_PUT, human_SUN, 0.25)
 rhy_summary <- data.frame(
   Category = c("Rhythmic in PUT",
                "Rhythmic in SUN"),
@@ -142,7 +141,7 @@ rhy_summary <- data.frame(
 )
 rhy_summary
 
-# BFDR:
+# Gain, loss and maintained calls at BFDR 0.25
 trans_outer <- transition_classify(pA, pB, bfdr_alpha = 0.25)
 
 phase_inner <- phase_infer(
@@ -154,7 +153,6 @@ phase_inner <- phase_infer(
   P = 24, compute_hdi = TRUE
 )
 
-# === PHASE INFERENCE SUMMARY ===
 cat("\n=== PHASE INFERENCE SUMMARY ===\n")
 cat("Maintained genes:", length(which(trans_outer$gain_loss_status == "Maintained")), "\n")
 cat("BFDR α = 0.25  | shift threshold = 2 h\n")
@@ -169,22 +167,20 @@ cat("\n=== PARKINSON DISEASE PATHWAY ANALYSIS ===\n")
 pd_genes <- kegg.pathway.list_hsa[["KEGG Parkinson disease"]]
 cat("Total Parkinson pathway genes:", length(pd_genes), "\n")
 
-# Get peak times for Parkinson genes
+# Peak times in hours
 pd_peak1 <- phase_inner$peak1[pd_genes]
 pd_peak2 <- phase_inner$peak2[pd_genes]
 
-# Create dataframe
 pd_df <- data.frame(
   Gene = pd_genes,
   PUT = pd_peak1,
   SUN = pd_peak2
 )
 
-# Complete cases
 pd_complete <- pd_df[complete.cases(pd_df), ]
 cat("Genes with complete data:", nrow(pd_complete), "\n")
 
-# Calculate difference
+# Plain difference in hours, not wrapped to the circle
 pd_complete$Diff <- pd_complete$SUN - pd_complete$PUT
 
 cat("\n=== SUMMARY STATISTICS (SUN - PUT) ===\n")
@@ -194,18 +190,15 @@ cat("\nMean PUT peak:", mean(pd_complete$PUT), "\n")
 cat("Mean SUN peak:", mean(pd_complete$SUN), "\n")
 cat("Mean difference (SUN - PUT):", mean(pd_complete$Diff), "\n")
 
-# Count genes where SUN is earlier vs later
 n_sun_earlier <- sum(pd_complete$Diff < 0, na.rm = TRUE)
 n_sun_later <- sum(pd_complete$Diff > 0, na.rm = TRUE)
 
 cat("\nSUN earlier than PUT:", n_sun_earlier, "genes\n")
 cat("SUN later than PUT:", n_sun_later, "genes\n")
 
-# Show first 20 genes
 cat("\n=== FIRST 20 PARKINSON GENES ===\n")
 print(head(pd_complete, 20))
 
-# Check NDUFB5 specifically
 cat("\n=== NDUFB5 SPECIFICALLY ===\n")
 if ("NDUFB5" %in% pd_complete$Gene) {
   ndufb5_data <- pd_complete[pd_complete$Gene == "NDUFB5", ]

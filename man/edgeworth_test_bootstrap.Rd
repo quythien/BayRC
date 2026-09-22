@@ -12,11 +12,11 @@ edgeworth_test_bootstrap(p_A, p_B, n_boot = 500)
 \item{n_boot}{Integer; bootstrap replicates.}
 }
 \value{
-A list with \code{z_score}, \code{p_value_gaussian},
-  \code{p_value_edgeworth}, and \code{variance_est}.
+Numeric scalar; one-sided p-value, or \code{NA} if the variance
+  estimate is not positive.
 }
 \description{
-Applies an Edgeworth series correction to the Gaussian approximation to
-better handle skewness in the permutation null distribution of the
-congruence index, using bootstrap-estimated variance and skewness.
+Gaussian test with an Edgeworth correction for skewness of the
+permutation null, using bootstrap-estimated variance and skewness. The
+correction is applied when n <= 30 and |skewness| > 0.3.
 }

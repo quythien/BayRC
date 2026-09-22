@@ -41,7 +41,7 @@ grab <- function(dir, sp) {
 bab <- grab("hb", "baboon"); hum_b <- grab("hb", "human")
 mou <- grab("hm", "mouse");  hum_m <- grab("hm", "human")
 
-# the two comparisons use different gene universes
+# both comparisons are restricted to the genes measured in both
 universe <- intersect(rownames(bab$rho), rownames(mou$rho))
 cat("genes measured in both comparisons:", length(universe), "\n")
 sub <- function(x) lapply(x, function(m) m[universe, , drop = FALSE])
@@ -107,8 +107,7 @@ scatter <- function(res, cmp_name, file, show_key) {
   } else {
     theme(legend.position = "none")
   }
-  # the pair is scaled to the height of the heatmap, so the canvas is small
-  # enough that its type prints at 5 pt on a text-width page
+  # canvas sized so type prints at 5 pt on a text-width page
   cairo_pdf(file.path(here, file), width = 5.1, height = 4.8)
   print(p)
   dev.off()
@@ -126,8 +125,7 @@ plot_heatmap(
   group_names = c("Human lung\n(Reference)", "Baboon lung", "Mouse lung"),
   legend_names = c("Human", "Baboon", "Mouse"),
   row_order = row_order, canvas_width = "fit",
-  # the blocks are as wide as their titles and the key runs beneath them, which
-  # holds the panel near 1.2:1 beside the column of scatters
+  # blocks as wide as their titles, key beneath; the panel stays near 1.2:1
   block_width = 3.2, delta_width = 5.6, font_scale = 1.15,
   show_legend = TRUE, legend_side = "bottom",
   versions = "full", save_path = file.path(here, "lung3"))

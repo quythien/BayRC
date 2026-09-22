@@ -42,13 +42,9 @@ CBt_init_single = function(Data.list = list(data = as.data.frame(a.sim.dat$data[
                                            time = a.sim.dat$data[[1]]$x$time,
                                            gname = paste0("G", seq_len(nrow(a.sim.dat$data[[1]]$dat)))), 
                     P = 24, FitCosinor = TRUE, 
-                    mu_M = 0, sigma_M = 10, mu_A = 1, sigma_A = 10, #theta = pi, kappa = 0.01,
-#                   VM_theta0 = 0, VM_R0 = 1,VM_c = 1, VM_Bessel_k = 10, 
-#                   nClass.init = 10,
+                    mu_M = 0, sigma_M = 10, mu_A = 1, sigma_A = 10,
                     seed = 15213){
-  # P = 24; mu_M = 0; sigma_M = 10; mu_A = 0; sigma_A = 10; theta = 0; kappa = 0.001;
   set.seed(seed)
-  #later: data input check point
   omega = 2*pi/P
   Y = Data.list[[1]]
   t = Data.list[[2]]
@@ -81,9 +77,8 @@ CBt_init_single = function(Data.list = list(data = as.data.frame(a.sim.dat$data[
   }else{
     out.M = rnorm(G, mu_M, sigma_M) 
     out.A = truncnorm::rtruncnorm(G, 0, 3, mu_A, sigma_A)
-    # phi = matrix(Rfast::rvonmises(G*J, m = theta, k = kappa), byrow = FALSE, nrow = G)/(2*pi)*P #uniform
     out.phi = runif(G,0, P) #uniform
-    out.sigma = rep(1, G) ##1. sigma is indepedent for each gene and each group
+    out.sigma = rep(1, G) # one sigma per gene
     out.rho = rbinom(G, 1, 0.5)
   }
   t_p = rep(0, N)

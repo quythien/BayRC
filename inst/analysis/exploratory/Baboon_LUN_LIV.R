@@ -1,5 +1,5 @@
-# SAME SPECIE 
-
+# Baboon lung versus baboon liver: concordance, peak timing, pathway
+# enrichment and expected transition counts.
 
 rm(list=ls());
 
@@ -20,16 +20,11 @@ outdir = BAYRC_FIGURE_DIR
 load(file.path(BAYRC_SUMMARY_DIR, "mcmc_rho_BF3.RData"))
 load(file.path(BAYRC_SUMMARY_DIR, "phi", "mcmc_phi_BF3.RData"))
 
-
-
-
-# "mcmc_data_baboon" "mcmc_data_human"  "mcmc_phi_baboon"  "mcmc_phi_human
+# Loads mcmc_data_baboon, mcmc_data_human, mcmc_phi_baboon, mcmc_phi_human.
 
 library(KEGGREST)
 library(parallel)
 
-
-#base_result_dir <- file.path(current_aging, "results", "brain_regions")
 options(width = 10000)
 #── Packages ─────────────────────────────────────────────────────────────────────
 library(parallel); library(edgeR);   library(Rcpp)
@@ -59,9 +54,6 @@ if (file.exists(file.path(thien_dir, "permutation_functions.cpp"))) {
 source(file.path(thien_dir, "plots/heatmap.R"))
 }
 
-
-#load(file.path(current_wd, "Kyle/Circadian-analysis-main/R/pathway_data/kegg.pathway.list_hsa.RData"))
-#load(file.path(current_wd, "Kyle/Circadian-analysis-main/R/pathway_data/kegg.pathway.list_cel_GeneNames.RData"))
 load(file.path(BAYRC_PATHWAY_DIR, "hw_orth.RData"))
 load(file.path(BAYRC_PATHWAY_DIR, "human.pathway.list.RData"))
 load(file.path(BAYRC_PATHWAY_DIR, "go.pathway.list_hsa.RData"))
@@ -74,13 +66,10 @@ setwd(WD)
 scripts <- list.files(file.path(BAYRC_PACKAGE_DIR, "R"), pattern = "[.]R$", full.names = TRUE)
 sapply(scripts, source)
 
-# Reset wd
 setwd(current_aging)
 
 #---------------------------------------------------------------------------------
 to_zt <- function(t_cos) ifelse(t_cos >= 18, t_cos - 24, t_cos)
-
-
 
 baboon_LIV <- list(
   rho = mcmc_data_baboon$LIV,
@@ -123,7 +112,7 @@ if (file.exists(file.path(thien_dir, "permutation_functions.cpp"))) {
 source(file.path(thien_dir, "plots/heatmap.R"))
 }
 
-# Analyze ALL genes together
+# Genome-wide concordance over all genes
 t_start <- Sys.time()
 
 results_global1 <- multi_conservation(
@@ -143,9 +132,6 @@ t_end <- Sys.time()
 elapsed_time <- difftime(t_end, t_start, units = "mins")
 print(elapsed_time)
 
-# 2.43 minutes for p value only at 500 perm
-#  1.03 min for boot only at 100 boots
-#  0.8562239 for both 
 rhy   <- detect_rhy(baboon_LIV, baboon_LUN, 0.25)
 rhy_summary <- data.frame(
   Category = c("Rhythmic in LIV",
@@ -154,20 +140,11 @@ rhy_summary <- data.frame(
             rhy$n_rhythmic_B)
 )
 
-# 
-# rhy_summary <- rbind(
-#   rhy_summary,
-#   data.frame(Category = c("LIV", "LUN"),
-#              Count = c(rhy$threshold_A, rhy$threshold_B))
-# )
-# 
-# rhy_summary
-# 
 #---------------------------------------------------------------------------------
 pA    <- rowMeans(baboon_LIV$rho)
 pB    <- rowMeans(baboon_LUN$rho)
 
-# BFDR: Rhythmic biomarkers 
+# Rhythmic genes per tissue at BFDR 0.25
 rhy   <- detect_rhy(baboon_LIV, baboon_LUN, 0.25)
 rhy_summary <- data.frame(
   Category = c("Rhythmic in LIV",
@@ -177,7 +154,7 @@ rhy_summary <- data.frame(
 )
 rhy_summary
 
-# BFDR: 
+# Gain, loss and maintained at BFDR 0.25, then phase within the maintained set
 trans_outer <- transition_classify(pA, pB, bfdr_alpha = 0.25)
 
 phase_inner <- phase_infer(
@@ -188,38 +165,15 @@ phase_inner <- phase_infer(
   shift = 2,
   P = 24, compute_hdi = TRUE
 )
+# 677 maintained: 335 phase-conserved, 39 phase-shifted, 303 undetermined
 
-# phase_inner2 <- phase_infer(
-#   phi_matrix1 = baboon_LIV$phi,
-#   phi_matrix2 = baboon_LUN$phi,
-#   gain_loss_status = trans_outer$gain_loss_status,
-#   bfdr_alpha = 0.2,
-#   shift = 2,
-#   P = 24, compute_hdi = TRUE
-# )
-
-# === PHASE INFERENCE SUMMARY ===
-#   Maintained genes: 677 
-# BFDR α = 0.25  | shift threshold = 2 h
-# Significant phase-shifted genes: 39 
-# Significant phase-conserved genes: 335 
-# Undetermined genes: 303 
-# HDI computation: enabled
-
-
-
-
-#---------------------------------------------------------------------------------
-
-# Maintained plot 
 #───────────────────────────────────────────────────────────────
-# Peak Concordance Plot for Maintained Genes - BABOON LUN vs LIV
+# Peak concordance plot for maintained genes, baboon LUN vs LIV
 #───────────────────────────────────────────────────────────────
 library(ggplot2)
 library(dplyr)
 library(ggrepel)
 
-# Helper
 to_zt <- function(t_cos) ifelse(t_cos >= 18, t_cos - 24, t_cos)
 
 #───────────────────────────────────────────────────────────────
@@ -227,7 +181,6 @@ to_zt <- function(t_cos) ifelse(t_cos >= 18, t_cos - 24, t_cos)
 #───────────────────────────────────────────────────────────────
 gene_names <- names(phase_inner$peak1)
 
-# Create dataframe from phase_inner
 maintained_df <- data.frame(
   Gene = gene_names,
   Peak_LIV = phase_inner$peak1,
@@ -238,7 +191,7 @@ maintained_df <- data.frame(
   stringsAsFactors = FALSE
 )
 
-# Filter for maintained genes only
+# Maintained genes only
 maintained_genes <- names(trans_outer$gain_loss_status[trans_outer$gain_loss_status == "Maintained"])
 
 maintained_df <- maintained_df %>%
@@ -255,7 +208,6 @@ phase_class[phase_inner$flag_cons]  <- "Phase-conserved"
 phase_class[phase_inner$flag_shift] <- "Phase-shifted"
 phase_class[phase_inner$flag_undetermined] <- "Undetermined"
 
-# Merge into maintained_df
 maintained_df <- maintained_df %>%
   mutate(phase_class = phase_class[Gene]) %>%
   mutate(phase_class = ifelse(is.na(phase_class), "Undetermined", phase_class))
@@ -306,7 +258,7 @@ cat("  Undetermined:", n_undetermined,
     sprintf("(%.2f%%)\n", pct_undetermined_global))
 
 #───────────────────────────────────────────────────────────────
-# Compute ±3 h concordance among maintained genes
+# ±2 h concordance among maintained genes
 #───────────────────────────────────────────────────────────────
 calculate_peak_difference <- function(a, b) {
   d <- abs(a - b)
@@ -327,12 +279,10 @@ cat("  Within ±2 h:", n_within, "\n")
 cat(sprintf("  ⇒ %.1f%% within ±2 h interval\n", pct_within))
 
 #───────────────────────────────────────────────────────────────
-# Plot preparation with circular remapping to minimize distance to diagonal
+# Shift each point by 0 or ±24 h to sit closest to the diagonal
 #───────────────────────────────────────────────────────────────
 
-# Function to re-map circular time points to minimize distance to diagonal
 remap_to_diagonal <- function(x, y, offset = 24) {
-  # Calculate all 9 possible transformations considering circular wrapping
   x_options <- c(x, x - offset, x + offset)
   y_options <- c(y, y - offset, y + offset)
 
@@ -342,7 +292,6 @@ remap_to_diagonal <- function(x, y, offset = 24) {
 
   for (x_opt in x_options) {
     for (y_opt in y_options) {
-      # Distance to diagonal y = x is |y - x|
       dist <- abs(y_opt - x_opt)
       if (dist < best_dist - 1e-9) {
         best_dist <- dist
@@ -364,11 +313,9 @@ plot_df <- maintained_df %>%
   ) %>%
   select(-remapped)
 
-# Count categories
 n_Rc <- nrow(plot_df)
 pct_Rc <- round(100 * n_within / n_Rc, 1)
 
-# Subtitle
 subtitle_text <- bquote(
   "Rhythmically Conserved Set " ~ R[c] ~
     "(" * n == .(n_Rc) * ", " * .(pct_Rc) * "% within " * "\u00B1" * "2 h interval)"
@@ -382,7 +329,7 @@ p <- ggplot(plot_df, aes(
   y = Peak_LIV_ZT_plot,
   color = phase_class
 )) +
-  # Identity and ±2 h boundaries (no need for ±22 due to remapping)
+  # Identity and ±2 h bands; the remapping makes ±22 h bands unnecessary
   geom_abline(intercept = 0, slope = 1,
               color = "black", linetype = "dashed", linewidth = 1.0) +
   geom_abline(intercept = 2, slope = 1,
@@ -457,26 +404,21 @@ ggsave(
   height = 8
 )
 
-
-
-#───────────────────────────────────────────────────────────────
 ################################################################################
-# COMPLETE WORKFLOW: Baboon LUN vs LIV Pathway Analysis
+# Pathway analysis: Baboon LUN vs LIV
 ################################################################################
 
-# Set parameters
 dataset_names <- c("LUN", "LIV")
 qvalue_cut <- 0.25
 nperm <- 10000
 pathway_size_min <- 10
 pathway_size_max <- 300
 
-# Set output directory
 output.dir <- BAYRC_OUTPUT_DIR
 dir.create(output.dir, recursive = TRUE, showWarnings = FALSE)
 
 ################################################################################
-# STAGE 1: Identify Active Pathways (Union Test - P-value Filter)
+# STAGE 1: Active pathways (union test, p-value filter)
 ################################################################################
 
 cat("\n=== STAGE 1: Union Test (Active Pathways) ===\n")
@@ -494,25 +436,22 @@ result_union <- pathSelect(
   nproc = 1
 )
 
-# Extract the results dataframe
 union_results <- result_union$results
 
-# Filter by P-VALUE (not q-value)
+# Active pathways are selected on the p-value, not the q-value
 active_pathways <- result_union$results %>%
   filter(pval < 0.20) %>%
   pull(pathway)
 
-
 ################################################################################
-# STAGE 2: Test Transitions on Active Pathways (Q-value Filter)
+# STAGE 2: Transition tests on active pathways (q-value filter)
 ################################################################################
 
 cat("\n=== STAGE 2: Transition Tests (Gain, Loss, Conservation) ===\n")
 
-# Ensure correct order
 active_pathway_list <- kegg.pathway.list_hsa[match(active_pathways, names(kegg.pathway.list_hsa))]
 
-# Gain enrichment - Q-VALUE FILTERING
+# Gain enrichment
 result_gain <- pathSelect(
   mcmc.merge.list = list(LUN = baboon_LUN, LIV = baboon_LIV),
   pathway.list = active_pathway_list,
@@ -526,7 +465,7 @@ result_gain <- pathSelect(
   nproc = 1
 )
 
-# Loss enrichment - Q-VALUE FILTERING
+# Loss enrichment
 result_loss <- pathSelect(
   mcmc.merge.list = list(LUN = baboon_LUN, LIV = baboon_LIV),
   pathway.list = active_pathway_list,
@@ -540,7 +479,7 @@ result_loss <- pathSelect(
   nproc = 1
 )
 
-# Conservation enrichment - Q-VALUE FILTERING
+# Conservation enrichment
 result_cons <- pathSelect(
   mcmc.merge.list = list(LUN = baboon_LUN, LIV = baboon_LIV),
   pathway.list = active_pathway_list,
@@ -554,29 +493,16 @@ result_cons <- pathSelect(
   nproc = 1
 )
 
-
-# result_gain$results %>%
-#   filter(padj < 0.20) %>%
-#   select(pathway, size, Gain_Index, Expected_N_Gain, pval, padj, Gain_Loss_Ratio_Arithmetic)
-# 
-# 
 result_loss$results %>%
   filter(pval < 0.20) %>%
   select(pathway, size, Loss_Index, Expected_N_Loss, pval, padj, Gain_Loss_Ratio_Arithmetic)
-
-# Add kegg phagosome in 
-
-# result_cons$results %>%
-#   filter(padj < 0.20) %>%
-#   select(pathway, size, Conserved_Index, Expected_N_Conserved, pval, padj, Gain_Loss_Ratio_Arithmetic)
-
 
 cat("  Gain-enriched (LIV):  ", sum(result_gain$results$Significant), "\n")
 cat("  Loss-enriched (LIV):  ", sum(result_loss$results$Significant), "\n")
 cat("  Conservation-enriched:", sum(result_cons$results$Significant), "\n")
 
 ################################################################################
-# STAGE 3: Filter to Significant Pathways
+# STAGE 3: Significant pathways
 ################################################################################
 
 cat("\n=== STAGE 3: Filtering Significant Pathways ===\n")
@@ -591,7 +517,6 @@ significance_table <- result_gain$results %>%
     result_cons$results %>% select(pathway, cons_sig = Significant),
     by = "pathway"
   ) %>%
-  # filter(pathway %in% active_pathways) %>% # Chang this if needed 
   mutate(
     gain_sig = replace_na(gain_sig, FALSE),
     loss_sig = replace_na(loss_sig, FALSE),
@@ -599,6 +524,7 @@ significance_table <- result_gain$results %>%
   ) %>%
   arrange(pathway)
 
+# KEGG Phagosome is added to the significant set for plotting
 significant_pathways <- significance_table %>%
   filter(gain_sig | loss_sig | cons_sig) %>%
   pull(pathway) %>%
@@ -609,7 +535,7 @@ cat("Pathways significant for at least one transition:", length(significant_path
 filtered_pathway_list <- kegg.pathway.list_hsa[match(significant_pathways, names(kegg.pathway.list_hsa))]
 
 ################################################################################
-# STAGE 4: Run multi_conservation on FILTERED Pathways
+# STAGE 4: multi_conservation on the significant pathways
 ################################################################################
 
 cat("\n=== STAGE 4: Descriptive Metrics (multi_conservation) ===\n")
@@ -626,7 +552,7 @@ result_multiconservation <- multi_conservation(
 )
 
 ################################################################################
-# GO ENRICHMENT WORKFLOW (GO PATHWAY LIST)
+# GO enrichment (lung objects)
 ################################################################################
 
 cat("\n\n################################################################################\n")
@@ -673,8 +599,6 @@ top_loss_go <- result_loss_go$results %>%
   filter(padj < 0.05) %>%
   dplyr::select(pathway, pval, padj, Top_Loss_Genes)
 
-# 27 
-
 result_cons_go <- pathSelect(
   mcmc.merge.list = list(Human_LUN = human_LUN, Baboon_LUN = baboon_LUN),
   pathway.list = go.pathway.list_hsa,
@@ -697,7 +621,6 @@ print_pathway_summary(result_gain_go, filter_by = "q", cutoff = 0.2)
 print_pathway_summary(result_loss_go, filter_by = "q", cutoff = 0.05)
 print_pathway_summary(result_cons_go, filter_by = "q", cutoff = 0.05)
 
-
 cat("Descriptive metrics calculated for", nrow(result_multiconservation), "pathways\n")
 
 result_multiconservation_filtered <- result_multiconservation %>%
@@ -711,11 +634,8 @@ result_multiconservation_filtered <- result_multiconservation %>%
 
 relevant_pathways <- result_multiconservation_filtered$Pathway
 
-
-
-####################################
-
 #---------------------------------------------------------------------------------
+# Heatmaps with LUN as dataset A and LIV as dataset B
 pA    <- rowMeans(baboon_LUN$rho)
 pB    <- rowMeans(baboon_LIV$rho)
 
@@ -733,25 +653,20 @@ base_path <- file.path(output.dir, "heatmap_baboon_LUN_LIV")
 dir.create(base_path, showWarnings = FALSE, recursive = TRUE)
 
 ###############################################################
-# PLOT EACH PATHWAY
+# Heatmap per pathway
 ###############################################################
 circadian_genes <- kegg.pathway.list_hsa[["KEGG Circadian rhythm"]]
 
-# Replace ARNTL with BMAL1
+# KEGG uses ARNTL; the expression data use BMAL1
 circadian_genes <- ifelse(circadian_genes == "ARNTL", "BMAL1", circadian_genes)
 
-# Save back into list
 kegg.pathway.list_hsa[["KEGG Circadian rhythm"]] <- circadian_genes
 
-
 trans_outer <- transition_classify(pA, pB, bfdr_alpha = 0.25)
-
-
 
 if (!dir.exists(tempdir())) {
   dir.create(tempdir(), recursive = TRUE)
 }
-
 
 cat("\n=== PLOTTING PATHWAYS FOR BABOON LUN vs LIV ===\n")
 
@@ -761,7 +676,6 @@ for (pathway in pathways_to_plot) {
   
   cat("\nProcessing:", pathway, "\n")
   
-  # -------- Pathway available? --------
   if (!pathway %in% names(kegg.pathway.list_hsa)) {
     cat("   ✗ Pathway not found — skip\n")
     next
@@ -777,15 +691,12 @@ for (pathway in pathways_to_plot) {
   
   cat("   Found", length(overlap), "overlapping genes\n")
   
-  # -------- Create output folder for this pathway --------
   safe_name <- gsub("[^A-Za-z0-9_]", "_", pathway)
   out_dir <- file.path(base_path, safe_name)
   dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
   
-  # -------- Plotting --------
   tryCatch({
-    
-    # Close any open graphics devices
+
     while (dev.cur() > 1) dev.off()
     
     plot_heatmap(
@@ -810,37 +721,23 @@ for (pathway in pathways_to_plot) {
 cat("\n=== COMPLETE: ALL PATHWAYS PLOTTED ===\n")
 cat("Output directory:", base_path, "\n")
 
-
 ################################################################################
-# EXPECTED COUNTS TABLE - PROBABILISTIC ESTIMATION
-# Based on posterior probabilities (not binary classification)
+# Expected counts, baboon LUN vs LIV, summed from posterior probabilities
 ################################################################################
-
-#########################################################################
-# BABOON LUN vs BABOON LIV : Expected Probabilistic Counts
-#########################################################################
 
 library(dplyr)
 library(kableExtra)
 
-# ----------------------------------------------------------------------
-# Input probabilities
-# ----------------------------------------------------------------------
 pA <- rowMeans(baboon_LUN$rho)   # LUN
 pB <- rowMeans(baboon_LIV$rho)   # LIV
 
-# Transition classification
 trans_outer <- transition_classify(pA, pB, bfdr_alpha = 0.25)
 
 cat("\n=== Checking Probabilistic Indices ===\n")
 print(names(trans_outer))
 
-# Total genes
 n_total <- length(pA)
 
-# ----------------------------------------------------------------------
-# Extract probabilistic indices
-# ----------------------------------------------------------------------
 if ("p_gain" %in% names(trans_outer)) {
   
   expected_gain <- sum(trans_outer$p_gain, na.rm = TRUE)
@@ -876,9 +773,7 @@ if ("p_gain" %in% names(trans_outer)) {
   cat("Expected Conserved:", round(expected_cons, 1), "\n")
 }
 
-# ----------------------------------------------------------------------
-# Helper to safely extract thresholds
-# ----------------------------------------------------------------------
+# Threshold or NA when trans_outer does not carry it
 safe_get <- function(x) {
   if (is.null(x)) return(NA)
   unname(x)
@@ -890,9 +785,6 @@ thr_gain <- safe_get(trans_outer$tau_gain)
 thr_loss <- safe_get(trans_outer$tau_loss)
 thr_cons <- safe_get(trans_outer$tau_cons)
 
-# ----------------------------------------------------------------------
-# Expected counts summary table
-# ----------------------------------------------------------------------
 genome_wide_expected <- data.frame(
   Category = c(
     "Total Genes",
@@ -916,7 +808,6 @@ genome_wide_expected <- data.frame(
     Percentage = sprintf("%.2f%%", 100 * Expected_Count / n_total)
   )
 
-# Add thresholds safely
 genome_wide_expected$Threshold <- c(
   NA,
   thr_LUN,
@@ -926,9 +817,6 @@ genome_wide_expected$Threshold <- c(
   thr_cons
 )
 
-# ----------------------------------------------------------------------
-# Print results
-# ----------------------------------------------------------------------
 cat("\n========================================\n")
 cat("EXPECTED COUNTS (PROBABILISTIC)\n")
 cat("Baboon LUN vs Baboon LIV\n")
@@ -936,16 +824,16 @@ cat("========================================\n\n")
 
 print(genome_wide_expected)
 
-
-##########
+# Phase-conserved genes
 gene_names <- names(phase_inner$peak1)
 
 phase_conserved_genes <- gene_names[phase_inner$flag_cons]
 length(phase_conserved_genes)
 
-# INLINE_PLOT_FROM_run_concordance_LUN_LIV.R
-# Regenerate concordance figure for Baboon_LUN_LIV
-# Source in the lun_liv screen session where all objects are loaded
+################################################################################
+# Peak concordance figure, as drawn by run_concordance_LUN_LIV.R; needs the
+# objects above in the session.
+################################################################################
 
 library(ggplot2); library(dplyr); library(ggrepel)
 if (!dir.exists(tempdir())) dir.create(tempdir(), recursive = TRUE)
@@ -1089,6 +977,4 @@ dir.create(save_dir, recursive = TRUE, showWarnings = FALSE)
 ggsave(filename = file.path(save_dir, "Baboon_LUN_LIV_Peak_Concordance_0.25_2h_new.pdf"),
        plot = p, width = 9, height = 8)
 cat("\nFigure saved to:", file.path(save_dir, "Baboon_LUN_LIV_Peak_Concordance_0.25_2h_new.pdf"), "\n")
-
-# END_INLINE_PLOT_FROM_run_concordance_LUN_LIV.R
 

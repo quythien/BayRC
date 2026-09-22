@@ -11,8 +11,8 @@ current_wd   <- BAYRC_WD_DIR
 current_aging <- BAYRC_AGING_DIR
 output = file.path(current_aging, "output")
 base_result_dir <- file.path(current_aging, "results", "brain_regions")
-# Load the extended Bayesian results
-#final_results_extended <- readRDS(file.path(base_result_dir, "final_brain_circadian_results_extended.RDS"))
+# Expects final_results_extended in the session (final_brain_circadian_results_extended.RDS
+# under base_result_dir, written by CAMO_Aging_Congruence_1.R)
 options(width = Sys.getenv("COLUMNS"))
 #── Packages ─────────────────────────────────────────────────────────────────────
 library(parallel); library(edgeR);   library(Rcpp)
@@ -29,7 +29,6 @@ require(dplyr)
 require(pROC)
 require(edgeR)
 
-
 source(file.path(current_wd, "Kyle/Circadian-analysis-main/R/src/Thien/pathwaySelect.R"))
 source(file.path(current_wd, "Kyle/Circadian-analysis-main/R/src/Thien/KEGG_module.R"))
 source(file.path(current_wd, "Kyle/Circadian-analysis-main/R/src/Thien/KEGG_module_topology_plot.R"))
@@ -45,10 +44,8 @@ load(file.path(BAYRC_PATHWAY_DIR, "hw_orth.RData"))
 load(file.path(BAYRC_PATHWAY_DIR, "human.pathway.list.RData"))
 load(file.path(BAYRC_PATHWAY_DIR, "go.pathway.list_hsa.RData"))
 
-#── Benchmarking with cosinor results ────────────────────────────────────────────────────────────────
-# Add the cosinor method results here
+#── Cosinor benchmark ────────────────────────────────────────────────────────────
 source(bayrc_file(BAYRC_PIPELINE_DIR, "one_cosinor_OLS_new.R"))
-
 
 #── Source R scripts ─────────────────────────────────────────────────────────────
 WD <- dirname(BAYRC_PACKAGE_DIR)
@@ -64,13 +61,13 @@ all_equal_rows <- function(...) {
   all(sapply(matrices, function(m) identical(rownames(m), base_names)))
 }
 
-# Check that all rows are matching 
+# Both groups must share the same gene order
 all_equal_rows(
   final_results_extended$brain_results$COMBINED_younger$rho,
   final_results_extended$brain_results$COMBINED_older$rho
 ) # TRUE
 
-# Pathway enrichment
+# Gene symbols from Ensembl IDs, needed for pathway enrichment
 library(biomaRt)
 Sys.setenv(XDG_CACHE_HOME = "~/biocache")
 biomartCacheClear()
@@ -85,21 +82,19 @@ older_symbol <- match_symbols(final_results_extended$brain_results$COMBINED_olde
                               p_rhythmic = 0.2, 
                               ensemble)
 
-
 #################
-# Concordance 
+# Discordance
 
 discordance(final_results_extended$brain_results$BA11_older$rho, final_results_extended$brain_results$BA47_older$rho)
 
+# Directional discordance, each adjusted against its chance level
 discordance <- function(rho1, rho2) {
-  # Proportions
   A  <- mean(rho1 == 1)                     # P(rho1=1)
   D  <- mean(rho2 == 1)                     # P(rho2=1)
   TP <- mean(rho1 == 1 & rho2 == 1)
   FP <- mean(rho1 == 1 & rho2 == 0)
   FN <- mean(rho1 == 0 & rho2 == 1)
 
-  # Directional discordance
   # A → B: proportion of A's rhythmic genes that are not rhythmic in B
   discord_A2B <- if (A > 0) FP / A else NA_real_
   discord_A2B_null <- 1 - D
@@ -114,7 +109,6 @@ discordance <- function(rho1, rho2) {
     (discord_B2A - discord_B2A_null) / (1 - discord_B2A_null)
   } else NA_real_
 
-  # Return both directions
   return(list(
     discord_A2B = discord_A2B,
     discord_A2B_adj = discord_A2B_adj,
@@ -123,9 +117,7 @@ discordance <- function(rho1, rho2) {
   ))
 }
 
-# Discordance 
 #################
-
 
 data_rho <- list(
   younger = younger_symbol$rho,
@@ -137,9 +129,7 @@ data_phi <- list(
   older  = older_symbol$phi
 )
 
-
-# Pathway enrichment for a pair
-# Stage 1: union test — which pathways contain rhythmically active genes?
+# Stage 1: union test for pathways with rhythmically active genes
 select.pathway.kegg_union <- pathSelect(
   mcmc.merge.list      = list(younger = younger_symbol, older = older_symbol),
   pathway.list         = kegg.pathway.list_hsa,
@@ -183,38 +173,30 @@ select.pathway.kegg_loss <- pathSelect(
   nperm                = 1000
 )
 
-
-
 #──────────────────────────────────────────────────────────────────
 # Aim 1A: Pathway concordance score 
 library(parallel)
 
-#All pairwise combinations
 pairwise_names <- combn(names(data_rho), 2, simplify = FALSE)
 
-# Pathway names from KEGG
-#all_pathway_names <- names(kegg.pathway.list_hsa)
-all_pathway_names <- select.pathway.kegg_union$results$pathway 
+# Pathways passed through the Stage 1 union test
+all_pathway_names <- select.pathway.kegg_union$results$pathway
 
-# Output list to store ACS results
 all_acs_results <- list()
 
-# Base directory for outputs (optional)
 output_base <- "acs_output"
 
-# Loop over pairwise comparisons
 for (pair in pairwise_names) {
   pair_label <- paste(pair, collapse = "_vs_")
   cat("=== Processing:", pair_label, "===\n")
-  
-  # Select the pair's rho matrices
+
   dataset <- list(
     data_rho[[pair[1]]],
     data_rho[[pair[2]]]
   )
   names(dataset) <- pair
-  
-  # Compute ACS for each pathway
+
+  # ACS for each pathway
   acs_results <- mclapply(all_pathway_names, function(pw_name) {
     cat("  Pathway:", pw_name, "\n")
     
@@ -241,8 +223,7 @@ for (pair in pairwise_names) {
     })
     
   }, mc.cores = min(length(all_pathway_names), 30))
-  
-  # Clean results
+
   acs_results_clean <- do.call(rbind, acs_results[!sapply(acs_results, is.null)])
   
   if (!is.null(acs_results_clean)) {
@@ -259,7 +240,6 @@ for (pair in pairwise_names) {
   }
 }
 
-# Export results to Excel
 library(openxlsx)
 
 wb <- createWorkbook()
@@ -273,7 +253,7 @@ saveWorkbook(wb, file = file.path(current_aging, "output/Pairwise_ACS_Pathway_GS
 #──────────────────────────────────────────────────────────────────
 # Phase inference 
 shift_phi_to_positive <- function(phi_matrix) {
-  phi_matrix + 6  # Add 6 to shift [-6, 18] to [0, 24]
+  phi_matrix + 6  # shift [-6, 18] to [0, 24]
 }
 
 data_phi <- list(
@@ -286,17 +266,13 @@ data_phi <- list(
   older = data_phi$older %% 24
 )
 
-
-
 P <- 24
 comparisons <- combn(names(data_phi), 2, simplify = FALSE)
-
 
 results_list <- mclapply(comparisons, function(pair) {
   pair_label <- paste(pair, collapse = "_vs_")
   cat("Processing:", pair_label, "\n")
-  
-  # Create matrix objects with phi and rho components
+
   matrix1 <- list(
     phi = data_phi[[pair[1]]],
     rho = data_rho[[pair[1]]]
@@ -311,8 +287,7 @@ results_list <- mclapply(comparisons, function(pair) {
                    P = 24, credMass = 0.90,
                    shift = 4, a = -12,
                    fdr_thresh = 0.20)
-  
-  # Return pairwise label and both tables
+
   list(
     label     = pair_label,
     diff_df   = res$phase_difference,
@@ -322,7 +297,7 @@ results_list <- mclapply(comparisons, function(pair) {
 
 names(results_list) <- sapply(results_list, function(x) x$label)
 
-# Save to two Excel files
+# Phase differences and phase conservation, one workbook each
 library(openxlsx)
 wb_diff <- createWorkbook()
 wb_conserve <- createWorkbook()
@@ -337,7 +312,6 @@ for (res in results_list) {
 
 saveWorkbook(wb_diff,     file = file.path(current_aging, "results/brain_regions/phase_shift_diff_FDR_4h.xlsx"),     overwrite = TRUE)
 saveWorkbook(wb_conserve, file = file.path(current_aging, "results/brain_regions/phase_shift_conserve_FDR_4h.xlsx"), overwrite = TRUE)
-
 
 ####################################
 # AIM 1C
@@ -388,7 +362,6 @@ pathway_ids <- c(
   "Hematopoietic cell lineage" = "hsa04640"
 )
 
-
 pairs <- list(
   young_old  = c("younger", "older")
 )
@@ -412,20 +385,17 @@ if (!dir.exists(out_base)) {
   dir.create(out_base, recursive = TRUE)
 }
 
-
 for (i in seq_len(nrow(tasks))) {
   
   gt <- tasks$gene_type[i]
   pw <- tasks$pw_id[i]
   sel <- pairs[[tasks$contrast[i]]]
-  
-  # Construct output paths
+
   out_dir  <- file.path(out_base, gt, tasks$contrast[i], tasks$pw_id[i])
   plot_dir <- file.path(plot_base, gt, tasks$contrast[i], tasks$pw_id[i])
   dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
   dir.create(plot_dir, recursive = TRUE, showWarnings = FALSE)
-  
-  # Run KEGG_module
+
   result <- tryCatch({
     KEGG_module(
       mcmc.merge.list = data_rho[sel],
@@ -450,8 +420,7 @@ for (i in seq_len(nrow(tasks))) {
                     i, gt, tasks$contrast[i], tasks$pw_id[i], e$message))
     return(NULL)
   })
-  
-  # Plot topology if result is valid
+
   if (!is.null(result)) {
     tryCatch({
       KEGG_module_topology_plot(
@@ -465,10 +434,9 @@ for (i in seq_len(nrow(tasks))) {
   }
 }
 
-
-#####3
+#####
 data_rho$older
-# Save density plot of row means as PNG
+# Density of per-gene posterior rhythmicity probability, older group
 png(file.path(current_aging, "results/brain_regions/rho_rowmeans_density.png"), width = 800, height = 600)
 
 plot(

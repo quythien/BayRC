@@ -133,11 +133,11 @@ orthMatch <- function(gene.list,species,ortholog.db){
     gene <- gene.list[[m]]
     index.out[[m]] <- which(ortholog.db[,spec] %in% gene)
   }
-    common.index <- Reduce(intersect,index.out)#genes in othtolog that appeared in all mcmclists with corresponding species
+    common.index <- Reduce(intersect,index.out)# ortholog rows present in every dataset
 
   for(m in 1:M){
     spec <- species[m]
-    gene.out[[m]] <- as.character(ortholog.db[common.index,spec])#otherwise factor used
+    gene.out[[m]] <- as.character(ortholog.db[common.index,spec])# character, not factor
   }
 
   return(gene.out)

@@ -1,8 +1,7 @@
 """Assemble the Figure 3 demo and reflow the Figure 5 legend from vector PDF
 sources.
 
-Every crop is read off the page rather than written down, so a panel that moves
-or a legend that gains a row still lands correctly.
+Crops are located from the text on each page.
 
 Usage: python3 layout_figures.py [paper_dir]
 
@@ -17,7 +16,7 @@ try:
 except ImportError:
     raise SystemExit("PyMuPDF is required: pip install pymupdf")
 
-# the assembled figures live beside the analysis output, not in the package
+# paper_dir defaults to paper/ at the repository root
 paper = Path(sys.argv[1]) if len(sys.argv) > 1 else \
     Path(__file__).resolve().parents[3] / "paper"
 figures = paper / "figures"
@@ -46,8 +45,7 @@ def legend_groups(page):
     """One clip per key: its title, the swatches under it and their labels."""
     titles = []
     for t in LEGEND_TITLES:
-        # the search ignores case, and a panel annotation can carry the same
-        # words, so the strip's own copy is the lowest one on the page
+        # the lowest match on the page is the legend's own title
         hits = page.search_for(t)
         if hits:
             titles.append(max(hits, key=lambda r: r.y0))
@@ -77,9 +75,7 @@ def content_bottom(page, groups):
     return min(g.y0 for g in groups) - 12
 
 
-# Figure 3 keeps the existing scatter panels and adds the summary panels.
-# The scatter row ends at its lowest axis title and the phase-class key is
-# found by its own text.
+# Figure 3: the scatter row and its phase-class key, then the summary panels.
 src = original("Figure_3.pdf")
 page0 = src[0]
 W = page0.rect.width

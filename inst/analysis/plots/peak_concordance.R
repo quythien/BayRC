@@ -42,9 +42,8 @@ peak_concordance_plot <- function(peak_x, peak_y, phase_class, label_genes,
                 linetype = "dotted", linewidth = 1.1) +
     geom_point(size = 3.4, alpha = 0.9) +
     scale_color_manual(values = phase_colors) +
-    # the repel search starts from a random layout, so it is seeded to make
-    # every rebuild of a panel place its labels the same way; every point is
-    # passed, with a blank label where none is drawn, so labels clear them all
+    # seeded so labels land the same way on every rebuild; unlabelled points
+    # get a blank label so the labels avoid them too
     geom_text_repel(aes(label = ifelse(Gene %in% label_genes, Gene, "")),
                     color = "black", fontface = "bold.italic", size = 5,
                     segment.color = "gray50", box.padding = 1.2,
@@ -59,8 +58,7 @@ peak_concordance_plot <- function(peak_x, peak_y, phase_class, label_genes,
     coord_cartesian(xlim = c(-8, 20),
                     ylim = c(min(-8, floor(min(d$y))), max(20, ceiling(max(d$y))))) +
     theme_bayrc(base_size = 17) +
-    theme(# centred on the panel, a long title overruns the canvas, because the
-          # panel is the canvas less the width of the y axis labels
+    theme(# title centred on the whole canvas, not the panel
           plot.title.position = "plot",
           plot.title = element_text(face = "bold", size = 19, hjust = 0.5),
           plot.subtitle = element_text(size = 16, hjust = 0.5,

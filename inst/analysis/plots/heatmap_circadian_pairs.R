@@ -1,4 +1,6 @@
-# Standalone: circadian KEGG concordance matrices for within-baboon, within-human, and cross-species pairs
+# Circadian KEGG concordance matrices and heatmaps for within-baboon,
+# within-human and cross-species tissue pairs, under heatmap_circadian_pairs/.
+# With no argument all modes except within_baboon_with_scn run.
 # Usage:
 #   Rscript heatmap_circadian_pairs.R within_baboon
 #   Rscript heatmap_circadian_pairs.R within_baboon_with_scn
@@ -14,8 +16,7 @@ if (!exists("mode", inherits = FALSE)) {
   if (length(args) > 0) mode <- args[1]
 }
 
-# Every block below is gated on `mode`, so an unrecognised value would write
-# nothing and still reach the closing message. Reject it here instead.
+# an unrecognised mode stops here rather than writing nothing
 bayrc_modes <- c("all", "within_baboon", "within_baboon_with_scn",
                  "within_human", "cross_species")
 if (!mode %in% bayrc_modes)
@@ -38,12 +39,10 @@ output.dir <- BAYRC_OUTPUT_DIR
 load(file.path(BAYRC_SUMMARY_DIR, "mcmc_rho_BF3.RData"))
 load(file.path(BAYRC_SUMMARY_DIR, "phi", "mcmc_phi_BF3.RData"))
 
-# Thien functions
 thien_dir <- BAYRC_THIEN_DIR
 source(file.path(thien_dir, "Permutation_Sim.R"))
 Rcpp::sourceCpp(file.path(thien_dir, "congruence.cpp"))
 
-# Pathway list
 kegg.pathway.list_hsa <- readRDS(
   file.path(BAYRC_PATHWAY_DIR, "kegg_pathway_list_hsa.rds")
 )
@@ -58,7 +57,7 @@ circadian_genes <- kegg.pathway.list_hsa[[pathway_name]]
 circadian_genes <- ifelse(circadian_genes == "ARNTL", "BMAL1", circadian_genes)
 kegg.pathway.list_hsa[[pathway_name]] <- circadian_genes
 
-# Build tissue lists (rho/phi objects)
+# one rho/phi list per tissue, with gene symbols taken from the row names
 baboon_tissues <- names(mcmc_data_baboon)
 human_tissues <- names(mcmc_data_human)
 
@@ -82,7 +81,6 @@ human_list <- lapply(human_tissues, function(tis) {
 })
 names(human_list) <- human_tissues
 
-# Output base
 base_path <- file.path(output.dir, "heatmap_circadian_pairs")
 dir.create(base_path, recursive = TRUE, showWarnings = FALSE)
 
@@ -114,7 +112,7 @@ run_pairs_to_matrix <- function(tissues, data_list, label, out_prefix, subdir) {
     pair_results[[pair_name]] <- res
   }
 
-  # Build ACI matrix
+  # symmetric matrix of adjusted concordance, 1 on the diagonal
   ACI_mat <- matrix(NA, nrow = length(tissues), ncol = length(tissues))
   rownames(ACI_mat) <- tissues
   colnames(ACI_mat) <- tissues
@@ -134,7 +132,7 @@ run_pairs_to_matrix <- function(tissues, data_list, label, out_prefix, subdir) {
   saveRDS(pair_results, file = file.path(run_path, paste0(out_prefix, ".rds")))
   write.csv(ACI_mat, file = file.path(run_path, paste0(out_prefix, "_Matrix.csv")), row.names = TRUE)
 
-  # Heatmap
+  # tissues are clustered on 1 - concordance
   ACI_dissim <- 1 - ACI_mat
   diag(ACI_dissim) <- 0
   row_dist <- as.dist(ACI_dissim)
@@ -198,9 +196,9 @@ run_cross_species <- function(baboon_tissues_x, human_tissues_x, subdir) {
   saveRDS(cross_results, file = file.path(run_path, "cross_species_circadian_results.rds"))
   write.csv(ACI_cross, file = file.path(run_path, "Cross_Circadian_Concordance_Matrix.csv"), row.names = TRUE)
 
-  # Heatmap (full matrix)
+  # the matrix is rectangular, so rows and columns are clustered on the
+  # Euclidean distance between their dissimilarity profiles
   ACI_dissim <- 1 - ACI_cross
-  # Use dist() on rectangular matrix for row/col clustering
   row_dist <- dist(ACI_dissim)
   col_dist <- dist(t(ACI_dissim))
 

@@ -1,14 +1,11 @@
-#---------------------------------------------------------------------------------
-
-# Maintained plot 
 #───────────────────────────────────────────────────────────────
 # Peak Concordance Plot for Maintained Genes - BABOON SCN vs HIP
+# Expects phase_inner, trans_outer and output.dir in the environment.
 #───────────────────────────────────────────────────────────────
 library(ggplot2)
 library(dplyr)
 library(ggrepel)
 
-# Helper
 to_zt <- function(t_cos) ifelse(t_cos >= 18, t_cos - 24, t_cos)
 
 #───────────────────────────────────────────────────────────────
@@ -16,7 +13,6 @@ to_zt <- function(t_cos) ifelse(t_cos >= 18, t_cos - 24, t_cos)
 #───────────────────────────────────────────────────────────────
 gene_names <- names(phase_inner$peak1)
 
-# Create dataframe from phase_inner
 maintained_df <- data.frame(
   Gene = gene_names,
   Peak_HIP = phase_inner$peak1,
@@ -27,7 +23,6 @@ maintained_df <- data.frame(
   stringsAsFactors = FALSE
 )
 
-# Filter for maintained genes only
 maintained_genes <- names(trans_outer$gain_loss_status[trans_outer$gain_loss_status == "Maintained"])
 
 maintained_df <- maintained_df %>%
@@ -44,7 +39,6 @@ phase_class[phase_inner$flag_cons]  <- "Phase-conserved"
 phase_class[phase_inner$flag_shift] <- "Phase-shifted"
 phase_class[phase_inner$flag_undetermined] <- "Undetermined"
 
-# Merge into maintained_df
 maintained_df <- maintained_df %>%
   mutate(phase_class = phase_class[Gene]) %>%
   mutate(phase_class = ifelse(is.na(phase_class), "Undetermined", phase_class))
@@ -124,11 +118,9 @@ plot_df <- maintained_df %>%
     Peak_HIP_ZT_plot = Peak_HIP_ZT
   )
 
-# Count categories
 n_Rc <- nrow(plot_df)
 pct_Rc <- round(100 * n_within / n_Rc, 1)
 
-# Subtitle
 subtitle_text <- bquote(
   "Rhythmically Conserved Set " ~ R[c] ~
     "(" * n == .(n_Rc) * ", " * .(pct_Rc) * "% within " * "\u00B1" * "3 h interval)"

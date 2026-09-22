@@ -1,3 +1,6 @@
+# Bootstrap against permutation p-values for the young vs old pathway
+# concordance test; writes bootstrap_vs_permutation_comparison.pdf.
+
 #── Paths ─────────────────────────────────────────────────────────────────────────
 # Paths come from config.R; override any of them with the matching env var.
 bayrc.needs.summary <- FALSE
@@ -51,8 +54,6 @@ setwd(WD)
 scripts <- list.files("R", full.names=TRUE)
 sapply(scripts, source)
 
-
-
 #── Real Data ─────────────────────────────────────────────────────────────
 source(file.path(current_wd, "Kyle/Circadian-analysis-main/R/src/Thien/Permutation_Sim.R"))
 mcmc_age = readRDS(file.path(current_aging, "data/mcmc_young_old.rds"))
@@ -69,8 +70,8 @@ result_bootstrap <- multi_conservation_pathway_bootstrap(
   select.pathway.list = kegg.pathway.list_hsa,
   delta = 4,
   units = "hours",
-  n_boot = 500,  # Add this parameter (300-500 recommended)
-  output.dir = file.path(output.dir, "bootstrap_results")  # Separate folder
+  n_boot = 500,
+  output.dir = file.path(output.dir, "bootstrap_results")
 )
 require(openxlsx)
 
@@ -83,7 +84,6 @@ require(openxlsx)
 file1 <- file.path(current_wd, "Kyle/Circadian-analysis-main/R/src/Thien/bootstrap_results/Conservation_Bootstrap_younger_vs_older.xlsx")
 file2 <- file.path(current_wd, "Kyle/Circadian-analysis-main/R/src/Thien/permutation/Conservation_Results_Permutation_100000_datasets.xlsx")
 
-# Read data
 bootstrap_cong <- read.xlsx(file1, sheet = "congruence_index")
 perm_cong <- read.xlsx(file2, sheet = "congruence_index")
 
@@ -109,7 +109,6 @@ perm_cong <- perm_cong[order(perm_cong$Pathway), ]
 bootstrap_p <- bootstrap_cong$younger_vs_older_PValue
 perm_p <- perm_cong$younger_vs_older_PValue
 
-# Remove NAs
 valid_idx <- !is.na(bootstrap_p) & !is.na(perm_p)
 bootstrap_p <- bootstrap_p[valid_idx]
 perm_p <- perm_p[valid_idx]

@@ -20,9 +20,8 @@ source(file.path(analysis.dir, "config.R"))
 out <- Sys.getenv("FIG2_PHASE_DIR", unset = file.path(BAYRC_FIGURE_DIR, "figure2"))
 if (!file.exists(file.path(out, "pathway_phase_summary.csv")))
   stop("no pathway_phase_summary.csv under ", out, "; run plots/figure2/export_pathway.R first")
-# cairo embeds its fonts and carries the hyphen the block names are written
-# with, so the panel that goes into the paper is drawn with it where it is
-# available and with the base device otherwise
+# setting FIG2_CAIRO draws the _nature panel with cairo_pdf, which embeds fonts
+# and the hyphen in the block names; base pdf() otherwise
 fig_device <- if (nzchar(Sys.getenv("FIG2_CAIRO"))) grDevices::cairo_pdf else grDevices::pdf
 d <- read.csv(file.path(out,"pathway_phase_summary.csv"))
 genes<-unique(d$gene);tissues<-unique(d$tissue)
@@ -35,7 +34,7 @@ for(i in seq_len(nrow(d))) if(d$called[i]) {
 }
 coverage<-data.frame(gene=genes,high=rowSums(is.finite(P[,ts[[1]]])),
                     remaining=rowSums(is.finite(P[,ts[[2]]])))
-# A shared eligible set makes the three clustering approaches comparable.
+# one eligible gene set for all three tissue bases
 core<-coverage$gene[coverage$high>=6 & coverage$remaining>=4]
 stopifnot(length(core)>=4)
 write.csv(coverage,file.path(out,"phase_coverage.csv"),row.names=FALSE)
@@ -48,7 +47,7 @@ distances<-function(g,sets,uncertainty=TRUE) {
    r<-if(uncertainty) R[g[i],t]*R[g[j],t] else rep(1,length(t))
    mean(1-r*cos(2*pi*(P[g[i],t]-P[g[j],t])/24))
   },numeric(1))
-  # No-overlap bootstrap samples contribute neutral similarity, not opposition.
+  # a set with no shared tissue contributes distance 1, the neutral value
   vals[!is.finite(vals)]<-1
   D[i,j]<-D[j,i]<-mean(vals)
  }
@@ -85,7 +84,7 @@ for(mode in names(sets)) {
   co<-co+outer(z,z,"==")/200
  }
  write.csv(co,file.path(out,paste0(mode,"_bootstrap_coassignment.csv")))
- # Compare uncertainty-aware grouping to the same rule on point estimates.
+ # agreement with the same clustering on point estimates alone
  raw<-cutree(hclust(distances(core,sets[[mode]],FALSE),"average"),k)
  agreement<-mean(outer(raw,raw,"==")[lower.tri(co)]==outer(grp,grp,"==")[lower.tri(co)])
  stability<-vapply(sort(unique(grp)),function(cl) {
@@ -127,8 +126,7 @@ for(mode in names(sets)) {
     heatmap_legend_param=list(at=seq(0,24,6),direction="horizontal",legend_width=unit(50,"mm"),
                              title_position="topcenter",
                              title_gp=gpar(fontsize=11,fontface="bold"),labels_gp=gpar(fontsize=10)))
- # the disk key is built as a legend object rather than drawn by hand, so it
- # sits on the same row as the colour bar and takes the same title styling
+ # disc-size key, packed on one row with the colour bar
  ref <- c(2,4,8,12)
  disk_lgd <- Legend(labels=paste0(ref," h"),title="95% credible interval width",
    type="points",pch=21,size=unit(5.0*sqrt(ref/12),"mm"),nrow=1,
@@ -144,11 +142,9 @@ for(mode in names(sets)) {
       heatmap_legend_side="bottom",padding=unit(c(10,5,12,5),"mm"),
       column_title=titles[[mode]],column_title_gp=gpar(fontsize=15,fontface="bold"))
  dev.off()
- # the same heatmap on a taller canvas, for the two-by-two layout where it
- # has to stand the same height as the membership panel beside it
+ # the two-by-two layout, on the canvas of the membership panel beside it
  fig_device(file.path(out,paste0("option8_",mode,"_nature.pdf")),width=9.375,height=8.6)
- # draw() seats a column title directly above the blocks, so the heading is
- # written here instead, at the heights the membership panel beside it uses
+ # the heading is drawn separately, at the height the membership panel uses
  draw(ht,heatmap_legend_list=list(both),
       heatmap_legend_side="bottom",padding=unit(c(7.5,5,13.4,2),"mm"))
  upViewport(0)

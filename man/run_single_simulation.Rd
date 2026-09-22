@@ -7,7 +7,7 @@
 run_single_simulation(sim_id, n, cons, skew, B_perm, B_boot)
 }
 \arguments{
-\item{sim_id}{Integer; replicate identifier (used as random seed offset).}
+\item{sim_id}{Integer; replicate identifier (not used in the body).}
 
 \item{n}{Integer; number of genes.}
 
@@ -21,12 +21,11 @@ run_single_simulation(sim_id, n, cons, skew, B_perm, B_boot)
 \item{B_boot}{Integer; bootstrap replicates for variance estimation.}
 }
 \value{
-Data.frame with columns for sim_id, method, z_score, p_value,
-  observed_congruence, and variance.
+A list of the five p-values, the elapsed time of each
+  approximate test, and the \code{compare_variances} output.
 }
 \description{
 Generates synthetic p_A/p_B data via \code{generate_gene_data_full_spectrum}
-and runs the permutation test and all four variance-based tests,
-returning a data.frame of results for one simulation replicate.  Designed
-for parallelisation over many replicates.
+and runs the permutation test and the four approximate tests for one
+replicate.
 }

@@ -37,8 +37,8 @@ phi_lun <- mcmc_phi_baboon$LUN    # genes x MCMC iterations (phase in hours, 0-2
 
 # Posterior mean = P(rhythmic | data)
 posterior_mean  <- rowMeans(rho_lun)
-# Bayes factor as Section S3 defines it, the posterior odds divided by the
-# prior odds. The runs behind mcmc_rho_BF3.RData used p_rhythmic = 0.2.
+# Bayes factor as in Section S3: posterior odds over prior odds, with the
+# p_rhythmic = 0.2 of the runs behind mcmc_rho_BF3.RData
 p_rhythmic      <- 0.2
 prior_odds      <- p_rhythmic / (1 - p_rhythmic)
 BF_bayes        <- posterior_mean / (1 - posterior_mean + 1e-20) / prior_odds
@@ -105,7 +105,7 @@ cosinor_df <- data.frame(
 )
 cosinor_df <- cosinor_df[!is.na(cosinor_df$pval), ]
 
-# ── Merge Bayesian + Cosinor on gene symbol ───────────────────────────────────
+# ── Merge Bayesian + Cosinor on Ensembl ID ────────────────────────────────────
 bay_df <- data.frame(
   ensg_id        = attr(rho_lun, "ensembl_gene_ids"),  # ENSG ID (match key)
   gene_bay        = gene_names_bay,                    # Bayesian HGNC symbol
@@ -221,8 +221,7 @@ clock_genes <- c("BMAL1", "CLOCK", "PER1", "PER2", "PER3",
                  "RORA", "RORB", "RORC", "DBP", "NPAS2")
 both_rhy$label <- ifelse(both_rhy$gene_bay %in% clock_genes, both_rhy$gene_bay, NA)
 
-# For labelled clock genes: nudge toward upper-left if x > median, else lower-right
-# so labels spread away from the diagonal on both sides
+# clock labels are nudged off the diagonal, to one side or the other of the median x
 clock_df       <- both_rhy[!is.na(both_rhy$label), ]
 x_med          <- median(clock_df$peak_cosinor_r, na.rm = TRUE)
 clock_df$nudge_x <- ifelse(clock_df$peak_cosinor_r >= x_med,  1, -1)
@@ -283,9 +282,7 @@ print(s5_table, row.names = FALSE)
 write.csv(s5_table, file.path(outdir, "S5_detection_counts.csv"), row.names = FALSE)
 
 # ── Where the evidence scale sits against the cosinor scale ───────────────────
-# The same merged set crossed over both thresholds rather than one, so the grid
-# shows where each scale's detections nest rather than fixing a cut-off on
-# either.
+# method-specific detections for each cosinor rule crossed with each BF cut
 cos_cuts <- list("p < 0.05"    = merged$pval < 0.05,
                  "p < 0.01"    = merged$pval < 0.01,
                  "BH q < 0.05" = p.adjust(merged$pval, "BH") < 0.05)
@@ -327,8 +324,7 @@ cat(sprintf("Pearson r (phase, n = %d) = %.4f\n", nrow(both_rhy), corr3))
 
 # ── Save combined PDF ─────────────────────────────────────────────────────────
 out_file <- file.path(outdir, "S5_Bayes_Cosinor_Agreement_LUN.pdf")
-# the supplementary scales this to a 6.5 in text block, so a wide canvas would
-# put the gene labels below 4 pt in print
+# 9 in wide keeps gene labels at 4 pt or more on a 6.5 in text block
 pdf(out_file, width = 9, height = 3.4)
 grid.arrange(
   p1, p2, p3, nrow = 1,

@@ -1,5 +1,5 @@
-# SAME SPECIE  (Baboon Thalamus vs Human Thalamus)
-
+# Baboon thalamus versus human thalamus: concordance, peak timing, pathway
+# enrichment and pairwise Jaccard across tissues.
 
 rm(list = ls())
 
@@ -19,8 +19,7 @@ outdir <- BAYRC_FIGURE_DIR
 load(file.path(BAYRC_SUMMARY_DIR, "mcmc_rho_BF3.RData"))
 load(file.path(BAYRC_SUMMARY_DIR, "phi", "mcmc_phi_BF3.RData"))
 
-# Objects from these:
-# "mcmc_data_baboon" "mcmc_data_human"  "mcmc_phi_baboon"  "mcmc_phi_human"
+# Loads mcmc_data_baboon, mcmc_data_human, mcmc_phi_baboon, mcmc_phi_human.
 
 library(KEGGREST)
 library(parallel)
@@ -55,7 +54,6 @@ if (file.exists(file.path(thien_dir, "permutation_functions.cpp"))) {
 source(file.path(thien_dir, "plots/heatmap.R"))
 }
 
-
 load(file.path(BAYRC_PATHWAY_DIR, "hw_orth.RData"))
 load(file.path(BAYRC_PATHWAY_DIR, "human.pathway.list.RData"))
 load(file.path(BAYRC_PATHWAY_DIR, "go.pathway.list_hsa.RData"))
@@ -70,14 +68,13 @@ setwd(WD)
 scripts <- list.files(file.path(BAYRC_PACKAGE_DIR, "R"), pattern = "[.]R$", full.names = TRUE)
 sapply(scripts, source)
 
-# Reset wd
 setwd(current_aging)
 
 #---------------------------------------------------------------------------------
 to_zt <- function(t_cos) ifelse(t_cos >= 18, t_cos - 24, t_cos)
 
 #---------------------------------------------------------------------------------
-# BRAIN/LUNG OBJECTS (HERE: LUNG Baboon vs LUNG Human)
+# THR objects for baboon and human
 #---------------------------------------------------------------------------------
 
 baboon_THR <- list(
@@ -105,8 +102,6 @@ save(
   human_THR,
   file = file.path(BAYRC_AGING_DIR, "data", "HB_thalamus.RData")
 )
-
-
 
 #---------------------------------------------------------------------------------
 # Global concordance score 
@@ -141,7 +136,7 @@ if (file.exists(file.path(thien_dir, "permutation_functions.cpp"))) {
 source(file.path(thien_dir, "plots/heatmap.R"))
 }
 
-# Analyze ALL genes together
+# Genome-wide concordance over all genes
 results_global1 <- multi_conservation(
   mcmc.merge.list   = list(baboon_THR, human_THR),
   dataset.names     = c("Baboon_THR", "Human_THR"),
@@ -182,7 +177,6 @@ library(ggplot2)
 library(dplyr)
 library(ggrepel)
 
-# Helper (already defined above, but keep here local if needed)
 to_zt <- function(t_cos) ifelse(t_cos >= 18, t_cos - 24, t_cos)
 
 #───────────────────────────────────────────────────────────────
@@ -200,7 +194,7 @@ maintained_df <- data.frame(
   stringsAsFactors = FALSE
 )
 
-# Filter for maintained genes only
+# Maintained genes only
 maintained_genes <- names(trans_outer$gain_loss_status[
   trans_outer$gain_loss_status == "Maintained"
 ])
@@ -296,12 +290,10 @@ cat("  Within ±2 h:", n_within, "\n")
 cat(sprintf("  ⇒ %.1f%% within ±2 h interval\n", pct_within))
 
 #───────────────────────────────────────────────────────────────
-# Plot preparation with circular remapping to minimize distance to diagonal
+# Shift each point by 0 or ±24 h to sit closest to the diagonal
 #───────────────────────────────────────────────────────────────
 
-# Function to re-map circular time points to minimize distance to diagonal
 remap_to_diagonal <- function(x, y, offset = 24) {
-  # Calculate all 9 possible transformations considering circular wrapping
   x_options <- c(x, x - offset, x + offset)
   y_options <- c(y, y - offset, y + offset)
 
@@ -311,7 +303,6 @@ remap_to_diagonal <- function(x, y, offset = 24) {
 
   for (x_opt in x_options) {
     for (y_opt in y_options) {
-      # Distance to diagonal y = x is |y - x|
       dist <- abs(y_opt - x_opt)
       if (dist < best_dist - 1e-9) {
         best_dist <- dist
@@ -416,25 +407,21 @@ ggsave(
   plot = p, width = 9, height = 8
 )
 
-#───────────────────────────────────────────────────────────────
-#───────────────────────────────────────────────────────────────
 ################################################################################
-# COMPLETE WORKFLOW: Baboon Thalamus vs Human Thalamus Pathway Analysis
+# Pathway analysis: Baboon Thalamus vs Human Thalamus
 ################################################################################
 
-# Set parameters
 dataset_names <- c("Baboon_THR", "Human_THR")
 qvalue_cut <- 0.25
 nperm <- 1000
 pathway_size_min <- 10
 pathway_size_max <- 300
 
-# Set output directory
 output.dir <- BAYRC_OUTPUT_DIR
 dir.create(output.dir, recursive = TRUE, showWarnings = FALSE)
 
 ################################################################################
-# STAGE 1: Identify Active Pathways (Union Test - P-value Filter)
+# STAGE 1: Active pathways (union test, p-value filter)
 ################################################################################
 
 cat("\n=== STAGE 1: Union Test (Active Pathways) ===\n")
@@ -451,11 +438,9 @@ result_union <- pathSelect(
   nperm = nperm,
   nproc = 1
 )
-# Extract the results dataframe
 union_results <- result_union$results
 
-
-# Filter by P-VALUE (not q-value)
+# Active pathways are selected on the p-value, not the q-value
 active_pathways <- result_union$results %>%
   filter(pval < 0.20) %>%
   pull(pathway)
@@ -463,12 +448,11 @@ active_pathways <- result_union$results %>%
 cat("Active pathways (p < 0.05):", length(active_pathways), "\n")
 
 ################################################################################
-# STAGE 2: Test Transitions on Active Pathways (Q-value Filter)
+# STAGE 2: Transition tests on active pathways (q-value filter)
 ################################################################################
 
 cat("\n=== STAGE 2: Transition Tests (Gain, Loss, Conservation) ===\n")
 
-# Ensure correct order
 active_pathway_list <- kegg.pathway.list_hsa[match(active_pathways, names(kegg.pathway.list_hsa))]
 
 # Gain enrichment
@@ -485,7 +469,6 @@ result_gain <- pathSelect(
   nproc = 1
 )
 
-
 # Loss enrichment
 result_loss <- pathSelect(
   mcmc.merge.list = list(Human_THR = human_THR, Baboon_THR = baboon_THR),
@@ -500,7 +483,7 @@ result_loss <- pathSelect(
   nproc = 1
 )
 
-# Conservation enrichment - Q-VALUE FILTERING
+# Conservation enrichment
 result_cons <- pathSelect(
   mcmc.merge.list = list(Human_THR = human_THR, Baboon_THR = baboon_THR),
   pathway.list = active_pathway_list,
@@ -514,49 +497,35 @@ result_cons <- pathSelect(
   nproc = 1
 )
 
-
-
-# 
 result_gain$results %>%
   filter(pval < 0.05) %>%
   select(pathway, size, Gain_Index, Expected_N_Gain, pval, padj, Gain_Loss_Ratio_Arithmetic)
 
-# 
 result_loss$results %>%
   filter(pval < 0.05) %>%
   select(pathway, size, Loss_Index, Expected_N_Loss, pval, padj, Gain_Loss_Ratio_Arithmetic)
-# 
-# result_cons$results %>%
-#   filter(padj < 0.20) %>%
-#   select(pathway, size, Conserved_Index, Expected_N_Conserved, pval, padj, Gain_Loss_Ratio_Arithmetic)
-
 
 result_cons$results %>%
   filter(pathway == "KEGG Ribosome") %>%
   select(pathway, size, Conserved_Index, Expected_N_Conserved, Top_Conserved_Genes, pval, padj, Gain_Loss_Ratio_Arithmetic)
 
-
 print_pathway_summary <- function(result_obj, 
                                   filter_by = c("q", "p"),
                                   cutoff = 0.2) {
   
-  filter_by <- match.arg(filter_by)   # ensure "p" or "q"
-  
-  # Extract table
+  filter_by <- match.arg(filter_by)
+
   df <- result_obj$results
-  
-  # Compute expected union and ratio
+
   df$Expected_Union <- df$Expected_N_Gain + df$Expected_N_Loss + df$Expected_N_Conserved
   df$Union_Size_Ratio <- df$Expected_Union / df$size
-  
-  # Decide filtering method
+
   if (filter_by == "q") {
     df_sig <- df[df$padj < cutoff, ]
   } else {
     df_sig <- df[df$pval < cutoff, ]
   }
-  
-  # Print formatted output
+
   apply(df_sig, 1, function(x) {
     cat(sprintf(
       "%s (Expected gain = %.1f; Expected loss = %.1f; Expected conserved = %.1f; Expected union = %.1f; Expected union / size = %.1f / %d = %.3f; Gain/Loss ratio = %.3f; p value = %.4g; q value = %.4g)\n\n",
@@ -580,7 +549,7 @@ print_pathway_summary(result_loss, filter_by = "q", cutoff = 0.2)
 print_pathway_summary(result_cons, filter_by = "q", cutoff = 0.2)
 
 ################################################################################
-# STAGE 3: Filter to Significant Pathways
+# STAGE 3: Significant pathways
 ################################################################################
 
 cat("\n=== STAGE 3: Filtering Significant Pathways ===\n")
@@ -613,7 +582,7 @@ cat("Pathways significant for at least one transition:", length(significant_path
 filtered_pathway_list <- kegg.pathway.list_hsa[match(significant_pathways, names(kegg.pathway.list_hsa))]
 
 ################################################################################
-# STAGE 4: Run multi_conservation on FILTERED Pathways
+# STAGE 4: multi_conservation on the significant pathways
 ################################################################################
 
 cat("\n=== STAGE 4: Descriptive Metrics (multi_conservation) ===\n")
@@ -630,7 +599,7 @@ result_multiconservation <- multi_conservation(
 )
 
 ################################################################################
-# GO ENRICHMENT WORKFLOW (GO PATHWAY LIST)
+# GO enrichment
 ################################################################################
 
 cat("\n\n################################################################################\n")
@@ -677,8 +646,6 @@ top_loss_go <- result_loss_go$results %>%
   filter(padj < 0.05) %>%
   dplyr::select(pathway, pval, padj, Top_Loss_Genes)
 
-# 27 
-
 result_cons_go <- pathSelect(
   mcmc.merge.list = list(Human_THR = human_THR, Baboon_THR = baboon_THR),
   pathway.list = go.pathway.list_hsa,
@@ -701,7 +668,6 @@ print_pathway_summary(result_gain_go, filter_by = "q", cutoff = 0.2)
 print_pathway_summary(result_loss_go, filter_by = "q", cutoff = 0.05)
 print_pathway_summary(result_cons_go, filter_by = "q", cutoff = 0.05)
 
-
 result_multiconservation_filtered <- result_multiconservation %>%
   select(
     Pathway,
@@ -717,42 +683,26 @@ result_multiconservation_filtered <- result_multiconservation_filtered %>%
   filter(Pathway %in% relevant_pathways)
 
 ###############################################
-# PATHWAY LIST TO PLOT - BABOON vs HUMAN LUNG
-###############################################
-
-
-###############################################
-# SET UP OUTPUT DIRECTORY
+# Output directory for the pathway heatmaps
 ###############################################
 
 base_path <- file.path(output.dir, "heatmap_baboon_human_thalamus")
 dir.create(base_path, showWarnings = FALSE, recursive = TRUE)
 
 ###############################################################
-# PLOT EACH PATHWAY
+# Heatmap per pathway
 ###############################################################
 pA <- rowMeans(human_THR$rho)
 pB <- rowMeans(baboon_THR$rho)
 
 circadian_genes <- kegg.pathway.list_hsa[["KEGG Circadian rhythm"]]
 
-# Replace ARNTL with BMAL1
+# KEGG uses ARNTL; the expression data use BMAL1
 circadian_genes <- ifelse(circadian_genes == "ARNTL", "BMAL1", circadian_genes)
 
-# Save back into list
 kegg.pathway.list_hsa[["KEGG Circadian rhythm"]] <- circadian_genes
 
 trans_outer <- transition_classify(pA, pB, bfdr_alpha = 0.25)
-
-# phase_inner <- phase_infer(
-#   phi_matrix1      = human_THR$phi,
-#   phi_matrix2      = baboon_THR$phi,
-#   gain_loss_status = trans_outer$gain_loss_status,
-#   bfdr_alpha       = 0.15,
-#   shift            = 3,
-#   P                = 24,
-#   compute_hdi      = TRUE
-# )
 
 pathways_to_plot = relevant_pathways
 
@@ -764,7 +714,6 @@ for (pathway in pathways_to_plot) {
   
   cat("\nProcessing:", pathway, "\n")
   
-  # -------- Pathway available? --------
   if (!pathway %in% names(kegg.pathway.list_hsa)) {
     cat("   ✗ Pathway not found — skip\n")
     next
@@ -780,15 +729,12 @@ for (pathway in pathways_to_plot) {
   
   cat("   Found", length(overlap), "overlapping genes\n")
   
-  # -------- Create output folder for this pathway --------
   safe_name <- gsub("[^A-Za-z0-9_]", "_", pathway)
   out_dir <- file.path(base_path, safe_name)
   dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
   
-  # -------- Plotting --------
   tryCatch({
-    
-    # Close any open graphics devices
+
     while (dev.cur() > 1) dev.off()
     
     plot_heatmap(
@@ -813,64 +759,47 @@ for (pathway in pathways_to_plot) {
 cat("\n=== COMPLETE: ALL PATHWAYS PLOTTED ===\n")
 cat("Output directory:", base_path, "\n")
 
-
-##########
-
 ################################################################################
-# GENOME-WIDE EXPECTED COUNTS TABLE
-################################################################################
-################################################################################
-# EXPECTED COUNTS TABLE - PROBABILISTIC ESTIMATION
-# Based on posterior probabilities (not binary classification)
+# Genome-wide expected counts, summed from posterior probabilities
 ################################################################################
 
 library(dplyr)
 library(kableExtra)
 
-# For Baboon Thalamus vs Human Thalamus analysis
 pA <- rowMeans(baboon_THR$rho)
 pB <- rowMeans(human_THR$rho)
 
-# Get transition classification with probabilistic indices
 trans_outer <- transition_classify(pA, pB, bfdr_alpha = 0.25)
 
 cat("\n=== Checking Probabilistic Indices ===\n")
 cat("Names in trans_outer:\n")
 print(names(trans_outer))
 
-# Extract the probabilistic indices (these should be vectors for each gene)
-# Expected counts are the SUM of these probabilities across all genes
+# Expected counts are per-gene probabilities summed over genes
 n_total <- length(pA)
 
-# Check if trans_outer has the probability vectors
 if ("p_gain" %in% names(trans_outer)) {
   expected_gain <- sum(trans_outer$p_gain, na.rm = TRUE)
   expected_loss <- sum(trans_outer$p_loss, na.rm = TRUE)
   expected_cons <- sum(trans_outer$p_cons, na.rm = TRUE)
 } else {
-  # Calculate manually if not in trans_outer
   cat("\nCalculating probabilistic indices manually...\n")
-  
-  # Probability of being rhythmic in each condition
+
   p_rhythmic_A <- pA
   p_rhythmic_B <- pB
-  
-  # Expected number rhythmic in each condition
+
   expected_rhythmic_baboon <- sum(p_rhythmic_A, na.rm = TRUE)
   expected_rhythmic_human <- sum(p_rhythmic_B, na.rm = TRUE)
-  
-  # Gain: rhythmic in B (human) but not in A (baboon)
-  # p_gain = pB * (1 - pA)
+
+  # Gain: rhythmic in human (B) only
   p_gain <- pB * (1 - pA)
   expected_gain <- sum(p_gain, na.rm = TRUE)
-  
-  # Loss: rhythmic in A (baboon) but not in B (human)
-  # p_loss = pA * (1 - pB)
+
+  # Loss: rhythmic in baboon (A) only
   p_loss <- pA * (1 - pB)
   expected_loss <- sum(p_loss, na.rm = TRUE)
-  
-  # Conserved: rhythmic in both A and B
-  # p_cons = pA * pB
+
+  # Conserved: rhythmic in both
   p_cons <- pA * pB
   expected_cons <- sum(p_cons, na.rm = TRUE)
   
@@ -881,7 +810,6 @@ if ("p_gain" %in% names(trans_outer)) {
   cat("Expected Conserved:", round(expected_cons, 1), "\n")
 }
 
-# Create expected counts summary
 genome_wide_expected <- data.frame(
   Category = c(
     "Total Genes", 
@@ -905,7 +833,6 @@ genome_wide_expected <- data.frame(
     Percentage = sprintf("%.2f%%", 100 * Expected_Count / n_total)
   )
 
-# Add thresholds
 genome_wide_expected$Threshold <- c(
   NA,
   trans_outer$tau_rhythmic_A,
@@ -922,15 +849,13 @@ cat("========================================\n\n")
 
 print(genome_wide_expected)
 
-# Verification
 cat("\n=== VERIFICATION ===\n")
-cat("Expected Gain + Loss + Conserved =", 
+cat("Expected Gain + Loss + Conserved =",
     round(expected_gain + expected_loss + expected_cons, 1), "\n")
 
-
-
-
-####
+################################################################################
+# Circular peak-time plot of conserved clock genes
+################################################################################
 library(ggplot2)
 library(dplyr)
 library(tidyr)
@@ -975,7 +900,7 @@ plot_data <- results %>%
   ) %>%
   mutate(
     Species = factor(Species, levels = c("Baboon", "Human")),
-    gene_id = as.numeric(factor(Gene)) + 2,  # SKIP CENTER - START AT 3
+    gene_id = as.numeric(factor(Gene)) + 2,  # rings start at 3, leaving the centre empty
     
     rad = (Mean / 24) * 2 * pi,
     rad_sd = (SD / 24) * 2 * pi,
@@ -992,14 +917,14 @@ gene_colors <- setNames(
 )
 
 p <- ggplot(plot_data) +
-  # CI bands - single layer, low opacity
+  # ±1 SD arcs
   geom_segment(
     aes(x = rad_lower, xend = rad_upper, y = gene_id, yend = gene_id, 
         color = Gene, linetype = Species),
     linewidth = 8, alpha = 0.3, lineend = "butt"
   ) +
   
-  # Centroids
+  # Circular mean peak time
   geom_point(
     aes(x = rad, y = gene_id, fill = Gene, shape = Species),
     color = "white", size = 5, stroke = 2, alpha = 0.9
@@ -1050,19 +975,15 @@ dir.create(save_dir, recursive = TRUE, showWarnings = FALSE)
 ggsave(file.path(save_dir, "Baboon_Human_THR_circular_phase_plot.pdf"), p, width = 12, height = 10, dpi = 800)
 ggsave(file.path(save_dir, "Baboon_Human_THR_circular_phase_plot.png"), p, width = 12, height = 10, dpi = 800)
 
-##### Test new function
-
 ################################################################################
-# TEST: Iteration-Level Jaccard Index
+# Iteration-level Jaccard index
 ################################################################################
 
-# Compute Jaccard for each iteration
 result <- compute_adjusted_jaccard_analytical_pvalue(
   rho_A = baboon_THR$rho,
   rho_B = human_THR$rho
 )
 
-# Summary statistics
 jaccard_dist <- result$jaccard_obs_mean
 jaccard_mean <- mean(jaccard_dist, na.rm = TRUE)
 jaccard_sd <- sd(jaccard_dist, na.rm = TRUE)
@@ -1073,7 +994,7 @@ cat(sprintf("  Mean: %.4f\n", jaccard_mean))
 cat(sprintf("  SD:   %.4f\n", jaccard_sd))
 cat(sprintf("  95%% CI: [%.4f, %.4f]\n", jaccard_ci[1], jaccard_ci[2]))
 
-# Summary of confusion matrix across iterations
+# Confusion-matrix cells averaged over iterations
 confusion_summary <- colMeans(result$confusion, na.rm = TRUE)
 cat("\nAverage Confusion Matrix Elements:\n")
 cat(sprintf("  Both rhythmic (a):     %.1f genes\n", confusion_summary["a_both"]))
@@ -1081,7 +1002,6 @@ cat(sprintf("  Loss (b):              %.1f genes\n", confusion_summary["b_loss"]
 cat(sprintf("  Gain (c):              %.1f genes\n", confusion_summary["c_gain"]))
 cat(sprintf("  Neither rhythmic (d):  %.1f genes\n", confusion_summary["d_neither"]))
 
-# Gain/Loss ratio distribution
 gain_loss_ratio <- result$confusion[, "c_gain"] / result$confusion[, "b_loss"]
 cat("\nGain/Loss Ratio:\n")
 cat(sprintf("  Mean: %.4f\n", mean(gain_loss_ratio, na.rm = TRUE)))
@@ -1089,13 +1009,9 @@ cat(sprintf("  95%% CI: [%.4f, %.4f]\n",
             quantile(gain_loss_ratio, 0.025, na.rm = TRUE),
             quantile(gain_loss_ratio, 0.975, na.rm = TRUE)))
 
-
-#####
 ################################################################################
-# CONCISE PAIRWISE TISSUE CONCORDANCE ANALYSIS
+# Pairwise tissue concordance
 ################################################################################
-
-# Core function for concordance (minimal output)
 
 ################################################################################
 # 1. WITHIN-HUMAN PAIRWISE
@@ -1224,7 +1140,7 @@ write.csv(results_cross_species,
 
 cat("\n\nDone! Results saved.\n")
 
-# Sort and display top 10 for each
+# Top pairs by adjusted Jaccard
 cat("\n=== TOP 10 WITHIN-HUMAN ===\n")
 print(head(results_within_human[order(-results_within_human$Jaccard_Adj), ], 20))
 
@@ -1235,21 +1151,16 @@ cat("\n=== TOP 10 CROSS-SPECIES ===\n")
 print(head(results_cross_species[order(-results_cross_species$Jaccard_Adj), ], 20))
 # Humans: small but universal circadian program; Baboons: large but tissue-diversified circadian program
 
-
-########
-
-
+# Transition status of the ribosome genes
 trans_outer <- transition_classify_marginal(pA, pB, bfdr_alpha = 0.20)
 ribosome_status <- trans_outer$gain_loss_status[ribosome_genes]
 ribosome_status <- ribosome_status[!is.na(ribosome_status)]
 table(ribosome_status)
 
-
-
-
-# INLINE_PLOT_FROM_run_concordance_THR.R
-# Regenerate concordance figure for Baboon_Human_THR
-# Source in the THR screen session where all objects are loaded
+################################################################################
+# Peak concordance figure, as drawn by run_concordance_THR.R; needs the objects
+# above in the session.
+################################################################################
 
 library(ggplot2); library(dplyr); library(ggrepel)
 if (!dir.exists(tempdir())) dir.create(tempdir(), recursive = TRUE)
@@ -1329,7 +1240,7 @@ cat("  Maintained genes:", n_total, "\n")
 cat("  Within +/-2 h:", n_within, "\n")
 cat(sprintf("  => %.1f%% within +/-2 h interval\n", pct_within))
 
-# Diagnostic: which circadian genes are in the maintained set?
+# Clock genes present in the maintained set
 circ_in <- circadian_genes[circadian_genes %in% maintained_df$Gene]
 circ_out <- circadian_genes[!circadian_genes %in% maintained_df$Gene]
 cat("\n[Circadian genes in Maintained set]:", length(circ_in), "/", length(circadian_genes), "\n")
@@ -1402,6 +1313,4 @@ dir.create(save_dir, recursive = TRUE, showWarnings = FALSE)
 ggsave(file.path(save_dir, "Baboon_Human_THR_Peak_Concordance_0.25_2h.pdf"),
        plot = p, width = 9, height = 8)
 cat("\nFigure saved to:", file.path(save_dir, "Baboon_Human_THR_Peak_Concordance_0.25_2h.pdf"), "\n")
-
-# END_INLINE_PLOT_FROM_run_concordance_THR.R
 

@@ -22,8 +22,7 @@ source(file.path(if (is.na(this.file)) dirname(getwd()) else
 
 args <- commandArgs(trailingOnly = TRUE)
 
-# The 2025 table is the one plots/heatmap_baboon.R wrote; it is still on disk
-# under the aging results tree, so nothing has to be recomputed.
+# previous run: the 2025 table plots/heatmap_baboon.R wrote under the aging tree
 prev.file <- if (length(args) >= 1) args[1] else
   file.path(BAYRC_AGING_DIR, "results", "baboon", "output_final",
             "concordance_within_baboon.csv")
@@ -159,10 +158,7 @@ if (nrow(entered)) show(entered[order(entered$rank_curr), ],
                         "enters the top 10 in the current run")
 
 # What moves a pair ----------------------------------------------------------
-# A pair's shift tracks how many rhythmic genes its tissues have, not how much
-# those counts changed between runs. Sparse tissues rise and dense ones fall,
-# because the adjusted concordance keeps a residual dependence on the size of
-# the two gene sets and that dependence changes sign between the runs.
+# Rank shift against each tissue's rhythmic count and its ratio between runs.
 
 counts.file <- Sys.getenv("BAYRC_PAPER_TABLE",
   unset = file.path(dirname(BAYRC_OUTPUT_DIR), "paper_table.rds"))

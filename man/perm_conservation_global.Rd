@@ -24,8 +24,8 @@ matrix (G x K binary).}
 \item{dat2}{Named list; MCMC output for condition 2 with a \code{rho}
 matrix.}
 
-\item{delta}{Numeric; passed to \code{congruence} (default 3; currently
-unused in the probabilistic score).}
+\item{delta}{Numeric; passed to \code{congruence} (default 3; not used
+by the probabilistic score).}
 
 \item{units}{Character; \code{"hours"} or \code{"radians"} (default
 \code{"hours"}).}

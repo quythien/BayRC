@@ -16,7 +16,6 @@ Numeric; arc width in hours, in \[0, P).
 }
 \description{
 Width of the arc that runs from \code{lower} forward to \code{upper} on a
-circle of circumference \code{P}. Unlike \code{upper - lower} this is
-always in \[0, P) and stays correct when the arc crosses the seam, which
-is the case whenever \code{upper < lower} -- common for phases near ZT 0.
+circle of circumference \code{P}. The result is in \[0, P), including arcs
+that cross the seam (\code{upper < lower}), as for phases near ZT 0.
 }

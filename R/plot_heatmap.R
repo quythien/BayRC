@@ -117,9 +117,7 @@ plot_heatmap <- function(data1, data2, data3 = NULL,
 
   versions <- match.arg(versions)
   fs <- function(size) size * font_scale
-  # the region names sit under blocks of a fixed width and the title sits a
-  # fixed distance above the body, so both run into their neighbours if they
-  # take the full scaling
+  # block names and the title sit in fixed room, so their scaling is capped
   fs_block <- function(size) size * min(font_scale, 1.1)
   
   if(!requireNamespace("ComplexHeatmap", quietly = TRUE)) {
@@ -128,9 +126,7 @@ plot_heatmap <- function(data1, data2, data3 = NULL,
   if(!requireNamespace("circular", quietly = TRUE)) {
     stop("Install circular: install.packages('circular')")
   }
-  # requireNamespace() above only confirms the packages are installed; the
-  # heatmap calls below (rowAnnotation, Heatmap, colorRamp2, etc.) use bare
-  # unqualified names, so these must also be attached to the search path.
+  # the calls below use unqualified ComplexHeatmap and circlize names
   suppressPackageStartupMessages(library(ComplexHeatmap))
   if (requireNamespace("circlize", quietly = TRUE)) {
     suppressPackageStartupMessages(library(circlize))
@@ -176,7 +172,7 @@ plot_heatmap <- function(data1, data2, data3 = NULL,
     stop("transition_results is required. Please provide output from transition_classify()")
   }
   
-  # Get phase results - directly use flag_shift and flag_cons
+  # Phase status from the flag_shift and flag_cons flags of phase_infer
   phase_gene_names <- names(phase_results$peak1)
   match_idx_phase <- match(overlap_genes, phase_gene_names)
   
@@ -186,7 +182,6 @@ plot_heatmap <- function(data1, data2, data3 = NULL,
     idx <- match_idx_phase[i]
     
     if(!is.na(idx)) {
-      # Directly use the flags from phase_infer
       if(phase_results$flag_shift[idx]) {
         phase_status[i] <- "Shifted"
       } else if(phase_results$flag_cons[idx]) {
@@ -253,17 +248,13 @@ plot_heatmap <- function(data1, data2, data3 = NULL,
 
   # Get peak2 (Group2 peak time) for sorting within categories
   peak2_for_sort <- phase_results$peak2[match_idx_phase]
-  # Convert to -6 to 18 display range for proper visual sorting
-  # Peaks > 18 should wrap to negative (e.g., 20 -> -4)
+  # Sort on the -6 to 18 display range, so a peak at 20 h sorts as -4 h
   peak2_for_sort[peak2_for_sort > 18] <- peak2_for_sort[peak2_for_sort > 18] - 24
   peak2_for_sort[is.na(peak2_for_sort)] <- 99  # Put NA at end
 
   priority <- rep(0, n_genes)
   max_rho <- pmax(rho_1, rho_2)
-  # Split "Shifted" into later and earlier
-  # NOTE: deltaPhi from phase_infer is (Group1 - Group2), so:
-  #   - Negative deltaPhi = peak moved LATER in Group2 = "Shifted later"
-  #   - Positive deltaPhi = peak moved EARLIER in Group2 = "Shifted earlier"
+  # "Shifted" splits on deltaPhi = Group1 - Group2; negative means Group2 peaks later
   priority[!is.na(phase_status) & phase_status == "Shifted" & !is.na(deltaPhi_for_priority) & deltaPhi_for_priority < 0] <- 5.5   # Shifted later first (negative deltaPhi)
   priority[!is.na(phase_status) & phase_status == "Shifted" & (is.na(deltaPhi_for_priority) | deltaPhi_for_priority >= 0)] <- 5.0  # Shifted earlier second (positive deltaPhi)
   priority[!is.na(phase_status) & phase_status == "Conserved"] <- 4
@@ -329,7 +320,7 @@ plot_heatmap <- function(data1, data2, data3 = NULL,
   # 3. LEFT ANNOTATIONS (with complete legends)
   # ==========================================================================
   
-  # Define all possible levels for phase status (ensures both appear in legend)
+  # Both phase levels are declared so both appear in the legend
   phase_status_factor <- factor(
     phase_status_ord,
     levels = c("Shifted", "Conserved")
@@ -454,7 +445,7 @@ plot_heatmap <- function(data1, data2, data3 = NULL,
   )
   
   # ==========================================================================
-  # 5. PHASE HISTOGRAM MATRICES (with context-aware intensity)
+  # 5. PHASE HISTOGRAM MATRICES (intensity set by rhythmicity status)
   # ==========================================================================
   
   # every peak-time block spans this window, and its axis is drawn against it
@@ -578,16 +569,12 @@ plot_heatmap <- function(data1, data2, data3 = NULL,
   )
 
   # ==========================================================================
-  # 6. DELTA PHI BARPLOT (symmetric around 0, calculated for ALL genes)
+  # 6. DELTA PHI BARPLOT (symmetric about 0, all genes)
   # ==========================================================================
   
   # Set gray for genes without phase status, colors for those with phase classification
   delta_colors <- rep("#E0E0E0", n_genes)  # Medium gray for non-classified
-  # Split shifted into later (red) and earlier (blue) based on deltaPhi
-  # NOTE: deltaPhi from phase_infer is (Group1 - Group2)
-  # We DISPLAY as (Group2 - Group1), so:
-  #   - Negative internal deltaPhi -> Positive display -> Group2 peaks LATER = "Shifted later" (red)
-  #   - Positive internal deltaPhi -> Negative display -> Group2 peaks EARLIER = "Shifted earlier" (blue)
+  # Shifted later in Group2 (deltaPhi < 0) is red, shifted earlier is blue
   delta_colors[!is.na(phase_status_ord) & phase_status_ord == "Shifted" & !is.na(deltaPhi_ord) & deltaPhi_ord < 0] <- "#E63946"   # Shifted later (red)
   delta_colors[!is.na(phase_status_ord) & phase_status_ord == "Shifted" & (is.na(deltaPhi_ord) | deltaPhi_ord >= 0)] <- "#4361EE"  # Shifted earlier (blue)
   delta_colors[!is.na(phase_status_ord) & phase_status_ord == "Conserved"] <- "#06A77D"
@@ -604,8 +591,7 @@ plot_heatmap <- function(data1, data2, data3 = NULL,
     m3 <- match(genes_ord, names(phase_results3$peak1))
     delta3_ord <- phase_results3$deltaPhi.Est[m3]
 
-    # the offset comes from the peaks themselves where the comparison left none,
-    # as it does for the first comparator
+    # a missing offset is filled from the peaks, as for the first comparator
     peak1_3 <- phase_results3$peak1[m3]
     peak2_3 <- phase_results3$peak2[m3]
     for (i in 1:n_genes) {
@@ -706,8 +692,7 @@ plot_heatmap <- function(data1, data2, data3 = NULL,
   pt_mm <- 25.4 / 72
   axis_fs <- fs(15)
   name_gp <- gpar(fontsize = fs_block(15), fontface = "bold")
-  # the axis numerals hang just under the body and the block names hang a line
-  # under them, so a two-line name grows downward and never meets the numerals
+  # axis numerals hang under the body and block names a line below them
   axis_y <- unit(0, "npc") - unit(1.5, "mm")
   name_y <- axis_y - unit(axis_fs * 1.2, "bigpts") - unit(2.5, "mm")
 
@@ -721,8 +706,7 @@ plot_heatmap <- function(data1, data2, data3 = NULL,
   # a block name wider than its block spills into the gaps either side of it
   spill <- max(mm_wide(group_names, name_gp) - block_width * 10,
                mm_wide(offset_names, name_gp) - delta_width * 10)
-  # a three-condition panel names its columns under the body in rotated type,
-  # and that room already holds the axes and block names
+  # rotated column names of a three-condition panel already reserve room under the body
   reserved <- if (is.null(data3)) 0 else
     mm_wide(group_names, gpar(fontsize = fs(15), fontface = "bold"))
   dev.off()
@@ -733,13 +717,10 @@ plot_heatmap <- function(data1, data2, data3 = NULL,
   n_name_lines <- max(lengths(strsplit(c(group_names, offset_names), "\n", fixed = TRUE)))
   hang_mm <- 7 + (axis_fs + n_name_lines * fs_block(15)) * 1.2 * pt_mm
   below_mm <- max(4, hang_mm - reserved)
-  # the title is centred 1.6 lines below the page edge and the body begins 2.4
-  # lines down, so the title keeps its headroom when the page is scaled
+  # title centred 1.6 lines below the page edge, body starting 2.4 lines down
   title_mm <- if (show_title) fs_block(title_size) * 2.4 * pt_mm else 2
 
-  # every peak-time block spans phase_from to phase_to, so its labels sit at
-  # fixed fractions of the block; each end label is justified inward and stays
-  # inside the block at any scale
+  # labels sit at fixed fractions of the block, end labels justified inward
   draw_axis <- function(ticks, labels, at) {
     grid.segments(x0 = unit(ticks, "npc"), x1 = unit(ticks, "npc"),
                   y0 = unit(0, "npc"), y1 = unit(0, "npc") - unit(1.6, "mm"))
@@ -749,9 +730,7 @@ plot_heatmap <- function(data1, data2, data3 = NULL,
   phase_at  <- function(h) (h - phase_from) / (phase_to - phase_from)
   offset_at <- function(h) (h + axis_limit) / (2 * axis_limit)
 
-  # A tick every 6 h, labelled where the numerals leave a clear gap between
-  # them and otherwise only at the two ends and the midpoint. Wide blocks
-  # therefore carry the full hour scale and narrow ones stay legible.
+  # a tick every 6 h, all labelled if the numerals fit, else the ends and midpoint
   labelled_hours <- function(hours, width_cm) {
     pdf(NULL)
     ink <- sum(vapply(as.character(hours), function(s)
@@ -788,9 +767,7 @@ plot_heatmap <- function(data1, data2, data3 = NULL,
       })
   }
 
-  # A figure whose panels share one legend draws them with show_legend = FALSE
-  # and places this file beneath the pair. The strip is placed at its own width
-  # rather than a panel's, so its type is set smaller than the in-panel text.
+  # shared legend strip, written to its own file in smaller type than the panel
   if (!is.null(legend_path) && current_version == versions_to_run[1]) {
     base_legends <- list(
       Legend(title = "Rhythmicity Status", labels = names(conc_colors),
@@ -810,8 +787,7 @@ plot_heatmap <- function(data1, data2, data3 = NULL,
              title_gp = gpar(fontsize = 10, fontface = "bold"),
              labels_gp = gpar(fontsize = 8)))
     pack_args <- list(direction = "horizontal", gap = unit(6, "mm"))
-    # a strip placed under one panel rather than the whole row has to wrap, or
-    # it is scaled down to fit and its type shrinks with it
+    # a strip under one panel wraps at legend_max_width
     if (!is.null(legend_max_width))
       pack_args$max_width <- unit(legend_max_width, "cm")
     shared <- do.call(packLegend, c(base_legends, extra_legends, pack_args))
@@ -835,8 +811,7 @@ plot_heatmap <- function(data1, data2, data3 = NULL,
          show_annotation_legend = show_legend,
          merge_legend = TRUE,
          ht_gap = ht_gaps,
-         # the type under the body hangs into the bottom margin and the title
-         # sits in the top one
+         # bottom margin holds the type under the body, top margin the title
          padding = unit(c(below_mm, 2, title_mm, 2), "mm"))
 
   if(!is.null(save_path)) {
@@ -848,17 +823,12 @@ plot_heatmap <- function(data1, data2, data3 = NULL,
     fig_height <- max(6, min(fig_height, 26))
     # legends laid out in a row below the heatmap need their own band
     if (show_legend && legend_side == "bottom") fig_height <- fig_height + 1.2
-    # the margins that hold the title and the type under the body are added to
-    # the page, so the body keeps its height
+    # title and under-body margins are added to the page height
     fig_height <- fig_height + (below_mm + title_mm) / 25.4
     cat("Saving:", filename, "\n")
-    # the blocks are a fixed 16 cm, so a short heatmap on a 10 in canvas is
-    # mostly margin and renders small beside a taller panel. Narrowing the
-    # canvas for a few-gene pathway lets the blocks fill it and brings the
-    # panel's aspect closer to square.
+    # the default canvas narrows for a few-gene pathway so the fixed-width blocks fill it
     fig_width <- if (identical(canvas_width, "fit")) {
-      # every component has an absolute width, so a draw on a null device
-      # measures the page that holds them with no margin to spare
+      # all widths are absolute, so a null-device draw measures the page
       pdf(NULL, width = 30, height = fig_height)
       drawn <- draw_list()
       w <- convertWidth(drawn@ht_list_param$width, "in", valueOnly = TRUE)

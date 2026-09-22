@@ -4,14 +4,10 @@
 ## Same layout rule as pipeline/summarize_rho_phi.R: rows in Ensembl-ID order,
 ## named by HGNC symbol, carrying the symbols / RHYindex / ensembl_gene_ids
 ## attributes. The gene set is the three-way match, the genes the symbol map
-## shares with the mouse-to-human object, so human, baboon and mouse can be put
-## on one set of rows.
+## shares with the mouse-to-human object.
 ##
-## The human side is taken from the human/baboon summary rather than sampled
-## again. The sampler treats genes independently: every prior is a fixed input,
-## p_rhythmic is held at 0.2 rather than estimated across genes, and each
-## update is elementwise over rows, so a gene's posterior does not depend on
-## which other genes share the matrix.
+## The human side is cut from the human/baboon summary; the sampler treats genes
+## independently, so a gene's posterior does not depend on the other rows.
 
 args    <- commandArgs(trailingOnly = TRUE)
 resdir  <- args[1]

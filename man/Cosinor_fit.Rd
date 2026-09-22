@@ -19,14 +19,12 @@ Cosinor_fit(
 
 \item{period}{Numeric; circadian period in hours (default 24).}
 
-\item{amp.cutoff}{Numeric; amplitude cutoff (currently unused, reserved
-for future filtering; default 0).}
+\item{amp.cutoff}{Numeric; amplitude cutoff (unused; default 0).}
 
 \item{p.adjust.method}{Character; multiple-testing correction method
 passed to \code{\link[stats]{p.adjust}} (default \code{"BH"}).}
 
-\item{parallel.ncores}{Integer; number of cores (currently reserved,
-default 1).}
+\item{parallel.ncores}{Integer; number of cores (unused; default 1).}
 }
 \value{
 The input list \code{x} augmented with a \code{rhythm}
@@ -39,9 +37,8 @@ The input list \code{x} augmented with a \code{rhythm}
 Fits a single-period OLS cosinor model (y = M + A*cos(omega*t - phi) +
 epsilon) to every gene in a dataset using vectorised least squares,
 returning MESOR, amplitude, acrophase, R-squared, and an F-test p-value
-for rhythmicity. This is the classical (non-Bayesian) cosinor method the
-paper contrasts BayRC's RJMCMC approach with; useful as a fast baseline
-or a quick pre-screen before running the full MCMC pipeline.
+for rhythmicity. This is the classical cosinor method used as the
+frequentist comparator to BayRC, and a fast pre-screen before the MCMC.
 }
 \details{
 Fit OLS cosinor model to circadian expression data

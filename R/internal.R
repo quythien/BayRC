@@ -1,486 +1,10 @@
-#### Thien
-##########################
-###### Check functions ###
-##########################
-
-# check.rawData <- function(data){
-#   G <- nrow(data)
-#   N <- ncol(data)
-#   if(!is.numeric(data)) {
-#     stop("expression data not numeric")
-#   }
-#   if(is.null(row.names(data))) {
-#     stop("gene symbol missing")
-#   }
-#   if(N <= 3) {
-#     stop("too few samples")
-#   }
-#   if(sum(duplicated(row.names(data)))>0){
-#     stop("duplicate gene symbols")
-#   }
-# }
-
-# check.groupData <- function(group){
-#   l <- nlevels(group)
-#   if( l != 2 ) {
-#     stop("not a two-class comparison")
-#   }
-# }
-# 
-# check.pData <- function(pData){
-#   G <- nrow(pData)
-#   if(!is.numeric(pData)) {
-#     stop("pvalue data not numeric")
-#   }
-#   if(is.null(row.names(pData))) {
-#     stop("gene symbol missing")
-#   }
-#   if(ncol(pData) <2) {
-#     stop("missing either p-value or effect size")
-#   }
-# }
-
-
-# check.compatibility <- function(data, group, case.label, ctrl.label){
-#   G <- nrow(data)
-#   N1 <- ncol(data)
-#   N2 <- length(group)
-#   if(N1 != N2) {
-#     stop("expression data and class label have unmatched sample size")
-#   }
-#   if(!all(group %in% c(case.label,ctrl.label))){
-#     stop("including class labels other than the case and control")
-#   }
-#   if(sum(group==case.label) <= 1 ||sum(group==ctrl.label) <= 1){
-#     stop("not enough samples in either case or control group")
-#   }
-# }
-
-##########################
-###### BayesP part ###
-##########################
-
-# PtoZ <- function(p2, lfc) {
-#   sgn <- sign(lfc)
-#   z <- ifelse(sgn>0, qnorm(p2/2), qnorm(p2/2,lower.tail = F))
-#   return(z)
-# }
-# 
-# SelectGamma <- function(p){
-#   ## Gamma is DE proportion  = 1-pi0
-#   m <- length(p)
-#   lambda <- seq(0,0.95,by=0.01)
-#   pi0 <- sapply(lambda, function(x) sum(p>x)/(m*(1-x))  )
-#   
-#   # fit a natural cubic spline
-#   library(splines)
-#   dat <- data.frame(pi0=pi0, lambda=lambda)
-#   lfit <- lm(pi0 ~ ns(lambda, df = 3), data=dat)
-#   pi0hat <- predict(lfit, data.frame(lambda=1))
-#   gamma <- 1 - pi0hat
-#   return(gamma)
-# }
-
-##################################
-###### ACS scores ################
-##################################
-# 
-# CSY <- function(d1,d2,index1){
-#   Sens <- calcSensC(d1[index1,],d2[index1,])
-#   Spec <- calcSpecC(d1[-index1,],d2[-index1,])
-#   
-#   CS <- Sens + Spec - 1
-#   if(is.nan(CS)) {
-#     CS <- 0
-#   }
-#   return(CS)
-# }
-# 
-# CSF <- function(d1,d2,index1,index2){
-#   Sens <- calcSensC(d1[index1,],d2[index1,])
-#   Prec <- calcPrecC(d1[index2,],d2[index2,])
-#   
-#   CS <- (2*Sens*Prec)/(Sens+Prec)
-#   if(is.nan(CS)) {
-#     CS <- 0
-#   }
-#   return(CS)
-# }
-# 
-# CSG <- function(d1,d2,index1,index2){
-#   Sens <- calcSensC(d1[index1,],d2[index1,])
-#   Spec <- calcSpecC(d1[-index1,],d2[-index1,])
-#   
-#   CS <- sqrt(Sens*Spec)
-#   if(is.nan(CS)) {
-#     CS <- 0
-#   }
-#   return(CS)
-# }
-# 
-# 
-# ECSY <- function(d1,d2){
-#   ESens <- calcESensC(d1,d2)
-#   ESpec <- calcESpecC(d1,d2)
-#   
-#   ECS <- ESens + ESpec - 1
-#   if(is.nan(ECS)) {
-#     ECS <- 0
-#   }
-#   return(ECS)
-# }
-# 
-# ECSF <- function(d1,d2){
-#   ESens <- calcESensC(d1,d2)
-#   EPrec <- calcEPrecC(d1,d2)
-#   
-#   ECS <- (2*ESens*EPrec)/(ESens+EPrec)
-#   if(is.nan(ECS)) {
-#     ECS <- 0
-#   }
-#   return(ECS)
-# }
-# 
-# ECSG <- function(d1,d2){
-#   ESens <- calcESensC(d1,d2)
-#   ESpec <- calcESpecC(d1,d2)
-#   
-#   ECS <- sqrt(ESens*ESpec)
-#   if(is.nan(ECS)) {
-#     ECS <- 0
-#   }
-#   return(ECS)
-# }
-# 
-# permCSY <- function(d1,d2){
-#   Sens <- calcSensC(d1,d2)
-#   Spec <- calcSpecC(d1,d2)
-#   
-#   permCS <- Sens + Spec - 1
-#   if(is.nan(permCS)) {
-#     permCS <- 0
-#   }
-#   return(permCS)
-# }
-# 
-# permCSF <- function(d1,d2){
-#   Sens <- calcSensC(d1,d2)
-#   Prec <- calcPrecC(d1,d2)
-#   
-#   permCS <- (2*Sens*Prec)/(Sens+Prec)
-#   if(is.nan(permCS)) {
-#     permCS <- 0
-#   }
-#   return(permCS)
-# }
-# 
-# permCSG <- function(d1,d2){
-#   Sens <- calcSensC(d1,d2)
-#   Spec <- calcSpecC(d1,d2)
-#   
-#   permCS <- sqrt(Sens*Spec)
-#   if(is.nan(permCS)) {
-#     permCS <- 0
-#   }
-#   return(permCS)
-# }
-
-
-# CS <- function(dat1,dat2,deIndex1,deIndex2,measure="Fmeasure"){
-#   ## same for both global and pathway
-#   if(measure=="youden"){
-#     CS <- CSY(dat1,dat2,deIndex1)
-#   } else if(measure=="Fmeasure"){
-#     CS <- CSF(dat1,dat2,deIndex1,deIndex2)
-#   } else if(measure=="geo.mean"){
-#     CS <- CSG(dat1,dat2,deIndex1)
-#   }
-#   return(CS)
-# }
-# 
-# 
-# ECS <- function(dat1,dat2,measure="Fmeasure"){
-#   ## same for both global and pathway
-#   if(measure=="youden"){
-#     ECS <- ECSY(dat1,dat2)
-#   } else if(measure=="Fmeasure"){
-#     ECS <- ECSF(dat1,dat2)
-#   } else if(measure=="geo.mean"){
-#     ECS <- ECSG(dat1,dat2)
-#   }
-#   return(ECS)
-# }
-# 
-# permCS <- function(dat1,dat2,measure="Fmeasure"){
-#   ## same for both global and pathway
-#   if(measure=="youden"){
-#     pemrCS <- permCSY(dat1,dat2)
-#   } else if(measure=="Fmeasure"){
-#     permCS <- permCSF(dat1,dat2)
-#   } else if(measure=="geo.mean"){
-#     permCS <- permCSG(dat1,dat2)
-#   }
-#   return(permCS)
-# }
-
-##################################
-#### Global (expected value from marginal,
-#### permutate genes to get p-value)
-##################################
-
-# perm_global <- function(dat1,dat2,measure="Fmeasure",B){
-#   G <- nrow(dat1) 
-#   
-#   #rawCS <- CS(dat1,dat2,deIndex1,deIndex2,measure)
-#   #expCS <- ECS(dat1,dat2,measure)
-#   #rawDS <- DS(dat1,dat2,deIndex1,deIndex2,measure)
-#   #expDS <- EDS(dat1,dat2,measure)
-#   
-#   out <- matrix(NA,B,2)
-#   colnames(out) <- c("permCS","permECS")
-#   
-#   for(b in 1:B){
-#     dat1perm <- dat1[sample(1:G,G,replace = F),]
-#     dat2perm <- dat2[sample(1:G,G,replace = F),]
-#     out[b,"permCS"] <- permCS(dat1perm,dat2perm,measure)
-#     out[b,"permECS"] <- ECS(dat1perm,dat2perm,measure)
-#   }
-#   return(out)
-# }
-# add absolute value here :
-# ACS_global <- function(dat1,dat2,deIndex1,deIndex2,
-#                        measure="Fmeasure"){
-#   cs <- CS(dat1,dat2,deIndex1,deIndex2,measure)
-#   ecs <- ECS(dat1,dat2,measure)
-#   acs <- (cs - ecs)/(1-ecs)
-#   return(acs)
-# }
-# # add absolute value here :
-# pACS_global <- function(dat1,dat2,deIndex1,deIndex2,
-#                         measure="Fmeasure",acs,permOut){
-#   
-#   permcs <- permOut[,"permCS"]
-#   permecs <- permOut[,"permECS"]
-#   permacs <- (permcs - permecs)/(1-permecs)
-#   
-#   p_acs <- (sum(permacs>=acs) + 1)/(length(permacs)+1)
-#   return(p_acs)
-# }
-
-##################################
-#### Pathway (expected value from global,
-#### permute genes to get p-value)
-##################################
-
-# margin_pathway <-  function(dat1,dat2,
-#                             select.pathway.list,
-#                             measure="Fmeasure"){
-#   select.pathways <- names(select.pathway.list)
-#   
-#   dat1 = as.matrix(dat1)
-#   dat2 = as.matrix(dat2)
-#   # Add
-#   data_genes <- rownames(dat1)
-#   pathway.size <- sapply(select.pathway.list,function(x) {
-#     length(intersect(data_genes,x))})
-#   K <- length(select.pathways)
-#   G <- nrow(dat1)
-#   out <- matrix(NA,nrow=K,ncol=1)
-#   rownames(out) <- select.pathways
-#   colnames(out) <- c("ECS")
-#   
-#   R <- 20 ##fairly enough
-#   
-#   for(k in 1:K){
-#     #print(k)
-#     ecsk <- edsk <- rep(NA,R)
-#     pathsizek <- pathway.size[k]
-#     for(j in 1:R){
-#       index <- sample(1:G,pathsizek,replace=F)
-#       dat1.select <- dat1[index,]
-#       dat2.select <- dat2[index,]
-#       ecsk[j] <- ECS(dat1.select,dat2.select,measure)
-#     }
-#     out[k,"ECS"] <- mean(ecsk)
-#   }
-#   
-#   return(out)
-#   
-# }
-
-# perm_pathway <- function(dat1,dat2,
-#                          select.pathway.list,
-#                          measure="Fmeasure",B,parallel=F,n.cores=4){
-#   
-#   select.pathways <- names(select.pathway.list)
-#   data_genes <- attr(dat1, "symbols")
-#   pathway.size <- sapply(select.pathway.list,function(x) {
-#     length(intersect(data_genes,x))})
-#   K <- length(select.pathways)
-#   G <- nrow(dat1)
-#   
-#   #out <- array(1,dim=c(B,K,4),dimnames=
-#   #list(1:B,select.pathways,
-#   #c("permCS","permECS","permDS","permEDS")))
-#   
-#   #rawCS <- CS(dat1,dat2,deIndex1,deIndex2,measure)
-#   #expCS <- ECS(dat1,dat2,measure)
-#   #rawDS <- DS(dat1,dat2,deIndex1,deIndex2,measure)
-#   #expDS <- EDS(dat1,dat2,measure)
-#   
-#   out <- array(1,dim=c(B,K,1),dimnames=
-#                  list(1:B,select.pathways,c("permCS")))
-#   
-#   for(k in 1:K){
-#     #print(k)
-#     pathsizek <- pathway.size[k]
-#     if(parallel == T){
-#       require(parallel)
-#       permFunc = function(b){
-#         dat1perm <- dat1[sample(1:G,G,replace = F),]
-#         dat2perm <- dat2[sample(1:G,G,replace = F),]
-#         index <- sample(1:G,pathsizek,replace=F)
-#         dat1perm.select <- dat1perm[index,]
-#         dat2perm.select <- dat2perm[index,]
-#         permCS_res <- permCS(dat1perm.select,dat2perm.select,measure)
-#         return(list(permCS_res = permCS_res))
-#       }
-#       out.ls = mclapply(1:B, permFunc, mc.cores = n.cores)
-#       for(b in 1:B){
-#         out[b,k,"permCS"] <- out.ls[[b]]$permCS_res
-#       }
-#     }else{
-#       for(b in 1:B){
-#         dat1perm <- dat1[sample(1:G,G,replace = F),]
-#         dat2perm <- dat2[sample(1:G,G,replace = F),]
-#         index <- sample(1:G,pathsizek,replace=F)
-#         dat1perm.select <- dat1perm[index,]
-#         dat2perm.select <- dat2perm[index,]
-#         
-#         out[b,k,"permCS"] <- permCS(as.matrix(dat1perm.select),as.matrix(dat2perm.select,measure))
-#         #out[b,k,"permECS"] <- ECS(dat1perm.select,dat2perm.select,measure)
-#         #out[b,k,"permEDS"] <- EDS(dat1perm.select,dat2perm.select,measure)
-#       }
-#     }
-#   }
-#   return(out)
-# }
-# Add absolute value here 
-# ACS_pathway <- function(dat1,dat2,deIndex1,deIndex2,
-#                         select.pathway.list,
-#                         measure="Fmeasure",marginOut){
-#   
-#   select.pathways <- names(select.pathway.list)
-#   data_genes <- attr(dat1, "symbols")
-#   pathway.size <- sapply(select.pathway.list,function(x) {
-#     length(intersect(data_genes,x))})
-#   K <- length(select.pathways)
-#   G <- nrow(dat1)
-#   
-#   acs <- rep(NA,K)
-#   names(acs) <- select.pathways
-#   # The issue is here 
-#   for(k in 1:K){
-#     # path_genek <- select.pathway.list[[k]]
-#     # genek <- intersect(path_genek,data_genes)
-#     # 
-#     # # Subset without including NA values
-#     # valid_indices <- match(genek, data_genes)
-#     # valid_indices <- valid_indices[!is.na(valid_indices)]  # Remove NA values
-#     # 
-#     # dat1_k <- dat1[valid_indices,]
-#     # dat2_k <- dat2[valid_indices,]
-#     # 
-#     # # Correctly assign the RHYindex and symbols attributes
-#     # attr(dat1_k, "RHYindex") <- attr(dat1, "RHYindex")[valid_indices]
-#     # attr(dat2_k, "RHYindex") <- attr(dat2, "RHYindex")[valid_indices]
-#     # 
-#     # attr(dat1_k, "symbols") <- attr(dat1, "symbols")[valid_indices]
-#     # attr(dat2_k, "symbols") <- attr(dat2, "symbols")[valid_indices]
-#     # Pathway genes and intersection with data genes
-#     path_genek <- select.pathway.list[[k]]
-#     genek <- intersect(path_genek, data_genes)
-#     
-#     # Find valid indices for both datasets, aligning by gene symbols
-#     valid_indices1 <- match(genek, attr(dat1, "symbols"))
-#     valid_indices2 <- match(genek, attr(dat2, "symbols"))
-#     
-#     # Remove NA values (i.e., genes not found in either dataset)
-#     valid_indices1 <- valid_indices1[!is.na(valid_indices1)]
-#     valid_indices2 <- valid_indices2[!is.na(valid_indices2)]
-#     
-#     # Now align dat1 and dat2 based on the same genes
-#     aligned_genes <- intersect(attr(dat1, "symbols")[valid_indices1], attr(dat2, "symbols")[valid_indices2])
-#     
-#     # Get indices of the aligned genes in each dataset
-#     aligned_indices1 <- match(aligned_genes, attr(dat1, "symbols"))
-#     aligned_indices2 <- match(aligned_genes, attr(dat2, "symbols"))
-#     
-#     # Subset the data with the aligned indices
-#     dat1_k <- dat1[aligned_indices1, ]
-#     dat2_k <- dat2[aligned_indices2, ]
-#     
-#     # Correctly assign the RHYindex and symbols attributes, using aligned indices
-#     attr(dat1_k, "RHYindex") <- attr(dat1, "RHYindex")[aligned_indices1]
-#     attr(dat2_k, "RHYindex") <- attr(dat2, "RHYindex")[aligned_indices2]
-#     
-#     attr(dat1_k, "symbols") <- attr(dat1, "symbols")[aligned_indices1]
-#     attr(dat2_k, "symbols") <- attr(dat2, "symbols")[aligned_indices2]
-#     
-#     # Now dat1_k and dat2_k should have matching rows for the same genes
-#     
-#     
-#     if(length(intersect(names(deIndex1), genek))<=3 ){
-#       deIndex1_k <- 1:nrow(dat1_k)
-#     } else {
-#       deIndex1_k <- which(attr(dat1_k, "symbols")%in%intersect(names(deIndex1), genek))
-#     }
-#     
-#     if(length(intersect(names(deIndex2), genek))<=3 ){
-#       deIndex2_k <- 1:nrow(dat2_k)
-#     } else {
-#       deIndex2_k <- which(attr(dat2_k, "symbols")%in%intersect(names(deIndex2), genek))
-#     }
-#     
-#     cs <- CS(as.matrix(dat1_k),as.matrix(dat2_k),as.matrix(deIndex1_k),as.matrix(deIndex2_k),measure)
-#     ecs <- marginOut[k,"ECS"]
-#     acs[k] <- (cs - ecs)/(1-ecs)
-#   }
-#   return(acs)
-# }
-# # Add absolute value here 
-# pACS_pathway <- function(dat1,dat2,deIndex1,deIndex2,
-#                          select.pathway.list,
-#                          measure="Fmeasure",acs,permOut,marginOut){
-#   
-#   select.pathways <- names(select.pathway.list)
-#   K <- length(select.pathways)
-#   
-#   p_acs <- rep(NA,K)
-#   names(p_acs) <- select.pathways
-#   
-#   for(k in 1:K){
-#     
-#     permcs <- permOut[,k,"permCS"]
-#     ecs <- marginOut[k,"ECS"]
-#     #permecs <- permOut[,k,"permECS"]
-#     permacs <- (permcs - ecs)/(1-ecs)
-#     
-#     p_acs[k] <- (sum(permacs>=acs[k]) + 1)/(length(permacs)+1)
-#   }
-#   
-#   return(p_acs)
-#   
-# }
-
-
 ##########################
 ##Pathway enrich analysis#
 ##########################
 
 gsa.fisher <- function(x, background, pathway) {
   ####x is the list of query genes
-  ####backgroud is a list of background genes that query genes from
+  ####background is the gene universe x is drawn from
   ####pathway is a list of different pathway genes
   count_table<-matrix(0,2,2)
   x<-toupper(x)
@@ -493,7 +17,6 @@ gsa.fisher <- function(x, background, pathway) {
     res <- NA
     ####in the gene list and in the pathway
     count_table[1,1]<-sum(x %in% path)
-    #count_table[1,1]<-sum(is.na(charmatch(x,path))==0)
     ####in the gene list but not in the pathway
     count_table[1,2]<-length(x)-count_table[1,1]
     ####not in the gene list but in the pathway
@@ -543,85 +66,6 @@ gsa.fisher <- function(x, background, pathway) {
   return(a)
 }
 
-# Update 10/17/24
-# gsa.fisher.circadian <- function(rhythmic_genes, arrhythmic_genes, background, pathway) {
-#   #### rhythmic_genes and arrhythmic_genes: binary (1 = rhythmic, 0 = arrhythmic)
-#   #### background: a list of all genes in the background
-#   #### pathway: a list of pathway genes
-#   
-#   count_table <- matrix(0, 2, 2)  # Fisher's Exact Test contingency table
-#   
-#   # Pathway genes adjusted to intersect with the background
-#   pathway <- lapply(pathway, function(path) intersect(toupper(background), toupper(path)))
-#   
-#   # Function to perform Fisher's Exact Test
-#   get.fisher <- function(path) {
-#     res <- NA
-#     # Rhythmic genes in the pathway
-#     count_table[1, 1] <- sum(rhythmic_genes %in% path)
-#     
-#     # Rhythmic genes but not in the pathway
-#     count_table[1, 2] <- sum(rhythmic_genes %in% background) - count_table[1, 1]
-#     
-#     # Arrhythmic genes in the pathway
-#     count_table[2, 1] <- sum(arrhythmic_genes %in% path)
-#     
-#     # Arrhythmic genes not in the pathway
-#     count_table[2, 2] <- sum(arrhythmic_genes %in% background) - count_table[2, 1]
-#     
-#     matched_genes <- rhythmic_genes[rhythmic_genes %in% path]
-#     match_num <- length(matched_genes)
-#     
-#     overlap_info <- c(
-#       "Rhythmic in Pathway" = count_table[1, 1],
-#       "Rhythmic not in Pathway" = count_table[1, 2],
-#       "Arrhythmic in Pathway" = count_table[2, 1],
-#       "Arrhythmic not in Pathway" = count_table[2, 2]
-#     )
-#     if (length(count_table) == 4) {
-#       res <- fisher.test(count_table, alternative = "greater")$p
-#     }
-#     
-#     return(list(p_value = res, match_genes = matched_genes, match_num = match_num, fisher_table = overlap_info))
-#   }
-#   
-#   # Prepare to collect results for each pathway
-#   p_vals <- numeric(length(pathway))
-#   fisher_results <- list()
-#   
-#   for (i in seq_along(pathway)) {
-#     result <- get.fisher(pathway[[i]])
-#     p_vals[i] <- result$p_value
-#     fisher_results[[i]] <- result
-#   }
-#   
-#   # Adjust p-values using Benjamini-Hochberg correction
-#   q_vals <- p.adjust(p_vals, method = "BH")
-#   
-#   # Return summary table with the results
-#   summary <- data.frame(
-#     pvalue = p_vals,
-#     qvalue = q_vals,
-#     Rhythmic_in_Set = sapply(fisher_results, function(res) res$fisher_table["Rhythmic in Pathway"]),
-#     Rhythmic_not_in_Set = sapply(fisher_results, function(res) res$fisher_table["Rhythmic not in Pathway"]),
-#     Arrhythmic_in_Set = sapply(fisher_results, function(res) res$fisher_table["Arrhythmic in Pathway"]),
-#     Arrhythmic_not_in_Set = sapply(fisher_results, function(res) res$fisher_table["Arrhythmic not in Pathway"])
-#   )
-#   
-#   return(summary)
-# }
-# 
-# 
-# fisher <- function(x){
-#   n <- length(x)
-#   y <- -2*log(x)
-#   Tf <- sum(y)
-#   return(1-pchisq(Tf,2*n))
-# }
-
-# Update 03/21
-
-
 # Fisher's method for combining p-values
 fisher <- function(x) {
   x <- x[!is.na(x)]
@@ -632,7 +76,7 @@ fisher <- function(x) {
   return(1 - pchisq(Tf, 2 * n))
 }
 
-# Fisher's Exact Test for circadian genes
+# one-sided Fisher's exact test of rhythmic genes against each pathway
 gsa.fisher.circadian <- function(rhythmic_genes, arrhythmic_genes, background, pathway) {
   count_table <- matrix(0, 2, 2)
   pathway <- lapply(pathway, function(path) intersect(toupper(background), toupper(path)))
@@ -690,7 +134,6 @@ E_tot <- function(delta.mat,a,delta.est){
   ## vector "delta_est" of length K+1: start from theta_0, then ordered from k=1 to K
   n <- nrow(delta.mat)
   K <- length(unique(a))
-  #theta_0 <- delta.est[1]
   theta_0 <- 0
   E <- sum(sapply(1:n, function(x) {
     sum(sapply(1:n, function(y){
@@ -733,8 +176,6 @@ Split <- function(a) {
   if(length(ua)==n) {
     return(a)
   } else{
-    #ua.pick <- sample(x=ua,size=1)
-    #a[names(sample(x=which(a==ua.pick),size=1))] <- max(ua)+1
     a.pick <- sample(x=a,size=1)
     pick.ind <- sample(x=which(a==a.pick),size=1)
     a[pick.ind] <- max(a)+1
@@ -749,18 +190,14 @@ Relocate <- function(a){
     return(a)
   } else{
     pick.ind <- sample(x=1:n,size=1)
-    #a.pick <- a[pick.ind]
-    #a[pick.ind] <- sample(x=a[-which(a==a.pick)],size=1)
     a[pick.ind] <- sample(x=a[-pick.ind],size=1)
     return(a)
   }
 }
 
-
 ##########################
 ###### Scatterness #######
 ##########################
-
 
 scatter = function(dat,cluster.assign,sil_cut=0.1){
   sd_check = apply(dat, 1, sd)
@@ -785,11 +222,11 @@ scatter = function(dat,cluster.assign,sil_cut=0.1){
     temp<-cluster.assign2
     for(d in 1:length(cluster.assign2)){
       cluster.assign2[d]<-rank(unique(temp))[which(unique(temp)==temp[d])]
-    }#rename cluster index, so it is integer from 1 to k
+    }# relabel clusters as integers 1..k
     
     new.dist<-new.dist[rownames(new.dist)%in%names(cluster.assign2),
                        colnames(new.dist)%in%names(cluster.assign2)]
-    sil <- silhouette(cluster.assign2, dist=new.dist, diss=T)#recalculate silhoutte
+    sil <- silhouette(cluster.assign2, dist=new.dist, diss=T)# recompute silhouette
   }
   
   scatter.index = which(!names(cluster.assign)%in%names(cluster.assign2))
@@ -913,7 +350,6 @@ TextMine <- function(hashtb, pathways, pathway, result, scatter.index=NULL,permu
   return(tmk)
 } # End of Text Mining
 
-
 writeTextOut <- function(tm_filtered,k,pathway.summary,scatter.index=NULL) {
   if(is.null(dim(tm_filtered[[1]]))==TRUE|dim(tm_filtered[[1]])[1] == 0){
     print(paste("No phrase pass q-value threshold in cluster 1"))
@@ -977,124 +413,11 @@ textMine <- function(hashtb,pathways,cluster.assign,scatter.index=NULL,thres=0.0
 }
 
 ##########################
-###### ACS/ADS_DE plot ###
-##########################
-# ARS_to_size <- function(ARSp,factor=2){
-#   if(ARSp > 0.05) {
-#     return(1)
-#   } else {
-#     return(-log10(ARSp)*factor)
-#   }
-# }
-# 
-# ACS_ADS_DE <- function(ds1,ds2,DEevid1,DEevid2,ACSp,ADSp,cluster=NULL,
-#                        highlight.pathways=NULL,lb=0,ub=1,size.scale=4){
-#   
-#   P <- length(ACSp)
-#   ACS_size=sapply(ACSp,ARS_to_size)
-#   ADS_size=sapply(ADSp,ARS_to_size)
-#   
-#   
-#   if(!is.null(cluster)){
-#     RB = rainbow(length(unique(cluster)))
-#     color = c()
-#     for (i in 1:length(cluster)) {
-#       if(cluster[i] != "scatter"){
-#         color[i] = RB[as.numeric(cluster[i])]
-#       }else{
-#         color[i] = "grey50"
-#       }
-#     }
-#   }else if(!is.null(highlight.pathways)){
-#     color = rep("grey50",P)
-#     color[highlight.pathways] = "red"
-#   }else{
-#     color = rep("black",P)
-#   }
-#   
-#   
-#   if(!is.null(highlight.pathways)){
-#     index = 1:P
-#     index[-highlight.pathways] = ""
-#   }else{
-#     index = rep("",P)
-#   }
-#   data_ACS <- data.frame(ds1_score=DEevid1,ds2_score=DEevid2,
-#                          ACS_size=ACS_size,index=index,
-#                          color_pos=color)
-#   data_ADS <- data.frame(ds1_score=DEevid1,ds2_score=DEevid2,
-#                          ADS_size=ADS_size,index=index,
-#                          color_neg=color)
-#   
-#   p_pos <-ggplot(data_ACS, aes(x=ds2_score, y=ds1_score,label=index)) +
-#     geom_point(size = data_ACS$ACS_size*size.scale, shape=16, color = data_ACS$color_pos)+
-#     geom_text(size=8*size.scale,parse=TRUE,color="black",hjust = -0.05,vjust=-0.05) +
-#     theme_bw() +
-#     coord_fixed(ylim=c(lb,ub),xlim=c(lb,ub)) +
-#     labs(x="",y="") +
-#     scale_x_continuous(name="",breaks=seq(0,1,by=0.5),limits=c(0,1)) +
-#     scale_y_continuous(name="",breaks=seq(0,1,by=0.5),limits=c(0,1)) +
-#     theme(#legend.title = element_blank(),
-#       axis.line = element_line(colour = "black"),
-#       #axis.line=element_blank(),
-#       axis.text.x = element_text(size = 40,face = "bold"),
-#       axis.text.y = element_text(size = 40,face = "bold"),
-#       panel.border = element_blank(),
-#       panel.grid.major = element_line(linetype = 'solid',#size = 2,
-#                                       colour = "white"),
-#       panel.grid.minor = element_line(linetype = 'solid',
-#                                       colour = "white"),
-#       panel.background = element_rect(fill = "#FFF1E1")) +
-#     annotate("text", x = (ub-0.15), y = lb, fontface=2,
-#              label = paste(ds2,sep=""),
-#              size=8*size.scale,colour="blue",hjust=0.6,vjust=0.1) +
-#     annotate("text", x = lb, y = (ub-0.15), fontface=2,
-#              label=paste(ds1,sep=""),
-#              size=8*size.scale,colour="blue",vjust=0,hjust=0.2)
-#   
-#   p_neg <-ggplot(data_ADS, aes(x=ds1_score, y=ds2_score,label=index)) + #label=index
-#     geom_point(size = data_ADS$ADS_size*size.scale, shape=16, color = data_ADS$color_neg)+
-#     geom_text(size=8*size.scale,parse=TRUE,color="black",hjust = -0.05,vjust=-0.05) +
-#     theme_bw() +
-#     coord_fixed(ylim=c(lb,ub),xlim=c(lb,ub)) +
-#     labs(x="",y="") +
-#     scale_x_continuous(name="",breaks=seq(0,1,by=0.5),limits=c(0,1)) +
-#     scale_y_continuous(name="",breaks=seq(0,1,by=0.5),limits=c(0,1)) +
-#     theme(#legend.title = element_blank(),
-#       axis.line = element_line(colour = "black"),
-#       #axis.line=element_blank(),
-#       axis.text.x = element_text(size = 40,face = "bold"),
-#       axis.text.y = element_text(size = 40,face = "bold"),
-#       panel.border = element_blank(),
-#       panel.grid.major = element_line(linetype = 'solid',#size = 2,
-#                                       colour = "white"),
-#       panel.grid.minor = element_line(linetype = 'solid',
-#                                       colour = "white"),
-#       panel.background = element_rect(fill = "#EBF5FF")) +
-#     annotate("text", x = (ub-0.15), y = lb, fontface=2,
-#              label = paste(ds1,sep=""),
-#              size=8*size.scale,colour="blue",hjust=0.6,vjust=0.1) +
-#     annotate("text", x = lb, y = (ub-0.15), fontface=2,
-#              label=paste(ds2,sep=""),
-#              size=8*size.scale,colour="blue",vjust=0,hjust=0.2)
-#   
-#   #ggsave(filename=paste(ds2,"_",ds1,"_ACS_figure",".pdf",sep=""),p_pos,
-#   #width = 10, height = 10)
-#   
-#   #ggsave(filename=paste(ds1,"_",ds2,"_ADS_figure",".pdf",sep=""),p_neg,
-#   #width = 10, height = 10)
-#   
-#   plist <- list(p_pos,p_neg)
-#   return(plist)
-# }
-
-##########################
 ######    parseXML     ###
 ##########################
 parseRelation <- function(pathwayID, keggSpecies="hsa", binary = T, sep = "-") {
   # download xml file
   pathview::download.kegg(pathway.id = pathwayID, keggSpecies, kegg.dir = ".", file.type="xml")
-  # generate relation matrix
   KEGG.pathID2name = lapply(KEGGREST::keggList("pathway",keggSpecies),function(x) strsplit(x," - ")[[1]][-length(strsplit(x," - ")[[1]])])
   names(KEGG.pathID2name) = gsub(paste0("path:",keggSpecies),"",names(KEGG.pathID2name))
   
@@ -1122,7 +445,7 @@ parseRelation <- function(pathwayID, keggSpecies="hsa", binary = T, sep = "-") {
   relation.mat = matrix(0, entryNum, entryNum)
   rownames(relation.mat) = colnames(relation.mat) = entryNames.unique
   
-  ## if no relation edge, just return
+  ## no edges: return the empty matrix
   if(relationNum == 0){
     print(paste0("There is no topological connected gene nodes in ", pathName))
     return(relation.mat)
@@ -1149,7 +472,7 @@ SA_module_M = function(sp.mat, xmlG, M, nodes, B = 1000,
                        G.ini.list=NULL, reps_eachM = 100,topG_from_previous=10,
                        Tm0=10,mu=0.95,epsilon=1e-5,
                        N=1000,run=10000,seed=12345,sub.num=1){
-  #Null distribution for M
+  # null distribution of mean shortest path for random M-gene sets
   set.seed(seed)
   null.sp.dist = rep(NA,B)
   for(b in 1:B){
@@ -1176,8 +499,6 @@ SA_module_M = function(sp.mat, xmlG, M, nodes, B = 1000,
       count = 0
       Tm = Tm0
       while((length(nodes)>M) & (r < run) & (count < N) & (Tm >= epsilon)) {
-        #pi = exp(-GPc/Tm) ## Boltzmann dist #may need a different Tm or -logP to be comparable?
-        #print(SPc)
         ##New trial
         r = r+1
         a.node = sample(setdiff(nodes,G.module),sub.num)
@@ -1193,7 +514,6 @@ SA_module_M = function(sp.mat, xmlG, M, nodes, B = 1000,
         }else{
           count = count + 1;
           p = exp((SPc-SPn)/Tm)
-          #print(p)
           r = min(1,p); ## acceptance prob.
           u <- runif(1);
           if(u>r) {
@@ -1229,8 +549,6 @@ SA_module_M = function(sp.mat, xmlG, M, nodes, B = 1000,
       count = 0
       Tm = Tm0
       while((length(nodes)>M) & (r < run) & (count < N) & (Tm >= epsilon)) {
-        #pi = exp(-GPc/Tm) ## Boltzmann dist #may need a different Tm or -logP to be comparable?
-        #print(SPc)
         ##New trial
         r = r+1
         a.node = sample(setdiff(nodes,G.module),sub.num)
@@ -1246,7 +564,6 @@ SA_module_M = function(sp.mat, xmlG, M, nodes, B = 1000,
         }else{
           count = count + 1;
           p = exp((SPc-SPn)/Tm)
-          #print(p)
           r = min(1,p); ## acceptance prob.
           u <- runif(1);
           if(u>r) {
@@ -1332,15 +649,12 @@ match_symbols <- function(input_df, BF, p_rhythmic = 0.5, ensemble = NULL) {
   if (!requireNamespace("biomaRt", quietly = TRUE))
     stop("Package 'biomaRt' is required. Install with: BiocManager::install('biomaRt')")
   
-  # Extract the rho matrix from the input dataframe.
   summary_data <- input_df$rho
-  
-  # Get gene IDs from row names
+
   gene_ids <- row.names(summary_data)
-  
-  # Check if row names are already gene symbols (not Ensembl IDs)
-  # More robust check: majority should be gene symbols (not ENS IDs)
-  ens_pattern <- grepl("^ENS[MG]", gene_ids)  # ENSEMBL or ENSMUSG patterns
+
+  # decide whether row names are symbols or Ensembl IDs
+  ens_pattern <- grepl("^ENS[MG]", gene_ids)  # ENSG or ENSMUSG
   pct_ensembl <- mean(ens_pattern)
   avg_length <- mean(nchar(gene_ids))
   pct_letters <- mean(grepl("^[A-Za-z]", gene_ids))
@@ -1349,7 +663,7 @@ match_symbols <- function(input_df, BF, p_rhythmic = 0.5, ensemble = NULL) {
   print(paste("Average gene ID length:", round(avg_length, 1)))
   print(paste("Percentage starting with letters:", round(pct_letters * 100, 1), "%"))
   
-  # If less than 10% are Ensembl IDs, assume they're already symbols
+  # symbols if under 10% look like Ensembl IDs
   already_symbols <- pct_ensembl < 0.1 && 
     avg_length < 20 &&  # Gene symbols are typically shorter
     pct_letters > 0.9   # Most start with letters
@@ -1384,11 +698,10 @@ match_symbols <- function(input_df, BF, p_rhythmic = 0.5, ensemble = NULL) {
     
     gene_symbols <- get_gene_symbols(gene_ids, ensembl)
     
-    # Replace missing or empty hgnc_symbol entries with the ensembl_gene_id.
+    # fall back to the Ensembl ID where no HGNC symbol exists
     missing_idx <- which(gene_symbols$hgnc_symbol == "" | is.na(gene_symbols$hgnc_symbol))
     gene_symbols$hgnc_symbol[missing_idx] <- gene_symbols$ensembl_gene_id[missing_idx]
     
-    # Map the original gene_ids to their corresponding symbols.
     symbols <- if (all(grepl("^ENS", gene_ids))) {
       gene_symbols$hgnc_symbol[match(gene_ids, gene_symbols$ensembl_gene_id)]
     } else {
@@ -1396,16 +709,13 @@ match_symbols <- function(input_df, BF, p_rhythmic = 0.5, ensemble = NULL) {
     }
   }
   
-  # Set the "symbols" attribute for the rho matrix.
   attr(summary_data, "symbols") <- symbols
-  
-  # Compute summary statistics (e.g., Bayes Factor, rhythmicity)
+
   summary_df <- summarize_bay(input_df$rho, BF, p_rhythmic)
-  
-  # Set the rhythmicity index attribute ("RHYindex") for the rho matrix.
+
   attr(summary_data, "RHYindex") <- summary_df$Rhythmicity
-  
-  # Resolve duplicate gene symbols by keeping the row with the highest Bayes Factor.
+
+  # for duplicate symbols keep the row with the highest Bayes factor
   symbols_unique <- unique(symbols)
   data_filtered <- sapply(symbols_unique, function(sym) {
     indices <- which(symbols == sym)
@@ -1418,9 +728,7 @@ match_symbols <- function(input_df, BF, p_rhythmic = 0.5, ensemble = NULL) {
   })
   data_filtered <- unlist(data_filtered)
   
-  # Filter every element of input_df (if matrix or data.frame) using the selected indices.
-  # only the per-gene matrices are subset; the result also carries per-iteration
-  # summaries whose rows are not genes
+  # subset only per-gene matrices; per-iteration summaries are left whole
   n_genes_in <- length(symbols)
   input_df_filtered <- lapply(input_df, function(element) {
     if ((is.matrix(element) || is.data.frame(element)) &&
@@ -1436,8 +744,7 @@ match_symbols <- function(input_df, BF, p_rhythmic = 0.5, ensemble = NULL) {
   final_ens_ids  <- if (!already_symbols) gene_ids[data_filtered] else NULL
   G_final        <- length(final_symbols)
 
-  # Propagate symbols, RHYindex (and Ensembl IDs if applicable) to ALL G x K matrices.
-  # This ensures rownames and attributes survive downstream subsetting operations.
+  # set rownames, symbols, RHYindex and Ensembl IDs on every G x K matrix
   for (mat_name in names(input_df_filtered)) {
     el <- input_df_filtered[[mat_name]]
     if (is.matrix(el) && nrow(el) == G_final) {
@@ -1450,7 +757,7 @@ match_symbols <- function(input_df, BF, p_rhythmic = 0.5, ensemble = NULL) {
     }
   }
 
-  # Legacy duplicate-check kept for user transparency
+  # warn if duplicate symbols remain
   tryCatch({
     if (length(unique(final_symbols)) < G_final)
       warning("Duplicate gene symbols found after deduplication: check BF threshold.")
@@ -1489,7 +796,6 @@ match_symbols <- function(input_df, BF, p_rhythmic = 0.5, ensemble = NULL) {
 #' aligned <- match_homologs(list(human_res, mouse_res),
 #'                           species_from = c("human", "mouse"))
 #' }
-# Matching homologs
 match_homologs <- function(input_dfs, species_from ,ref = "human") {
   if (!requireNamespace("biomaRt", quietly = TRUE))
     stop("Package 'biomaRt' is required. Install with: BiocManager::install('biomaRt')")
@@ -1497,12 +803,10 @@ match_homologs <- function(input_dfs, species_from ,ref = "human") {
     stop("The number of datasets must match the number of species provided.")
   }
   
-  # Identify unique species and map to Ensembl names
   unique_species <- unique(species_from)
   species_map <- c("human" = "homo_sapiens", 
                    "mouse" = "mus_musculus")
   
-  # Choose a reference species, e.g., human
   if(missing(ref) || ref == "human") {
     ref_species_name <- "human"
   } else if (ref != "human") {
@@ -1517,14 +821,9 @@ match_homologs <- function(input_dfs, species_from ,ref = "human") {
   }
   message("Using ", ref_species_ensembl, " as the reference.")
   
-  # ============= 1) Build Mappings to Reference Space =============
-  #
-  # For each species S != reference, build a mapping:
-  #   M_S: S_gene_ID -> human_gene_ID
-  # For the reference species, the mapping is identity.
+  # 1) map each species' gene IDs to reference IDs (identity for the reference)
   mapping_list <- list()
-  
-  # (A) Gather all gene IDs from the reference species' datasets
+
   ref_dfs_indices <- which(species_map[species_from] == ref_species_ensembl)
   if (length(ref_dfs_indices) == 0) {
     stop("No datasets correspond to the reference species (human).")
@@ -1537,10 +836,8 @@ match_homologs <- function(input_dfs, species_from ,ref = "human") {
   ))
   message("Reference species (human) gene IDs found: ", length(ref_gene_ids))
   
-  # (B) Identity mapping for the reference species
   mapping_list[[ref_species_ensembl]] <- setNames(ref_gene_ids, ref_gene_ids)
-  
-  # (C) For each other species, retrieve homologs (using reference as source)
+
   other_species <- setdiff(unique_species, ref_species_name)
   for (sp in other_species) {
     sp_ensembl <- species_map[sp]
@@ -1562,16 +859,14 @@ match_homologs <- function(input_dfs, species_from ,ref = "human") {
     }
     colnames(homologs) <- c("source_ensembl_id", "homolog_ensembl_id")
     
-    # Create mapping: target species gene ID -> human gene ID
+    # names are the species' IDs, values the reference IDs
     mapping_list[[sp_ensembl]] <- setNames(
       homologs$source_ensembl_id,
       homologs$homolog_ensembl_id
     )
   }
   
-  # ============= 2) Convert Each Dataset & Compute Intersection =============
-  #
-  # Map each dataset's gene IDs into reference space and collect unique reference IDs.
+  # 2) reference IDs present in every dataset
   mapped_ids_list <- vector("list", length(input_dfs))
   
   for (i in seq_along(input_dfs)) {
@@ -1585,7 +880,6 @@ match_homologs <- function(input_dfs, species_from ,ref = "human") {
     mapped_ids_list[[i]] <- unique(mapped_ref_ids)
   }
   
-  # Compute the intersection of mapped (reference) IDs across all datasets.
   common_ref_ids <- Reduce(intersect, mapped_ids_list)
   message("Intersection of reference gene IDs across all datasets: ", length(common_ref_ids))
   
@@ -1593,10 +887,7 @@ match_homologs <- function(input_dfs, species_from ,ref = "human") {
     stop("No common homologs found across all datasets.")
   }
   
-  # ============= 3) Final Filtering & Reordering of Each Dataset =============
-  #
-  # Filter each dataset to keep only rows corresponding to the common reference IDs,
-  # and set the rownames to these stable Ensembl IDs.
+  # 3) subset each dataset to the common IDs, in the same order
   input_dfs_filtered <- lapply(seq_along(input_dfs), function(i) {
     df <- input_dfs[[i]]
     sp_ensembl <- species_map[species_from[i]]
@@ -1604,13 +895,11 @@ match_homologs <- function(input_dfs, species_from ,ref = "human") {
     original_ids <- attr(df$rho, "ensembl_gene_ids")
     mapped_ref_ids <- mapping_list[[sp_ensembl]][original_ids]
     
-    # Identify valid rows: those with a valid mapping and in the common set.
     valid_idx <- !is.na(mapped_ref_ids) & (mapped_ref_ids %in% common_ref_ids)
     if (sum(valid_idx) == 0) {
       message("Warning: No homologs matched for dataset ", i)
     }
     
-    # Initial filtering based on valid_idx
     df_filtered <- lapply(df, function(element) {
       if (is.matrix(element) || is.data.frame(element)) {
         return(element[valid_idx, , drop = FALSE])
@@ -1619,11 +908,10 @@ match_homologs <- function(input_dfs, species_from ,ref = "human") {
       }
     })
     
-    # Get the filtered mapped reference IDs and original symbols
     new_ids <- mapped_ref_ids[valid_idx]
     new_symbols <- attr(df$rho, "symbols")[valid_idx]
-    
-    # Reorder rows so that they exactly follow the common_ref_ids order.
+
+    # reorder rows to follow common_ref_ids
     common_order <- common_ref_ids
     row_idx <- match(common_order, new_ids)
     row_idx <- row_idx[!is.na(row_idx)]
@@ -1638,9 +926,7 @@ match_homologs <- function(input_dfs, species_from ,ref = "human") {
     final_symbols  <- new_symbols[row_idx]
     final_ens_ids  <- new_ids[row_idx]
 
-    # Propagate gene symbols as rownames and set attributes on ALL G x K matrices.
-    # Downstream functions (pathSelect, detect_rhy, phase_infer) all use rownames
-    # for gene-level matching; symbols must be consistent across rho, phi, A, M, etc.
+    # symbols as rownames on every G x K matrix; downstream code matches genes by rowname
     G_final <- length(final_symbols)
     for (mat_name in names(df_filtered)) {
       el <- df_filtered[[mat_name]]
@@ -1691,84 +977,41 @@ concordance2 <- function(matrix1, matrix2) {
   rho1 <- matrix1$rho
   rho2 <- matrix2$rho
   
-  # Standard 2x2 contingency table
+  # 2x2 contingency table
   TP <- mean(rho1 == 1 & rho2 == 1)  # Both rhythmic
   FP <- mean(rho1 == 1 & rho2 == 0)  # Only matrix1 rhythmic
   FN <- mean(rho1 == 0 & rho2 == 1)  # Only matrix2 rhythmic
   TN <- mean(rho1 == 0 & rho2 == 0)  # Neither rhythmic
-  
-  # Published approach: Conditional probabilities
-  
-  # "Of genes rhythmic in species 1, what % are also rhythmic in species 2?"
+
+  # share of species-1 rhythmic genes also rhythmic in species 2
   conditional_1to2 <- ifelse((TP + FP) > 0, TP / (TP + FP), NA_real_)
-  
-  # "Of genes rhythmic in species 2, what % are also rhythmic in species 1?"  
+
+  # share of species-2 rhythmic genes also rhythmic in species 1
   conditional_2to1 <- ifelse((TP + FN) > 0, TP / (TP + FN), NA_real_)
-  
-  # Our bidirectional approach for comparison
+
   jaccard_index <- TP / (TP + FP + FN)  # Shared / Union
-  
-  # Total rhythmic genes in each species
+
   total_rhythmic_species1 <- TP + FP
   total_rhythmic_species2 <- TP + FN
   total_shared <- TP
   
   return(list(
-    # Published approach
     conditional_species1_to_species2 = conditional_1to2,
     conditional_species2_to_species1 = conditional_2to1,
-    
-    # Our approach for comparison
+
     jaccard_concordance = jaccard_index,
-    
-    # Raw counts (as proportions)
+
+    # counts as proportions
     shared_rhythmic = total_shared,
     species1_total_rhythmic = total_rhythmic_species1,
     species2_total_rhythmic = total_rhythmic_species2,
-    
-    # Summary
+
     interpretation = list(
       conditional_1to2_meaning = paste0(round(conditional_1to2*100, 1), "% of species1 rhythmic genes are also rhythmic in species2"),
       conditional_2to1_meaning = paste0(round(conditional_2to1*100, 1), "% of species2 rhythmic genes are also rhythmic in species1")
     )
   ))
 }
-
-# concordance <- function(matrix1, matrix2) {
-#   rho1 = matrix1$rho
-#   rho2 = matrix2$rho
-#   # Pairwise contingency table
-#   TP <- mean(rho1 == 1 & rho2 == 1)
-#   FP <- mean(rho1 == 1 & rho2 == 0)
-#   FN <- mean(rho1 == 0 & rho2 == 1)
-#   
-#   # Jaccard index = intersection / union
-#   congruence_index <- TP / (TP + FN + FP)
-#   
-#   return(congruence_index)
-# }
-
-# discordance <- function(matrix1, matrix2, eps = .Machine$double.eps) {
-#   rho1 = matrix1$rho
-#   rho2 = matrix2$rho
-#   stopifnot(length(rho1) == length(rho2))
-#   
-#   TP <- mean(rho1 == 1 & rho2 == 1)
-#   FP <- mean(rho1 == 1 & rho2 == 0)
-#   FN <- mean(rho1 == 0 & rho2 == 1)
-#   
-#   # Total denominator (union of rhythmic genes)
-#   total_denom <- TP + FN + FP
-#   
-#   # Gain and Loss as proportions of the union
-#   gain <- if (total_denom > eps) FP / total_denom else NA_real_
-#   loss <- if (total_denom > eps) FN / total_denom else NA_real_
-#   
-#   list(
-#     gain = gain,
-#     loss = loss
-#   )
-# }
 
 #' Compute circular phase difference between two phase vectors
 #'
@@ -1784,7 +1027,6 @@ concordance2 <- function(matrix1, matrix2) {
 #' @return Numeric vector of signed circular phase differences, wrapped to
 #'   \[-12, 12\] hours or \[-pi, pi\] radians.
 #'
-# Helper function for phase differences
 phase_difference <- function(phi1, phi2, units = "hours") {
   if (units == "hours") {
     diff <- phi2 - phi1
@@ -1797,74 +1039,6 @@ phase_difference <- function(phi1, phi2, units = "hours") {
   }
   return(diff)
 }
-
-# congruence <- function(matrix1, matrix2, delta = 3, units = "hours") {
-#   require(circular)
-#   
-#   rho1 <- matrix1$rho
-#   rho2 <- matrix2$rho
-#   phi1 <- matrix1$phi
-#   phi2 <- matrix2$phi
-#   
-#   # Genes rhythmic in either 
-#   rhythmic_union <- (rho1 == 1) | (rho2 == 1)
-#   num_union <- sum(rhythmic_union)
-#   
-#   if (num_union == 0) {
-#     return(list(
-#       congruence_index = NA_real_,
-#       gain_index = NA_real_,
-#       loss_index = NA_real_,
-#       Cp = NA_real_, 
-#       Dp = NA_real_
-#     ))
-#   }
-#   
-#   # Conserved rhythmic genes (TP: rhythmic in both)
-#   tp <- (rho1 == 1) & (rho2 == 1)
-#   num_tp <- sum(tp)
-#   
-#   num_concordant <- 0
-#   num_discordant <- 0
-#   
-#   if (num_tp > 0) {
-#     phase_diffs <- phase_difference(phi1[tp], phi2[tp], units = units)
-#     phase_distances <- abs(phase_diffs)
-#     
-#     # Concordant: small phase differences (<= delta)
-#     concordant <- phase_distances <= delta
-#     num_concordant <- sum(concordant, na.rm = TRUE)
-#     
-#     # Discordant: large phase differences (> delta)
-#     num_discordant <- num_tp - num_concordant
-#   }
-#   
-#   # Gain: rhythmic in matrix1 but not matrix2
-#   num_gain <- sum(rho1 == 1 & rho2 == 0)
-#   
-#   # Loss: rhythmic in matrix2 but not matrix1
-#   num_loss <- sum(rho1 == 0 & rho2 == 1)
-#   
-#   # Proportions over the union of rhythmic genes
-#   conserved_concordant <- num_concordant / num_union
-#   conserved_discordant <- num_discordant / num_union
-#   loss <- num_loss / num_union
-#   gain <- num_gain / num_union
-#   
-#   # Proportion of union that is conserved with similar phase
-#   phase_jaccard <- conserved_concordant
-#   
-#   # Also compute standard rhythmicity Jaccard for reference
-#   rhythm_jaccard <- num_tp / num_union
-#   
-#   return(list(
-#     congruence_index = rhythm_jaccard,
-#     gain_index = gain,
-#     loss_index = loss,
-#     Cp = conserved_concordant, 
-#     Dp = conserved_discordant
-#   ))
-# }
 
 #' Compute probabilistic congruence (c-score) between two conditions
 #'
@@ -1884,9 +1058,8 @@ phase_difference <- function(phi1, phi2, units = "hours") {
 #'   MCMC posterior samples for condition 1 (reference / earlier time point).
 #' @param matrix2 Named list with element \code{rho} (G x K matrix);
 #'   MCMC posterior samples for condition 2.
-#' @param delta Numeric; phase-shift threshold in \code{units} (currently
-#'   unused in the probabilistic c-score; reserved for future use,
-#'   default 3).
+#' @param delta Numeric; phase-shift threshold in \code{units} (not used
+#'   by the probabilistic c-score; default 3).
 #' @param units Character; \code{"hours"} (default) or \code{"radians"}.
 #'
 #' @return A list with elements:
@@ -1904,7 +1077,7 @@ congruence <- function(matrix1, matrix2, delta = 3, units = "hours") {
   if (!missing(units) && units != "hours")
     warning("`units` is not used by the probabilistic c-score; it is reserved for a future phase-threshold variant.")
 
-  # Convert MCMC matrices to posterior probabilities
+  # posterior rhythmicity probabilities
   p_A <- rowMeans(matrix1$rho)  # Condition 1 (e.g., younger)
   p_B <- rowMeans(matrix2$rho)  # Condition 2 (e.g., older)
   
@@ -1927,19 +1100,17 @@ congruence <- function(matrix1, matrix2, delta = 3, units = "hours") {
   expected_loss <- sum(p_A) - expected_intersection
   expected_gain <- sum(p_B) - expected_intersection
   
-  # Normalize by expected union
   union_inv <- 1 / expected_union
   congruence_index <- expected_intersection * union_inv
   loss_index <- expected_loss * union_inv
   gain_index <- expected_gain * union_inv
   
-  # Gain/Loss ratio: paper Eq. 4: GLR = Gain / Loss.
-  # Inf when Loss=0 and Gain>0 is the mathematically correct value.
+  # GLR = Gain / Loss (paper Eq. 4)
   gain_loss_ratio <- if (loss_index == 0) {
     if (gain_index == 0) {
       NA_real_  # Both zero: ratio undefined
     } else {
-      Inf       # Loss=0, Gain>0: paper Eq. 4 gives +Inf
+      Inf
     }
   } else {
     gain_index / loss_index
@@ -1974,17 +1145,14 @@ congruence <- function(matrix1, matrix2, delta = 3, units = "hours") {
 pairwise_concordance <- function(human_data, n_gene = NULL) {
   tissue_names <- names(human_data)
   
-  # If n_gene is specified, compute overall mean of rho for each gene
+  # rank genes common to all tissues by mean rho
   if (!is.null(n_gene)) {
-    # Find common genes across all tissues
     common_genes <- Reduce(intersect, lapply(human_data, function(x) rownames(x$rho)))
-    
-    # Compute mean rho for each gene:
+
     gene_means <- sapply(common_genes, function(gene) {
       mean(sapply(human_data, function(x) as.numeric(x$rho[gene, 1])))
     })
     
-    # Select the top n_gene genes based on \bar{\rho}(g)
     top_genes <- names(sort(gene_means, decreasing = TRUE))[1:n_gene]
   }
   
@@ -1998,10 +1166,8 @@ pairwise_concordance <- function(human_data, n_gene = NULL) {
         rho1 <- human_data[[tissue_names[i]]]$rho
         rho2 <- human_data[[tissue_names[j]]]$rho
         
-        # Restrict to common genes for the pair
         common_genes <- intersect(rownames(rho1), rownames(rho2))
         if (!is.null(n_gene)) {
-          # Further restrict to the top genes
           common_genes <- intersect(common_genes, top_genes)
         }
         rho1 <- rho1[common_genes, , drop = FALSE]
@@ -2023,12 +1189,10 @@ pairwise_concordance <- function(human_data, n_gene = NULL) {
   return(concordance_matrix)
 }
 
-
-
 try_any_mirror <- function(biomart = "ENSEMBL_MART_ENSEMBL", dataset = "hsapiens_gene_ensembl") {
   if (!requireNamespace("biomaRt", quietly = TRUE))
     stop("Package 'biomaRt' is required. Install with: BiocManager::install('biomaRt')")
-  mirrors <- c("useast", "www", "asia")  # List of mirrors to try
+  mirrors <- c("useast", "www", "asia")  # tried in order
   ensembl <- NULL
 
   for (mirror in mirrors) {
@@ -2045,7 +1209,6 @@ try_any_mirror <- function(biomart = "ENSEMBL_MART_ENSEMBL", dataset = "hsapiens
   
   stop("Unable to connect to any Ensembl mirror.")
 }
-
 
 #' Summarise posterior rhythmicity and Bayes Factor per gene
 #'
@@ -2065,9 +1228,7 @@ try_any_mirror <- function(biomart = "ENSEMBL_MART_ENSEMBL", dataset = "hsapiens
 #'
 #' @export
 summarize_bay <- function(input_df, BF, p_rhythmic = 0.2) {
-  # Default 0.2 matches CB_MCMC_single_rj_slice default (paper Sec. 2.1).
-  # BF = posterior_odds / prior_odds; using a different p_rhythmic here than
-  # was passed to the MCMC will produce miscalibrated Bayes Factors.
+  # p_rhythmic must match the prior used in CB_MCMC_single_rj_slice (default 0.2)
   if (!isTRUE(all.equal(p_rhythmic, 0.2)))
     message("summarize_bay: p_rhythmic = ", p_rhythmic,
             ". Ensure this matches the value used in CB_MCMC_single_rj_slice ",
@@ -2077,17 +1238,14 @@ summarize_bay <- function(input_df, BF, p_rhythmic = 0.2) {
   row_average <- rowMeans(input_df)
 
   prior_odds <- p_rhythmic / (1 - p_rhythmic + 1e-20)
-  
-  # Calculate the posterior odds
+
   posterior_odds <- row_average / (1 - row_average + 1e-20)
-  
-  # Calculate the Bayes Factor correctly: BF = posterior odds / prior odds
+
+  # BF = posterior odds / prior odds
   BayesF <- posterior_odds / prior_odds
-  
-  # Decide if the gene is rhythmic or non-rhythmic based on the BF threshold
+
   rhythmicity <- ifelse(BayesF > BF, 1, 0)
-  
-  # Returning new data frame
+
   summary_df <- data.frame(
     Zeroes = row_counts,
     RowAverage = row_average,
@@ -2097,7 +1255,6 @@ summarize_bay <- function(input_df, BF, p_rhythmic = 0.2) {
   
   return(summary_df)
 }
-
 
 #' Intersect phase matrices to common genes
 #'
@@ -2113,7 +1270,6 @@ summarize_bay <- function(input_df, BF, p_rhythmic = 0.2) {
 #' @return List with elements \code{X_c} and \code{Y_c} (phase matrices
 #'   restricted to common genes, in matching row order).
 #'
-# Filter common genes between datasets
 phi_filter <- function(X_summary, Y_summary) {
   common_genes <- intersect(attr(X_summary$rho, "symbols"), attr(Y_summary$rho, "symbols"))
 
@@ -2121,7 +1277,6 @@ phi_filter <- function(X_summary, Y_summary) {
     stop("No common genes found between datasets X_summary and Y_summary.")
   }
 
-  # Subset the phase data to only include common genes
   X_c <- X_summary$phi[match(common_genes, attr(X_summary$rho, "symbols")), ]
   Y_c <- Y_summary$phi[match(common_genes, attr(Y_summary$rho, "symbols")), ]
   
@@ -2131,7 +1286,7 @@ phi_filter <- function(X_summary, Y_summary) {
   )) 
 }  
 
-# Phase Inference 
+# Per-gene phase-difference tests with HDI; phase_infer() is the exported version
 phase_inf <- function(matrix1, matrix2,
                       P           = 24,
                       credMass    = 0.95,
@@ -2147,7 +1302,7 @@ phase_inf <- function(matrix1, matrix2,
   rho_matrix2 = matrix2$rho
   
   
-  # 1. Helper: circular median in [-P/2,P/2)
+  # circular median in [-P/2, P/2)
   circular_median <- function(samples, P) {
     rad <- circular((samples / P) * 2 * pi, units = "radians")
     med <- median.circular(rad, type = "median")
@@ -2162,8 +1317,7 @@ phase_inf <- function(matrix1, matrix2,
     t %% P
   }
   
-  
-  # Harmonize genes
+
   common_genes <- Reduce(intersect, list(
     rownames(phi_matrix1), rownames(phi_matrix2),
     rownames(rho_matrix1), rownames(rho_matrix2)
@@ -2174,19 +1328,19 @@ phase_inf <- function(matrix1, matrix2,
   rho2 <- rho_matrix2
   
   
-  # Compute phase differences
+  # phase differences wrapped to [-P/2, P/2)
   phase_diff_matrix <- ((phi1 - phi2 + P/2) %% P) - P/2
   peak1 <- apply(phi1, 1, function(x) circular_median_24h(x, P))
   peak2 <- apply(phi2, 1, function(x) circular_median_24h(x, P))
   
-  # 2. Estimate Bayes Factor per gene from rho_matrix
+  # per-gene Bayes factors
   rho_bar1 <- rowMeans(rho1)
   rho_bar2 <- rowMeans(rho2)
   BF1 <- (rho_bar1 * (1 - p_rhythmic)) / ((1 - rho_bar1 + 1e-20) * p_rhythmic)
   BF2 <- (rho_bar2 * (1 - p_rhythmic)) / ((1 - rho_bar2 + 1e-20) * p_rhythmic)
   names(BF1) <- names(BF2) <- rownames(phase_diff_matrix)
   
-  # 3. Analyze one test type ("difference" or "conservation")
+  # one test type: "difference" or "conservation"
   analyze_test <- function(test_type) {
     gene_names <- rownames(phase_diff_matrix)
     
@@ -2198,10 +1352,8 @@ phase_inf <- function(matrix1, matrix2,
       p_shift <- mean(abs(vec) >= shift)
       p_cons  <- 1 - p_shift
       
-      # Calculate in_HDI once - same for both test types
       in_HDI <- in_circular_interval(hdi$lower, hdi$upper, 0, P, a)
-      
-      # Determine which probability to use for this test
+
       if (test_type == "difference") {
         test_prob <- p_shift
       } else {
@@ -2214,11 +1366,8 @@ phase_inf <- function(matrix1, matrix2,
         (P/2 - hdi$lower) + (hdi$upper - (-P/2))
       }
       
-      # Calculate log difference
       log_BF_diff <- log(BF2[gene_names[i]]) - log(BF1[gene_names[i]])
-      
-      
-      # Determine gain/loss status
+
       gain_loss <- ifelse(log_BF_diff < 0, "Loss",
                           ifelse(log_BF_diff > 0, "Gain", "Neutral"))
       
@@ -2244,14 +1393,12 @@ phase_inf <- function(matrix1, matrix2,
     
     df <- do.call(rbind, results)
     
-    # Order by the relevant probability for this test
     ord <- order(-df$test_prob)
     df  <- df[ord, ]
-    
-    # Calculate BFDR using the relevant probability
+
+    # running BFDR down the ranked list
     df$BFDR <- cumsum(1 - df$test_prob) / seq_len(nrow(df))
-    
-    # Set flags based on test type 
+
     if (test_type == "difference") {
       df$flag <- (!df$in_HDI &                    # Zero NOT in HDI = phase difference
                     df$test_prob > 0.5 &
@@ -2302,13 +1449,12 @@ plotGenePosteriorPhase <- function(gene_aliases,
                                    species_names = c("Species1", "Species2"),
                                    tissue_names = c("Tissue1", "Tissue2"),
                                    output_dir) {
-  # Helper: match gene row index (case-insensitive)
+  # case-insensitive row lookup
   match_gene <- function(mat, gene) {
     idx <- which(tolower(rownames(mat)) == tolower(gene))
     if (length(idx) == 0) return(NA_integer_) else return(idx[1])
   }
-  
-  # Initialize list to store data
+
   df_list <- list()
   
   for (gene in gene_aliases) {
@@ -2320,7 +1466,6 @@ plotGenePosteriorPhase <- function(gene_aliases,
       next
     }
     
-    # Extract samples and filter NAs
     df1 <- tibble(
       phi = as.numeric(phi_mat1[idx1, ]),
       species = species_names[1],
@@ -2346,19 +1491,16 @@ plotGenePosteriorPhase <- function(gene_aliases,
     return(NULL)
   }
   
-  # Combine all gene data
   df_combined <- bind_rows(df_list)
   df_combined$species <- factor(df_combined$species, levels = species_names)
   df_combined$gene <- factor(df_combined$gene, levels = gene_aliases)
-  
-  # Generate color palette for genes
+
   n_colors <- length(gene_aliases)
   palette <- brewer.pal(min(n_colors, 8), "Set2")
   if (n_colors > 8) {
     palette <- colorRampPalette(palette)(n_colors)
   }
   
-  # Create density plot
   p <- ggplot(df_combined, aes(x = phi_hours, fill = gene)) +
     geom_density(alpha = 0.4) +
     facet_grid(gene ~ species) +
@@ -2382,7 +1524,6 @@ plotGenePosteriorPhase <- function(gene_aliases,
     )
   
   
-  # Create filename and save
   gene_part <- paste(gene_aliases, collapse = "_")
   filename <- paste0(gene_part, "_", tissue_names[1], "_", tissue_names[2], "_posterior_phase.png")
   output_path <- file.path(output_dir, filename)
@@ -2390,8 +1531,6 @@ plotGenePosteriorPhase <- function(gene_aliases,
   ggsave(output_path, plot = p, width = 15, height = 10, dpi = 300)
   message("Plot saved to: ", output_path)
 }
-
-############### PLOTTING
 
 #' Plot core clock gene median phases on a polar axis
 #'
@@ -2408,7 +1547,7 @@ plotGenePosteriorPhase <- function(gene_aliases,
 #' @return Called for side effects; saves a PNG and returns \code{NULL}.
 #'
 plotCoreClockMedians <- function(phi_mat, gene_aliases, tissue_label, output_path, P = 24) {
-  # Step 1: Compute median phase for core clock genes
+  # phi_mat is in radians; convert to hours
   get_median_phase <- function(phi_mat, gene) {
     i <- which(tolower(rownames(phi_mat)) == tolower(gene))
     if (length(i) == 0) return(NA)
@@ -2417,7 +1556,6 @@ plotCoreClockMedians <- function(phi_mat, gene_aliases, tissue_label, output_pat
     return(median_phase)
   }
   
-  # Step 2: Get median for each core clock gene
   df <- purrr::map_dfr(gene_aliases, function(g) {
     median_phase <- get_median_phase(phi_mat, g)
     tibble(
@@ -2426,7 +1564,6 @@ plotCoreClockMedians <- function(phi_mat, gene_aliases, tissue_label, output_pat
     )
   })
   
-  # Step 3: Prepare plot dataframe
   df$gene <- factor(df$gene, levels = toupper(gene_aliases))
   df <- df %>% mutate(
     ymin = 0.5,
@@ -2434,7 +1571,6 @@ plotCoreClockMedians <- function(phi_mat, gene_aliases, tissue_label, output_pat
     theta = 2 * pi * (1 - as.numeric(median) / P)
   )
   
-  # Step 4: Plot with ggplot2
   p <- ggplot(df, aes(x = theta, y = ymin, fill = gene)) +
     geom_bar(stat = "identity", width = 1, color = "black", alpha = 0.7) +
     scale_fill_manual(values = RColorBrewer::brewer.pal(length(gene_aliases), "Set1")) +
@@ -2450,11 +1586,9 @@ plotCoreClockMedians <- function(phi_mat, gene_aliases, tissue_label, output_pat
     ) +
     labs(title = tissue_label, x = "", y = "", fill = NULL)
   
-  # Step 5: Save plot
   ggsave(output_path, plot = p, width = 8, height = 8, dpi = 300)
   message("Core clock gene median plot saved to: ", output_path)
 }
-
 
 #' Plot circular HDI arcs for core clock genes on a polar plot
 #'
@@ -2474,7 +1608,7 @@ plotCoreClockMedians <- function(phi_mat, gene_aliases, tissue_label, output_pat
 #'
 plotHDIClockPolar <- function(phi_mat, gene_aliases, tissue_label, output_path,
                               credMass = 0.95, P = 24) {
-  # Build HDI data frame using your own circular_HDI
+  # phi_mat is in radians; HDIs are computed in hours
   hdi_df <- purrr::map_dfr(gene_aliases, function(g) {
     i <- which(tolower(rownames(phi_mat)) == tolower(g))
     if (length(i) == 0) return(NULL)
@@ -2494,7 +1628,6 @@ plotHDIClockPolar <- function(phi_mat, gene_aliases, tissue_label, output_path,
   
   hdi_df$gene <- factor(hdi_df$gene, levels = toupper(gene_aliases))
   
-  # Plot
   p <- ggplot(hdi_df, aes(xmin = phi.Lower, xmax = phi.Upper, ymin = 0, ymax = 1, fill = gene)) +
     geom_rect(color = "grey", alpha = 0.1) +
     scale_x_continuous("", limits = c(0, P), breaks = 0:P, labels = paste0(0:P, "h")) +
@@ -2512,12 +1645,7 @@ plotHDIClockPolar <- function(phi_mat, gene_aliases, tissue_label, output_path,
   message("Polar HDI plot saved to: ", output_path)
 }
 ################################################################################
-# BFDR (Bayesian False Discovery Rate) Functions
-################################################################################
-# Main BFDR function - calculates threshold from posterior probabilities
-################################################################################
-# Bayesian False Discovery Rate (BFDR) threshold estimation
-# Implements Eq. (25): tau_c = max{ tau : BFDR(tau) <= alpha }
+# BFDR threshold, Eq. (25): tau_c = max{ tau : BFDR(tau) <= alpha }
 ################################################################################
 #' Estimate the Bayesian False Discovery Rate threshold from posterior probabilities
 #'
@@ -2528,7 +1656,6 @@ plotHDIClockPolar <- function(phi_mat, gene_aliases, tissue_label, output_path,
 #' sort genes by decreasing posterior probability p_g, compute the running
 #' average of (1 - p_g), and return the largest threshold tau_c such that
 #' BFDR(tau_c) = mean(1 - p_g | p_g >= tau_c) <= alpha.
-#' This controls the expected proportion of false rhythmic calls at level alpha.
 #'
 #' @param posterior_probs Numeric vector; marginal posterior probability of
 #'   rhythmicity for each gene (values in \[0, 1\]).
@@ -2545,7 +1672,6 @@ plotHDIClockPolar <- function(phi_mat, gene_aliases, tissue_label, output_path,
 #'
 #' @export
 bfdr_from_posterior <- function(posterior_probs, alpha = 0.05) {
-  # Sort posterior probabilities in descending order
   ord <- order(posterior_probs, decreasing = TRUE)
   sorted_probs <- posterior_probs[ord]
   n <- length(sorted_probs)
@@ -2555,7 +1681,6 @@ bfdr_from_posterior <- function(posterior_probs, alpha = 0.05) {
   discoveries <- seq_len(n)
   bfdr_values <- cumsum_false / discoveries
   
-  # Identify largest index satisfying BFDR <= alpha
   valid_idx <- which(bfdr_values <= alpha)
   
   if (length(valid_idx) == 0) {
@@ -2582,9 +1707,6 @@ bfdr_from_posterior <- function(posterior_probs, alpha = 0.05) {
   )
 }
 
-
-################################################################################
-# Bayesian rhythmic-gene detection with BFDR control
 ################################################################################
 # Step 1: Bayesian rhythmic-gene detection with BFDR control
 ################################################################################
@@ -2669,9 +1791,6 @@ detect_rhy <- function(dat1, dat2, bfdr_alpha = 0.05) {
 }
 
 ################################################################################
-# Phase analysis with Bayesian rhythmicity & transition classification
-################################################################################
-################################################################################
 # Step 2: Bayesian transition classification (gain / loss / maintained)
 ################################################################################
 #' Classify rhythmicity transitions using joint BFDR on transition posteriors
@@ -2741,7 +1860,7 @@ transition_classify <- function(pA, pB, bfdr_alpha = 0.05) {
   tau_loss <- bfdr_loss$threshold
   tau_cons <- bfdr_cons$threshold
   
-  # 3. Classify genes
+  # 4. Classify genes
   gain_genes <- which(p_gain >= tau_gain)
   loss_genes <- which(p_loss >= tau_loss)
   cons_genes <- which(p_cons >= tau_cons)
@@ -2752,7 +1871,6 @@ transition_classify <- function(pA, pB, bfdr_alpha = 0.05) {
   gain_loss_status[loss_genes] <- "Loss"
   gain_loss_status[cons_genes] <- "Maintained"
   
-  # Summary counts
   n_gain <- length(gain_genes)
   n_loss <- length(loss_genes)
   n_cons <- length(cons_genes)
@@ -2800,10 +1918,6 @@ transition_classify <- function(pA, pB, bfdr_alpha = 0.05) {
   )
 }
 
-# Marginal variant: applies BFDR separately to each condition's marginal
-# rhythmicity probability (pA, pB), then classifies based on individual
-# thresholds. Contrast with transition_classify() which uses joint
-# transition probabilities (pA*pB, etc.).
 #' Classify rhythmicity transitions using marginal BFDR on each condition
 #'
 #' @description
@@ -2909,7 +2023,7 @@ transition_classify_marginal <- function(pA, pB, bfdr_alpha = 0.05) {
 #' @param P Numeric; period in hours (default 24).
 #' @param credMass Numeric; HDI coverage (default 0.95); only used when
 #'   \code{compute_hdi = TRUE}.
-#' @param shift Numeric; phase-shift threshold in hours (default 4).
+#' @param shift Numeric; phase-shift threshold in hours (default 2).
 #' @param a Numeric; left endpoint for circular normalisation (default
 #'   \code{-P/2}).
 #' @param bfdr_alpha Numeric; BFDR control level (default 0.05).
@@ -2956,19 +2070,17 @@ phase_infer <- function(phi_matrix1, phi_matrix2, gain_loss_status,
   deltaPhi.Est <- deltaPhi.Lower <- deltaPhi.Upper <-
     hdi.width <- prob_shift <- prob_conserved <- in_HDI <- rep(NA_real_, n_genes)
   
-  # progress bar ---------------------------------------------------------------
+  # per-gene shift probabilities ----------------------------------------------
   if (length(maintained_idx) > 0) {
     message("Computing phase metrics for maintained genes...")
 
     for (k in seq_along(maintained_idx)) {
       i <- maintained_idx[k]
       vec <- phase_diff_matrix[i, ]
-      
-      # Always compute probabilities (needed for BFDR)
+
       prob_shift[i] <- mean(abs(vec) >= shift)
       prob_conserved[i] <- 1 - prob_shift[i]
-      
-      # Only compute HDI if requested
+
       if (compute_hdi) {
         hdi <- circular_HDI(vec, credMass, P, a)
         phi_est <- circ_med(vec, P)
@@ -3012,7 +2124,7 @@ phase_infer <- function(phi_matrix1, phi_matrix2, gain_loss_status,
     BFDR_cons_vec[maintained_idx[ord_cons]] <- BFDR_cons_sorted
     idx_cons_local <- ord_cons[sel_cons]
     
-    # ----- EXCLUSIVE CATEGORIZATION -----
+    # genes selected by both tests go to undetermined
     overlap_local <- intersect(idx_shift_local, idx_cons_local)
     
     if (length(overlap_local) > 0) {
@@ -3042,9 +2154,7 @@ phase_infer <- function(phi_matrix1, phi_matrix2, gain_loss_status,
   }
   
   # output ---------------------------------------------------------------------
-  # Name every per-gene vector by gene_names so downstream code can index by
-  # gene symbol (matching transition_classify()'s gain_loss_status, which is
-  # already named) instead of silently returning NA on character indexing.
+  # per-gene vectors are named by gene so they can be indexed by symbol
   names(peak1) <- names(peak2) <- gene_names
   names(deltaPhi.Est) <- names(deltaPhi.Lower) <- names(deltaPhi.Upper) <- gene_names
   names(prob_shift) <- names(flag_shift) <- names(BFDR_shift_vec) <- gene_names
@@ -3069,8 +2179,6 @@ phase_infer <- function(phi_matrix1, phi_matrix2, gain_loss_status,
     in_HDI = in_HDI
   )
 }
-
-
 
 #' Full BayRC phase analysis pipeline
 #'
@@ -3103,7 +2211,7 @@ phase_analysis <- function(matrix1, matrix2,
                            P = 24, credMass = 0.95,
                            shift = 4, a = -P/2,
                            bfdr_alpha = 0.05,
-                           compute_hdi = FALSE) {  # NEW
+                           compute_hdi = FALSE) {
   rhy <- detect_rhy(matrix1, matrix2, bfdr_alpha)
   pA <- rowMeans(matrix1$rho)
   pB <- rowMeans(matrix2$rho)
@@ -3117,7 +2225,7 @@ phase_analysis <- function(matrix1, matrix2,
   gain_loss_status[trans$cons_genes] <- "Maintained"
   
   phase <- phase_infer(matrix1$phi, matrix2$phi, gain_loss_status,
-                       P, credMass, shift, a, bfdr_alpha, compute_hdi)  # PASS IT
+                       P, credMass, shift, a, bfdr_alpha, compute_hdi)
   
   list(
     rhythmic_summary   = rhy,

@@ -1,5 +1,5 @@
 ## Figure 3 panels D and E: rhythmicity transitions and phase classification,
-## read from the caches the application scripts write rather than typed in.
+## read from the plot caches the application scripts write.
 ##
 ## Usage: Rscript summary_panels.R [outdir]
 
@@ -35,8 +35,7 @@ read_pair <- function(s) {
   cls    <- cache$phase_class[cache$maintained]
   d <- (cache$phase$peak2 - cache$phase$peak1) %% 24
   d <- ifelse(d > 12, d - 24, d)
-  # the shift decision is one BFDR classification; its direction is the sign of
-  # the phase difference, ahead when the compared region peaks earlier
+  # direction of a shift is the sign of peak2 - peak1; ahead when negative
   dm <- d[cache$maintained]
   sh <- cls == "Phase-shifted"
   list(label = s$label,
@@ -95,28 +94,25 @@ labels <- vapply(pairs_data, function(p)
 
 e <- ggplot(phase, aes(percent, pair, fill = status)) +
   geom_col(width = .58, position = position_stack(reverse = TRUE)) +
-  # a segment narrower than its own label would print it over its neighbour
+  # segments under 4% are left unlabelled
   geom_text(aes(label = ifelse(percent >= 4, sprintf("%.0f%%", percent), "")),
             position = position_stack(vjust = .5, reverse = TRUE),
             size = 4.4, colour = "white") +
   scale_y_discrete(labels = setNames(labels, pairs)) +
   scale_x_continuous(breaks = seq(0, 100, 25), expand = c(0, 0)) +
   coord_cartesian(xlim = c(0, 100)) +
-  # the two shifted classes share a hue so they still read as one group
+  # the two shifted classes share a hue
   scale_fill_manual(values = c(Aligned = "#1B9E77", Ahead = "#FDB863",
                                Behind = "#D95F02", Undetermined = "#8274B5"),
                     labels = c("Phase-conserved", "Second region peaks earlier",
                                "Second region peaks later", "Undetermined")) +
-  # four labels this long do not sit on one row under the panel
   guides(fill = guide_legend(nrow = 2, byrow = TRUE)) +
   labs(title = "Timing among conserved genes",
        subtitle = sprintf("Posterior phase classification | ±%g h window, BFDR = %.2f",
                           shift, bfdr_alpha),
        x = "Percentage of conserved genes", tag = "E") + common +
-  # the fourth class pushes this key past the right edge when it is centred
-  # under the panel, so it is anchored to the panel's left instead
+  # key anchored left and set smaller so it stays on the page
   theme(legend.justification = "left", legend.margin = margin(l = 0, r = 0),
-        # the longest label reaches the page edge at the shared type size
         legend.text = element_text(size = 12.5),
         legend.key.width = unit(9, "pt"))
 

@@ -18,7 +18,7 @@ p_B; higher values simulate more conserved rhythmicity (default 0.5).}
 \code{"low_rhythmic"} (Beta(2,5)).}
 }
 \value{
-A data.frame with columns \code{p_A} and \code{p_B} (length n).
+A list with numeric vectors \code{p_A} and \code{p_B} (length n).
 }
 \description{
 Simulates posterior rhythmicity probabilities (p_A, p_B) for a given

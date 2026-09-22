@@ -6,20 +6,17 @@
 #' Fits a single-period OLS cosinor model (y = M + A*cos(omega*t - phi) +
 #' epsilon) to every gene in a dataset using vectorised least squares,
 #' returning MESOR, amplitude, acrophase, R-squared, and an F-test p-value
-#' for rhythmicity. This is the classical (non-Bayesian) cosinor method the
-#' paper contrasts BayRC's RJMCMC approach with; useful as a fast baseline
-#' or a quick pre-screen before running the full MCMC pipeline.
+#' for rhythmicity. This is the classical cosinor method used as the
+#' frequentist comparator to BayRC, and a fast pre-screen before the MCMC.
 #'
 #' @param x A list with elements \code{data} (G x N data.frame or matrix),
 #'   \code{time} (length-N numeric Zeitgeber time in hours), and
 #'   \code{gname} (length-G gene names).
 #' @param period Numeric; circadian period in hours (default 24).
-#' @param amp.cutoff Numeric; amplitude cutoff (currently unused, reserved
-#'   for future filtering; default 0).
+#' @param amp.cutoff Numeric; amplitude cutoff (unused; default 0).
 #' @param p.adjust.method Character; multiple-testing correction method
 #'   passed to \code{\link[stats]{p.adjust}} (default \code{"BH"}).
-#' @param parallel.ncores Integer; number of cores (currently reserved,
-#'   default 1).
+#' @param parallel.ncores Integer; number of cores (unused; default 1).
 #'
 #' @return The input list \code{x} augmented with a \code{rhythm}
 #'   data.frame (one row per gene) containing columns \code{gname},
@@ -62,8 +59,7 @@ one_cosinor_OLS = function(tod = time, y = y, period = 24){
   omega = 2*pi/period
   x1 = cos(omega*tod)
   x2 = sin(omega*tod)
-  # mat.X = matrix(c(rep(1, n), x1, x2), ncol = 3, byrow = FALSE)
-  # mat.XX = t(mat.X)%*%mat.X#mat.XX = mat.S
+  # X'X for the design [1, cos, sin]
   mat.S = matrix(c(n, sum(x1), sum(x2),
                    sum(x1), sum(x1^2), sum(x1*x2),
                    sum(x2), sum(x1*x2), sum(x2^2)),

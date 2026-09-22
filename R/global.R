@@ -14,8 +14,8 @@
 #'   matrix (G x K binary).
 #' @param dat2 Named list; MCMC output for condition 2 with a \code{rho}
 #'   matrix.
-#' @param delta Numeric; passed to \code{congruence} (default 3; currently
-#'   unused in the probabilistic score).
+#' @param delta Numeric; passed to \code{congruence} (default 3; not used
+#'   by the probabilistic score).
 #' @param units Character; \code{"hours"} or \code{"radians"} (default
 #'   \code{"hours"}).
 #' @param B Integer; total number of permutations (default 1000).
@@ -32,26 +32,22 @@
 #' @return A B x 4 numeric matrix with columns \code{congruence_index},
 #'   \code{gain_index}, \code{loss_index}, \code{gain_loss_ratio}.
 #'
-# Global permutation function with rounds support
 perm_conservation_global <- function(dat1, dat2, delta = 3, units = "hours", B = 1000,
                                      ncores = NULL, parallel = "auto",
                                      rounds = 1, save_intermediate = FALSE,
                                      intermediate_dir = NULL) {
-  
-  # Auto-detect best approach - convert to logical
+
+  # "auto" parallelises on Unix when B >= 100
   if (parallel == "auto") {
     parallel <- .Platform$OS.type != "windows" && B >= 100
   }
-  
-  # Ensure parallel is logical
+
   parallel <- as.logical(parallel)
-  
-  # Set default ncores if using parallel
+
   if (is.null(ncores)) {
     ncores <- min(parallel::detectCores(logical = FALSE), 4)
   }
-  
-  # Calculate permutations per round
+
   B_per_round <- ceiling(B / rounds)
   total_B <- B_per_round * rounds
   
@@ -60,7 +56,6 @@ perm_conservation_global <- function(dat1, dat2, delta = 3, units = "hours", B =
     cat("Total permutations:", total_B, "\n")
   }
   
-  # Setup intermediate saving if requested
   if (save_intermediate && !is.null(intermediate_dir)) {
     if (!dir.exists(intermediate_dir)) {
       dir.create(intermediate_dir, recursive = TRUE)
@@ -71,17 +66,14 @@ perm_conservation_global <- function(dat1, dat2, delta = 3, units = "hours", B =
   # the four summaries computed for each permutation
   metrics <- c("congruence_index", "gain_index", "loss_index", "gain_loss_ratio")
   
-  # Create output array for ALL metrics
-  out <- array(NA, dim = c(total_B, length(metrics)), 
+  out <- array(NA, dim = c(total_B, length(metrics)),
                dimnames = list(NULL, metrics))
-  
-  # Process each round
+
   for (round_num in 1:rounds) {
     if (rounds > 1) {
       cat("\n--- Round", round_num, "of", rounds, "---\n")
     }
-    
-    # Calculate start and end indices for this round
+
     start_idx <- (round_num - 1) * B_per_round + 1
     end_idx <- min(round_num * B_per_round, total_B)
     current_B <- end_idx - start_idx + 1
@@ -90,15 +82,12 @@ perm_conservation_global <- function(dat1, dat2, delta = 3, units = "hours", B =
       cat("Processing permutations", start_idx, "to", end_idx, "(", current_B, "permutations)\n")
     }
     
-    # Run permutations for this round
     round_results <- run_single_round_global(
       dat1, dat2, G, metrics, delta, units, current_B, parallel, ncores
     )
-    
-    # Store results
+
     out[start_idx:end_idx, ] <- round_results
-    
-    # Save intermediate results if requested
+
     if (save_intermediate && !is.null(intermediate_dir)) {
       round_file <- file.path(intermediate_dir, paste0("round_", round_num, "_results.rds"))
       saveRDS(round_results, round_file)
@@ -107,7 +96,6 @@ perm_conservation_global <- function(dat1, dat2, delta = 3, units = "hours", B =
       }
     }
     
-    # Memory cleanup
     gc()
     
     if (rounds > 1) {
@@ -115,7 +103,7 @@ perm_conservation_global <- function(dat1, dat2, delta = 3, units = "hours", B =
     }
   }
   
-  # If we generated more permutations than requested, trim to exact B
+  # rounding up B_per_round can overshoot B
   if (total_B > B) {
     cat("Trimming results to exactly", B, "permutations\n")
     out <- out[1:B, , drop = FALSE]
@@ -142,21 +130,19 @@ perm_conservation_global <- function(dat1, dat2, delta = 3, units = "hours", B =
 #' @return B_round x length(metrics) numeric matrix.
 #'
 #' @keywords internal
-# Helper function to run a single round of global permutations
 run_single_round_global <- function(dat1, dat2, G, metrics, delta, units, B_round,
                                     parallel, ncores) {
-  
-  # Create output array for this round
-  round_out <- array(NA, dim = c(B_round, length(metrics)), 
+
+  round_out <- array(NA, dim = c(B_round, length(metrics)),
                      dimnames = list(NULL, metrics))
-  
+
   if (parallel && .Platform$OS.type != "windows") {
-    
-    # PARALLEL VERSION (Mac/Linux)
+
+    # parallel (Mac/Linux)
     perm_results <- parallel::mclapply(1:B_round, function(b) {
       perm_indices <- sample(1:G, G, replace = FALSE)
-      
-      # Only rho needed for congruence calculation
+
+      # congruence needs only rho
       dat1_perm <- list(
         rho = dat1$rho
       )
@@ -174,21 +160,19 @@ run_single_round_global <- function(dat1, dat2, G, metrics, delta, units, B_roun
       return(result_vector)
     }, mc.cores = ncores)
     
-    # Combine parallel results
     for (b in 1:B_round) {
       round_out[b, ] <- perm_results[[b]]
     }
-    
+
   } else {
-    
-    # SEQUENTIAL VERSION
+
+    # sequential
     cat("  Using sequential processing for this round\n")
-    
-    # Setup progress tracking for this round
+
+    # report progress every tenth of the round
     progress_interval <- max(1, floor(B_round/10))
-    
+
     for (b in 1:B_round) {
-      # Show progress at regular intervals
       if (b %% progress_interval == 0 || b == B_round) {
         percentage <- round(100 * b / B_round, 1)
         cat("    Round progress: Permutation", b, "of", B_round, "(", percentage, "%)\n")
@@ -196,17 +180,16 @@ run_single_round_global <- function(dat1, dat2, G, metrics, delta, units, B_roun
       }
       
       perm_indices <- sample(1:G, G, replace = FALSE)
-      
-      # Only rho needed for congruence calculation
+
       dat1_perm <- list(
         rho = dat1$rho
       )
       dat2_perm <- list(
         rho = dat2$rho[perm_indices, , drop = FALSE]
       )
-      
+
       perm_result <- congruence(dat1_perm, dat2_perm, delta = delta, units = units)
-      
+
       for(metric in metrics) {
         round_out[b, metric] <- perm_result[[metric]]
       }
@@ -232,23 +215,17 @@ run_single_round_global <- function(dat1, dat2, G, metrics, delta, units, B_roun
 #'   \code{gain_index}, \code{loss_index} (observed values), and
 #'   \code{ratio} (list of right/left/two-sided p-values for the ratio).
 #'
-# Global p-value calculation
-# For congruence_index: right-sided test only
-# For gain_loss_ratio: right-sided, left-sided, and two-sided tests
 p_conservation_global <- function(observed_scores, perm_results) {
-  
-  # Initialize p-value lists
-  # For congruence_index: only right-sided
+
   p_congruence <- NA
-  
-  # For gain_loss_ratio: three types of tests
+
   p_ratio <- list(
     PValue_Right = NA,
     PValue_Left = NA,
     PValue_TwoSided = NA
   )
-  
-  # Congruence index - right-sided test (higher is better)
+
+  # congruence index: right-sided
   if(!is.na(observed_scores$congruence_index)) {
     null_scores <- perm_results[, "congruence_index"]
     null_scores <- null_scores[!is.na(null_scores)]
@@ -259,23 +236,20 @@ p_conservation_global <- function(observed_scores, perm_results) {
     }
   }
   
-  # Gain/loss ratio - three types of tests
+  # gain/loss ratio: right, left and two-sided
   if(!is.na(observed_scores$gain_loss_ratio)) {
     null_scores <- perm_results[, "gain_loss_ratio"]
     null_scores <- null_scores[!is.na(null_scores)]
-    
+
     if(length(null_scores) > 0) {
       obs_val <- observed_scores$gain_loss_ratio
-      
-      # Right-sided: tests if observed ratio is higher than expected
+
       p_right <- (sum(null_scores >= obs_val) + 1) / (length(null_scores) + 1)
-      
-      # Left-sided: tests if observed ratio is lower than expected
+
       p_left <- (sum(null_scores <= obs_val) + 1) / (length(null_scores) + 1)
-      
-      # Two-sided: tests if observed ratio differs from expected (either direction)
+
       p_two <- 2 * min(p_right, p_left)
-      p_two <- min(p_two, 1)  # Cap at 1
+      p_two <- min(p_two, 1)
       
       p_ratio$PValue_Right <- p_right
       p_ratio$PValue_Left <- p_left
@@ -319,33 +293,28 @@ p_conservation_global <- function(observed_scores, perm_results) {
 #'   and p-values, gain and loss indices, ratio scores and p-values.
 #'   Also writes an Excel file to \code{output.dir}.
 #'
-# Main global conservation function with rounds support and Excel output
 multi_conservation_global <- function(mcmc.merge.list, dataset.names,
                                       delta = 3, units = "hours", B = 1000,
                                       ncores = NULL, parallel = "auto",
                                       rounds = 1, save_intermediate = FALSE,
                                       intermediate_dir = "intermediate_results",
                                       output.dir = "Conservation_Global") {
-  
-  # Check if required package is installed
+
   if (!requireNamespace("openxlsx", quietly = TRUE)) {
     stop("Package 'openxlsx' is required but not installed. Please install it with: install.packages('openxlsx')")
   }
-  
-  # Auto-detect best approach - convert to logical
+
+  # "auto" parallelises on Unix when B >= 100
   if (parallel == "auto") {
     parallel <- .Platform$OS.type != "windows" && B >= 100
   }
-  
-  # Ensure parallel is logical
+
   parallel <- as.logical(parallel)
-  
-  # Set default ncores if using parallel
+
   if (is.null(ncores)) {
     ncores <- min(parallel::detectCores(logical = FALSE), 4)
   }
-  
-  # Inform user about computational strategy
+
   if (parallel && .Platform$OS.type != "windows") {
     cat("Using parallel processing with", ncores, "cores for permutations\n")
   } else if (.Platform$OS.type == "windows") {
@@ -364,13 +333,11 @@ multi_conservation_global <- function(mcmc.merge.list, dataset.names,
   names(mcmc.merge.list) <- dataset.names
   M <- length(mcmc.merge.list)
   
-  # Initialize results matrices
-  # Congruence index
+  # M x M result matrices, filled symmetrically
   Congruence_scores <- matrix(NA, M, M)
   Congruence_pvalues <- matrix(NA, M, M)
   Congruence_qvalues <- matrix(NA, M, M)
   
-  # Gain/loss components and ratio
   Gain_index <- matrix(NA, M, M)
   Loss_index <- matrix(NA, M, M)
   Ratio_scores <- matrix(NA, M, M)
@@ -381,7 +348,6 @@ multi_conservation_global <- function(mcmc.merge.list, dataset.names,
   Ratio_pvalues_two <- matrix(NA, M, M)
   Ratio_qvalues_two <- matrix(NA, M, M)
   
-  # Set row and column names
   rownames(Congruence_scores) <- colnames(Congruence_scores) <- dataset.names
   rownames(Congruence_pvalues) <- colnames(Congruence_pvalues) <- dataset.names
   rownames(Congruence_qvalues) <- colnames(Congruence_qvalues) <- dataset.names
@@ -395,7 +361,7 @@ multi_conservation_global <- function(mcmc.merge.list, dataset.names,
   rownames(Ratio_pvalues_two) <- colnames(Ratio_pvalues_two) <- dataset.names
   rownames(Ratio_qvalues_two) <- colnames(Ratio_qvalues_two) <- dataset.names
   
-  # Set diagonals (comparing dataset to itself)
+  # diagonal: a dataset against itself
   diag(Congruence_scores) <- 1
   diag(Congruence_pvalues) <- 0
   diag(Congruence_qvalues) <- 0
@@ -420,13 +386,10 @@ multi_conservation_global <- function(mcmc.merge.list, dataset.names,
       dat1 <- mcmc.merge.list[[i]]
       dat2 <- mcmc.merge.list[[j]]
       
-      # Calculate observed conservation scores
       conservation_result <- congruence(dat1, dat2, delta = delta, units = units)
-      
-      # Calculate permutation results with rounds
+
       cat("Running global permutations (B =", B, ")...\n")
-      
-      # Create pair-specific intermediate directory if saving intermediate results
+
       pair_intermediate_dir <- NULL
       if (save_intermediate) {
         pair_intermediate_dir <- file.path(intermediate_dir, paste0("pair_", current_pair, "_", 
@@ -440,14 +403,11 @@ multi_conservation_global <- function(mcmc.merge.list, dataset.names,
         intermediate_dir = pair_intermediate_dir
       )
       
-      # Calculate p-values
       p_values <- p_conservation_global(conservation_result, perm_results)
-      
-      # Store congruence results (symmetric matrix)
+
       Congruence_scores[i, j] <- Congruence_scores[j, i] <- conservation_result$congruence_index
       Congruence_pvalues[i, j] <- Congruence_pvalues[j, i] <- p_values$congruence
       
-      # Store gain/loss ratio results (symmetric matrix)
       Gain_index[i, j] <- Gain_index[j, i] <- p_values$gain_index
       Loss_index[i, j] <- Loss_index[j, i] <- p_values$loss_index
       Ratio_scores[i, j] <- Ratio_scores[j, i] <- conservation_result$gain_loss_ratio
@@ -459,16 +419,14 @@ multi_conservation_global <- function(mcmc.merge.list, dataset.names,
     }
   }
   
-  # Apply FDR correction AFTER all p-values are calculated
+  # BH across all pairs, separately for each p-value type
   cat("\nApplying FDR correction across all", total_pairs, "tests...\n")
-  
-  # Congruence index: single FDR correction
+
   p_flat <- Congruence_pvalues[upper.tri(Congruence_pvalues)]
   q_flat <- p.adjust(p_flat, method = "fdr")
   Congruence_qvalues[upper.tri(Congruence_qvalues)] <- q_flat
   Congruence_qvalues[lower.tri(Congruence_qvalues)] <- t(Congruence_qvalues)[lower.tri(Congruence_qvalues)]
   
-  # Gain/loss ratio: separate FDR correction for each test type
   p_flat_right <- Ratio_pvalues_right[upper.tri(Ratio_pvalues_right)]
   q_flat_right <- p.adjust(p_flat_right, method = "fdr")
   Ratio_qvalues_right[upper.tri(Ratio_qvalues_right)] <- q_flat_right
@@ -484,15 +442,13 @@ multi_conservation_global <- function(mcmc.merge.list, dataset.names,
   Ratio_qvalues_two[upper.tri(Ratio_qvalues_two)] <- q_flat_two
   Ratio_qvalues_two[lower.tri(Ratio_qvalues_two)] <- t(Ratio_qvalues_two)[lower.tri(Ratio_qvalues_two)]
   
-  # Create output directory
   if (!file.exists(output.dir)) dir.create(output.dir)
-  
-  # Create Excel workbook with 2 sheets
+
   cat("Creating Excel workbook with 2 sheets...\n")
   
   wb <- openxlsx::createWorkbook()
   
-  # ========== SHEET 1: CONGRUENCE INDEX ==========
+  # sheet 1: congruence index
   openxlsx::addWorksheet(wb, sheetName = "congruence_index")
   
   result_df_cong <- data.frame(
@@ -508,7 +464,6 @@ multi_conservation_global <- function(mcmc.merge.list, dataset.names,
   
   openxlsx::writeData(wb, sheet = "congruence_index", x = result_df_cong, startRow = 1, startCol = 1)
   
-  # Format congruence sheet
   header_style <- openxlsx::createStyle(textDecoration = "bold", 
                                         fgFill = "#E6E6FA",
                                         border = "TopBottomLeftRight")
@@ -524,7 +479,7 @@ multi_conservation_global <- function(mcmc.merge.list, dataset.names,
   
   openxlsx::setColWidths(wb, sheet = "congruence_index", cols = 1:ncol(result_df_cong), widths = "auto")
   
-  # ========== SHEET 2: GAIN/LOSS RATIO ==========
+  # sheet 2: gain/loss ratio
   openxlsx::addWorksheet(wb, sheetName = "gain_loss_ratio")
   
   result_df_ratio <- data.frame(
@@ -546,7 +501,6 @@ multi_conservation_global <- function(mcmc.merge.list, dataset.names,
   
   openxlsx::writeData(wb, sheet = "gain_loss_ratio", x = result_df_ratio, startRow = 1, startCol = 1)
   
-  # Format ratio sheet
   openxlsx::addStyle(wb, sheet = "gain_loss_ratio", style = header_style, 
                      rows = 1, cols = 1:ncol(result_df_ratio), gridExpand = TRUE)
   
@@ -559,11 +513,10 @@ multi_conservation_global <- function(mcmc.merge.list, dataset.names,
   
   openxlsx::setColWidths(wb, sheet = "gain_loss_ratio", cols = 1:ncol(result_df_ratio), widths = "auto")
   
-  # Save the workbook
   excel_filename <- paste0(output.dir, "/Conservation_Results_Global_", M, "_datasets.xlsx")
   openxlsx::saveWorkbook(wb, file = excel_filename, overwrite = TRUE)
-  
-  # Also save CSV files for compatibility
+
+  # the same matrices as CSV
   write.csv(Congruence_scores, 
             file = paste0(output.dir, "/Conservation_global_congruence_index_", M, ".csv"))
   write.csv(Congruence_pvalues, 
@@ -618,8 +571,6 @@ multi_conservation_global <- function(mcmc.merge.list, dataset.names,
 #' @return List with elements \code{jaccard_obs}, \code{jaccard_adj}, and
 #'   \code{jaccard_null} (all numeric scalars).
 #'
-# Minimal concordance summary from posterior ρ matrices
-# Wraps compute_iteration_jaccard to return scalar summaries per condition pair.
 compute_concordance_minimal <- function(rho_A, rho_B) {
   res <- compute_iteration_jaccard(rho_A, rho_B)
   list(

@@ -31,7 +31,7 @@ result_circadian <- multi_conservation(
   use_cpp = TRUE
 )
 
-# Extract adjusted concordance (fallback to NA if not found)
+# NA when the column is absent
 adj_conc <- NA_real_
 adj_col <- "Baboon_LUN_vs_Human_LUN_AdjustedConcordance"
 if (adj_col %in% colnames(result_circadian)) {
@@ -44,7 +44,7 @@ subtitle_text <- if (is.na(adj_conc)) {
   sprintf("Adjusted Concordance: %.4f", adj_conc)
 }
 
-# Build heatmap using existing integrated plotting
+# the adjusted concordance goes in as the heatmap subtitle
 plot_heatmap(
   data1 = baboon_LUN,
   data2 = human_LUN,

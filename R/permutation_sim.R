@@ -1,48 +1,6 @@
 ################################################################################
-# CORE FUNCTIONS FOR PROBABILISTIC concordance ANALYSIS
+# CORE FUNCTIONS FOR PROBABILISTIC CONCORDANCE ANALYSIS
 ################################################################################
-# Helper function: Compute probabilistic concordance index
-# compute_probabilistic_concordance <- function(p_A, p_B) {
-#   intersection_probs <- p_A * p_B
-#   expected_intersection <- sum(intersection_probs)
-#   expected_union <- sum(p_A) + sum(p_B) - expected_intersection
-#   
-#   if (expected_union == 0) return(0)
-#   return(expected_intersection / expected_union)
-# }
-# Helper function: Compute normalized probabilistic concordance index (C_prod_star)
-# compute_probabilistic_concordance <- function(p_A, p_B) {
-#   # Inner helper: raw fuzzy-Jaccard using product form
-#   C_prod <- function(x, y) {
-#     num <- sum(x * y)
-#     den <- sum(x) + sum(y) - num
-#     if (den == 0) return(0)
-#     num / den
-#   }
-#   
-#   # Compute pairwise concordances
-#   cAB <- C_prod(p_A, p_B)
-#   cAA <- C_prod(p_A, p_A)
-#   cBB <- C_prod(p_B, p_B)
-#   
-#   # Normalize so identical = 1
-#   if (cAA == 0 || cBB == 0) {
-#     return(NA_real_)
-#   }
-#   
-#   normalized_concordance <- cAB / sqrt(cAA * cBB)
-#   return(normalized_concordance)
-# }
-# 
-# compute_probabilistic_concordance <- function(p_A, p_B) {
-#   valid <- complete.cases(p_A, p_B)
-#   if (sum(valid) < 3) return(NA_real_)
-#   
-#   # Spearman correlation as scalar
-#   rho <- suppressWarnings(cor(p_A[valid], p_B[valid], method = "spearman"))
-#   return(as.numeric(rho))   # <— critical fix
-# }
-# 
 
 #' Compute per-MCMC-iteration Jaccard concordance index
 #'
@@ -66,8 +24,7 @@
 #'
 compute_iteration_jaccard <- function(rho_A, rho_B) {
   # rho_A, rho_B: binary matrices (genes × iterations)
-  # Returns: list with jaccard values and confusion matrices
-  
+
   n_iter <- ncol(rho_A)
   G <- nrow(rho_A)
   
@@ -123,59 +80,21 @@ compute_iteration_jaccard <- function(rho_A, rho_B) {
   ))
 }
 
-# Helper function: Compute gain and loss indices
-# compute_gain_loss <- function(p_A, p_B) {
-#   intersection_probs <- p_A * p_B
-#   expected_intersection <- sum(intersection_probs)
-#   expected_union <- sum(p_A) + sum(p_B) - expected_intersection
-#   
-#   if (expected_union == 0) {
-#     return(list(
-#       gain_index = 0,
-#       loss_index = 0,
-#       gain_loss_ratio = NA_real_
-#     ))
-#   }
-#   
-#   expected_loss <- sum(p_A) - expected_intersection
-#   expected_gain <- sum(p_B) - expected_intersection
-#   
-#   union_inv <- 1 / expected_union
-#   loss_index <- expected_loss * union_inv
-#   gain_index <- expected_gain * union_inv
-#   
-#   gain_loss_ratio <- if (loss_index == 0) {
-#     if (gain_index == 0) {
-#       NA_real_
-#     } else {
-#       Inf
-#     }
-#   } else {
-#     gain_index / loss_index
-#   }
-#   
-#   return(list(
-#     gain_index = gain_index,
-#     loss_index = loss_index,
-#     gain_loss_ratio = gain_loss_ratio
-#   ))
-# }
-
-#' Compute per-iteration gain, loss, and conservation indices
+#' Compute gain, loss, and conservation indices across iterations
 #'
 #' @description
-#' For each MCMC iteration, computes the expected gain (rhythmic in B but
-#' not A), loss (rhythmic in A but not B), and conservation (rhythmic in
-#' both) under the probabilistic framework, as well as union size.
+#' Counts, in each MCMC iteration, the genes rhythmic in both conditions
+#' (conserved), in B only (gain) and in A only (loss), averages the counts
+#' over iterations, and divides by their sum to give the gain and loss
+#' indices.
 #'
 #' @param rho_A G x K binary matrix; posterior rho samples for condition A.
 #' @param rho_B G x K binary matrix; posterior rho samples for condition B.
 #'
-#' @return A list of length-K numeric vectors: \code{exp_conserved},
-#'   \code{exp_gain}, \code{exp_loss}, and \code{exp_union}, each
-#'   containing iteration-level index values.
+#' @return A list with the mean counts \code{expected_conserved},
+#'   \code{expected_gained} and \code{expected_lost}, and the scalars
+#'   \code{gain_index}, \code{loss_index} and \code{gain_loss_ratio}.
 #'
-# Compute gain/loss across iterations
 compute_gain_loss_iterations <- function(rho_A, rho_B) {
   # rho_A, rho_B: binary matrices (genes × iterations)
   
@@ -199,7 +118,7 @@ compute_gain_loss_iterations <- function(rho_A, rho_B) {
   mean_gained <- mean(exp_gained)
   mean_lost <- mean(exp_lost)
   
-  # Calculate indices (matching your original logic)
+  # Indices relative to the expected union
   total_union <- mean_conserved + mean_gained + mean_lost
   
   if (total_union == 0) {
@@ -231,7 +150,6 @@ compute_gain_loss_iterations <- function(rho_A, rho_B) {
     gain_loss_ratio = gain_loss_ratio
   ))
 }
-
 
 ################################################################################
 # MAIN ANALYSIS FUNCTION FOR SINGLE PATHWAY
@@ -328,7 +246,7 @@ analyze_pathway_concordance <- function(rho_A, rho_B, idx = NULL,
         }
       }
       
-      # Calculate gain/loss p-value (only for R version)
+      # Two-sided gain/loss p-value on |log ratio|
       if (is_global) {
         obs_ratio <- gain_loss$gain_loss_ratio
         obs_dev <- abs(log(obs_ratio))
@@ -472,7 +390,7 @@ bootstrap_conservation_pathway_within <- function(dat1, dat2, pathway.list,
                                                   compute_pvalue = TRUE,
                                                   compute_ci = TRUE) {
   
-  # Extract FULL binary matrices (not averaged!)
+  # Binary rho draws, not posterior means
   rho_A <- dat1$rho  # genes × iterations
   rho_B <- dat2$rho  # genes × iterations
   genes <- attr(dat1$rho, "symbols")
@@ -593,10 +511,6 @@ bootstrap_conservation_pathway_within <- function(dat1, dat2, pathway.list,
     null_samples = null_samples_matrix
   ))
 }
-
-
-
-
 
 ################################################################################
 # MULTI-DATASET COMPARISON
@@ -775,7 +689,7 @@ multi_conservation <- function(mcmc.merge.list, dataset.names,
   
   final_df <- as.data.frame(final_df_list)
   
-  # Save to Excel — gated by save_output so CI/test environments can suppress the write
+  # Write the workbook unless save_output = FALSE
   if (save_output) {
   if (!dir.exists(output.dir)) {
     dir.create(output.dir, recursive = TRUE)
@@ -845,7 +759,7 @@ multi_conservation <- function(mcmc.merge.list, dataset.names,
   
   return(final_df)
 }
-# Compute per-iteration Jaccard concordance with hypergeometric analytical p-value.
+
 #' Compute analytical p-value for Jaccard concordance via hypergeometric test
 #'
 #' @description
@@ -858,13 +772,10 @@ multi_conservation <- function(mcmc.merge.list, dataset.names,
 #' @param rho_B G x K binary matrix; posterior rho samples for condition B.
 #'
 #' @return A list with elements \code{jaccard_obs_mean} (length-K
-#'   observed Jaccard per iteration), \code{pvalues} (length-K
-#'   hypergeometric p-values), \code{confusion} (K x 4 matrix of
-#'   contingency table proportions), and \code{mean_pvalue}.
+#'   observed Jaccard per iteration), \code{confusion} (K x 4 matrix of
+#'   contingency table counts), \code{pvalue_per_iter} (length-K
+#'   hypergeometric p-values), \code{mean_jaccard} and \code{mean_pvalue}.
 #'
-# For each MCMC iteration, treats the binary ρ vectors as a 2×2 contingency table
-# and computes the exact one-sided hypergeometric p-value (more overlap than chance).
-# Returns a posterior distribution of Jaccard values and confusion-matrix elements.
 compute_adjusted_jaccard_analytical_pvalue <- function(rho_A, rho_B) {
   n_iter <- ncol(rho_A)
   G      <- nrow(rho_A)
@@ -910,23 +821,17 @@ compute_adjusted_jaccard_analytical_pvalue <- function(rho_A, rho_B) {
 #' Pathway-level bootstrap concordance (compatibility wrapper)
 #'
 #' @description
-#' Thin wrapper around \code{\link{multi_conservation}} retained for
-#' backward compatibility with analysis scripts that call
-#' \code{multi_conservation_pathway_bootstrap}.  All computation is
-#' delegated to \code{multi_conservation}; the \code{delta} and
-#' \code{units} arguments are accepted but unused (the c-score is
-#' threshold-free by design; see paper Eq. 3).
+#' Wrapper around \code{\link{multi_conservation}}, which does all the
+#' computation. The \code{delta} and \code{units} arguments are accepted
+#' but unused, as the c-score is threshold-free (paper Eq. 3).
 #'
-#' Note: output Excel sheets are named \code{"Results"} and
-#' \code{"Column_Definitions"}, not \code{"congruence_index"} as in
-#' the legacy Thien/ version.  Update downstream read.xlsx calls
-#' accordingly.
+#' The Excel output has sheets \code{"Results"} and
+#' \code{"Column_Definitions"}.
 #'
 #' @param mcmc.merge.list Named list of MCMC outputs.
 #' @param dataset.names Character vector of dataset labels.
 #' @param select.pathway.list Named list of pathway gene sets.
-#' @param delta Numeric; ignored (reserved for future phase-threshold
-#'   concordance variant).
+#' @param delta Numeric; ignored.
 #' @param units Character; ignored.
 #' @param n_boot Integer; bootstrap replicates (default 500).
 #' @param n_perm Integer; permutation replicates (default 1000).

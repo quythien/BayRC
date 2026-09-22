@@ -5,7 +5,6 @@
 library(dplyr)
 library(ggplot2)
 
-# Load your data
 # Paths come from inst/analysis/config.R; override any of them with the
 # matching env var.
 this.file <- sub("^--file=", "", grep("^--file=", commandArgs(), value = TRUE)[1])

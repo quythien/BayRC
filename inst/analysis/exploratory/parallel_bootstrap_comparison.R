@@ -1,3 +1,6 @@
+# Permutation, bootstrap and delta-method p-values for the concordance test by
+# simulation. Needs run_single_simulation() (R/simulate_parallel.R) and n_cores.
+
 ################################################################################
 # SIMULATION PARAMETERS
 ################################################################################
@@ -39,7 +42,6 @@ for (skew in skewness_levels) {
       
       condition_start <- Sys.time()
       
-      # PARALLEL EXECUTION
       sim_results <- mclapply(1:n_sim, function(i) {
         run_single_simulation(i, n, cons, skew, B_perm, B_boot)
       }, mc.cores = n_cores, mc.set.seed = TRUE)
@@ -47,7 +49,6 @@ for (skew in skewness_levels) {
       condition_time <- difftime(Sys.time(), condition_start, units = "secs")
       cat(sprintf("Done (%.1fs)\n", condition_time))
       
-      # Extract results
       p_perm <- sapply(sim_results, `[[`, "p_perm")
       p_gauss_boot <- sapply(sim_results, `[[`, "p_gauss_boot")
       p_edge_boot <- sapply(sim_results, `[[`, "p_edge_boot")
@@ -161,7 +162,7 @@ for (res in results_list) {
 summary_df <- merge(summary_df, timing_df, by = c("skew", "n", "cons"))
 
 ################################################################################
-# COMPREHENSIVE SUMMARY
+# SUMMARY
 ################################################################################
 
 cat("\n========================================\n")

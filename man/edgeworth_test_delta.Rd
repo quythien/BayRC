@@ -10,10 +10,10 @@ edgeworth_test_delta(p_A, p_B)
 \item{p_A, p_B}{Numeric vectors; posterior rhythmicity probabilities.}
 }
 \value{
-A list with \code{z_score}, \code{p_value_gaussian},
-  \code{p_value_edgeworth}, and \code{variance_est}.
+Numeric scalar; one-sided p-value, or \code{NA} if the variance
+  estimate is not positive.
 }
 \description{
-Applies the Edgeworth correction using delta-method variance and skewness
-estimates, avoiding the need for bootstrap replicates.
+Applies the Edgeworth correction using delta-method variance and the
+skewness of the per-gene ratios.
 }

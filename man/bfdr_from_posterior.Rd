@@ -27,7 +27,6 @@ Implements the BFDR rule described in the BayRC paper (Eq. 25):
 sort genes by decreasing posterior probability p_g, compute the running
 average of (1 - p_g), and return the largest threshold tau_c such that
 BFDR(tau_c) = mean(1 - p_g | p_g >= tau_c) <= alpha.
-This controls the expected proportion of false rhythmic calls at level alpha.
 }
 \details{
 Estimate the Bayesian False Discovery Rate threshold from posterior probabilities

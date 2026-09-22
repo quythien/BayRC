@@ -19,7 +19,6 @@ CB_DPM = function(MCMC, init, DPM.alpha = 1, type = c("rho", "rho&phi", "rho&phi
     if(type == "rho"){
       input = MCMC$rho[ , , (iter-thin+1):iter]
       input = apply(input, c(1, 2), mean)
-      # p.store = abind::abind(p.store, input, along = 3)
       z.mat = qnorm(input)
     }else if(type == "rho&phi"){
       input.phi = MCMC$phi[ , , (iter-thin+1):iter]
@@ -32,13 +31,10 @@ CB_DPM = function(MCMC, init, DPM.alpha = 1, type = c("rho", "rho&phi", "rho&phi
         if(x==0){NA}else{(sin(x)+1)/2}})
       
       input.p = apply(input.p, c(1, 2), mean)
-      # p.store = abind::abind(p.store, input.p, along = 3)
       input.bc = apply(input.bc, c(1, 2), mean, na.rm = TRUE)
       input.bc[is.na(input.bc)] = 0.5
-      # bc.store = abind::abind(bc.store, input.bc, along = 3)
       input.bs = apply(input.bs, c(1, 2), mean, na.rm = TRUE)
       input.bs[is.na(input.bs)] = 0.5
-      # bs.store = abind::abind(bs.store, input.bs, along = 3)
       input = cbind(input.p, input.bc, input.bs)
       z.mat = qnorm(input)
     }else if(type == "rho&phi_no_trans"){
@@ -52,18 +48,14 @@ CB_DPM = function(MCMC, init, DPM.alpha = 1, type = c("rho", "rho&phi", "rho&phi
         if(x==0){NA}else{sin(x)}})
       
       input.p = apply(input.p, c(1, 2), mean)
-      # p.store = abind::abind(p.store, input.p, along = 3)
       input.bc = apply(input.bc, c(1, 2), mean, na.rm = TRUE)
       input.bc[is.na(input.bc)] = 0
-      # bc.store = abind::abind(bc.store, input.bc, along = 3)
       input.bs = apply(input.bs, c(1, 2), mean, na.rm = TRUE)
       input.bs[is.na(input.bs)] = 0
-      # bs.store = abind::abind(bs.store, input.bs, along = 3)
       z.mat = cbind(qnorm(input.p), input.bc, input.bs)
     }
-    #convert p to z, which is the value used for clustering.
-    #the following two line are from the BayesMetaSeq package
-    z.mat[, seq_len(J)][which(z.mat[, seq_len(J)]> 3)] <- 4 #XX: when z=3, pi^* is 0.9986, then pi is 0.9973 with positive beta. z=4 -> p=0.9999. This steps makes extreme cases more extrme?
+    # cap |z| > 3 at 4, as in the BayesMetaSeq package
+    z.mat[, seq_len(J)][which(z.mat[, seq_len(J)]> 3)] <- 4
     z.mat[, seq_len(J)][which(z.mat[, seq_len(J)]< -3)] <- -4
     z.mat.store = abind::abind(z.mat.store, z.mat, along = 3)
     
@@ -82,7 +74,7 @@ CB_DPM = function(MCMC, init, DPM.alpha = 1, type = c("rho", "rho&phi", "rho&phi
 update_l_probs = function(z.mat, l.vec, i, DPM.alpha){
   l.vec.no.i = l.vec[-i]
   if(sum(l.vec==l.vec[i])==1){
-    l.pool = c(unique(l.vec.no.i), l.vec[i]) #when i forms a unique cluster, put l_i to the end as a possible new cluster (no need to generate new cluster label)
+    l.pool = c(unique(l.vec.no.i), l.vec[i]) # a singleton's own label serves as the new cluster
   }else{
     l.pool = c(unique(l.vec),max(unique(l.vec))+1) #append a new empty cluster at the end
   }
@@ -105,12 +97,9 @@ update_l_probs = function(z.mat, l.vec, i, DPM.alpha){
            0)
   }, simplify=TRUE)
   
-  prob.to.l.plus.1 <- (DPM.alpha/(G-1+DPM.alpha))*mvtnorm::dmvnorm(x=z.i,mean=rep(0,J),sigma=diag(2,J),log=FALSE) 
-  #XX: for gene i, the probability of being from a new cluster.
-  
-  std.prob <- c(prob.to.l,prob.to.l.plus.1)/(sum(prob.to.l)+prob.to.l.plus.1)  #XX: normalize the probability
-  sample(l.pool,size=1,prob=std.prob) #XX: draw cluster membership using updated probability
+  prob.to.l.plus.1 <- (DPM.alpha/(G-1+DPM.alpha))*mvtnorm::dmvnorm(x=z.i,mean=rep(0,J),sigma=diag(2,J),log=FALSE) # gene i opens a new cluster
+
+  std.prob <- c(prob.to.l,prob.to.l.plus.1)/(sum(prob.to.l)+prob.to.l.plus.1)
+  sample(l.pool,size=1,prob=std.prob)
 }
-
-
 

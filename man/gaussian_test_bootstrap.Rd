@@ -12,8 +12,8 @@ gaussian_test_bootstrap(p_A, p_B, n_boot = 500)
 \item{n_boot}{Integer; bootstrap replicates for variance estimation.}
 }
 \value{
-A list with \code{z_score}, \code{p_value}, and
-  \code{variance_est}.
+Numeric scalar; one-sided p-value, or \code{NA} if the variance
+  estimate is not positive.
 }
 \description{
 Tests whether the congruence index differs significantly from the

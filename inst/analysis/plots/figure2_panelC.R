@@ -1,9 +1,5 @@
-## Figure 2C: which circadian pathway genes are rhythmic in which tissue.
-##
-## The adjusted c-score in panel B compares the identity of the rhythmic genes
-## in a pair, not their timing and not how many there are. This panel shows that
-## identity gene by gene, with the tissues in the order panel B's own dendrogram
-## gives, so the block the cluster forms is visible rather than asserted.
+## Figure 2C: which circadian pathway genes are rhythmic in which tissue, with
+## the tissues in the order of panel B's dendrogram.
 ##
 ## Usage: Rscript figure2_panelC.R [outdir]
 
@@ -55,8 +51,7 @@ cells <- do.call(rbind, lapply(tissues, function(t) {
              called = as.numeric(p[genes]) >= tau)
 }))
 
-# genes down the panel in order of how widely they are rhythmic, tissues across
-# it in the order panel B clusters them
+# genes ordered by the number of tissues calling them rhythmic
 order_gene <- names(sort(tapply(cells$called, cells$gene, sum), decreasing = TRUE))
 cells$gene   <- factor(cells$gene, levels = rev(order_gene))
 cells$tissue <- factor(cells$tissue, levels = tissues)
@@ -65,8 +60,7 @@ cells$block  <- ifelse(cells$tissue %in% tight, "High-concordance cluster",
 
 p <- ggplot(cells, aes(tissue, gene, fill = posterior)) +
   geom_tile(colour = "white", linewidth = .4) +
-  # a ring on the cells that clear the threshold, so the panel carries the call
-  # as well as the posterior behind it
+  # a ring marks the cells called rhythmic
   geom_point(data = cells[cells$called, ],
              aes(shape = "Called rhythmic at BFDR"), size = 1.15,
              fill = NA, colour = "white", stroke = .55) +
@@ -83,8 +77,7 @@ p <- ggplot(cells, aes(tissue, gene, fill = posterior)) +
                           bfdr_alpha),
        x = NULL, y = NULL) +
   theme_bayrc(base_size = 14) +
-  # this panel spans the figure while A and B take half of it each, so its type
-  # is set smaller here to print at the same size as theirs
+  # full-width panel, so type is set to print at the size of the half-width ones
   theme(plot.title = element_text(face = "bold", size = 18),
         plot.subtitle = element_text(size = 14, margin = margin(b = 7)),
         axis.text.x = element_text(size = 15, angle = 90, vjust = .5, hjust = 1),
@@ -100,8 +93,7 @@ p <- ggplot(cells, aes(tissue, gene, fill = posterior)) +
 
 cairo_pdf(file.path(outdir, "Fig2C_circadian_membership.pdf"),
           width = 8.5, height = 5.4)
-# the column layout gives this panel the whole width of a column that holds two
-# panels side by side above it, so it is scaled up more than they are and its
+# column layout: this panel is scaled up more than the pair above it, so its
 # type is set down by the same ratio
 print(p +
       theme(plot.title = element_text(size = 12.5),
@@ -117,19 +109,13 @@ print(p +
             legend.key.height = unit(22, "mm")))
 dev.off()
 
-# The same panel for the two-by-two layout, where it sits beside the phase
-# heatmap. It is drawn on that panel's canvas so the two carry type at one size,
-# and the extra height gives each gene name a row taller than the name itself.
+# the same panel for the two-by-two layout, on the canvas of the phase heatmap
+# beside it so the two carry type at one size
 cairo_pdf(file.path(outdir, "Fig2C_circadian_membership_nature.pdf"),
           width = 9.375, height = 8.6)
 print(p +
-      # a blank name gives the ring key the title row the bar has, so the two
-      # keys stand on one line
-      # plotmath sets its own face, so the name is written out and left to the
-      # theme, which is what the panel beside it does
       labs(subtitle = NULL) +
-      # plotmath sets its own face, so the name is written out here and left
-      # to the theme, which is what the panel beside it does
+      # the key title is plain text rather than plotmath, so it takes the theme face
       guides(fill = guide_colourbar(position = "right", direction = "vertical",
                title = "Pr(\u03c1 = 1)",
                title.hjust = .5,
@@ -138,8 +124,7 @@ print(p +
                title = NULL,
                override.aes = list(size = 4.2, stroke = 1.2, colour = "white",
                                    fill = NA))) +
-      theme(# the block names and the body are set to the heights the phase
-            # panel puts them at, so the two read across
+      theme(# block names and body at the heights the phase panel uses
             plot.title = element_text(face = "bold", size = 24,
                                       margin = margin(b = 14)),
             strip.text = element_text(face = "bold", size = 17,
@@ -162,9 +147,7 @@ print(p +
             legend.margin = margin(t = 6, b = 34),
             # a block name is wider than the block it sits over
             strip.clip = "off",
-            # the phase panel keeps a right-hand column for its group names, so
-            # the same width is held back here and the two bodies stand over
-            # each other
+            # margins match the phase panel so the two bodies align
             plot.margin = margin(t = 7, r = 4, b = 5, l = 10)))
 dev.off()
 cat("Saving:", file.path(outdir, "Fig2C_circadian_membership.pdf"), "\n")

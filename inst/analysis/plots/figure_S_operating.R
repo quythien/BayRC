@@ -103,8 +103,8 @@ pooled$nlab <- factor(sprintf("n = %d", pooled$n), levels = sprintf("n = %d", so
 pooled$alab <- factor(sprintf("α = %g", pooled$alpha), levels = sprintf("α = %g", alphas))
 auc_long$nlab <- factor(sprintf("n = %d", auc_long$n), levels = levels(pooled$nlab))
 
-## panel letters sit at the top left of each panel, as in Figures 2-6; signal
-## strength is ordered so it takes the sequential ramp, sample size the levels
+## panel letters at the top left; signal strength on the sequential ramp,
+## sample size on the level colours
 letter <- theme(plot.title = element_text(hjust = 0, face = "bold"),
                 plot.title.position = "plot")
 snr_cols <- setNames(bayrc_seq(length(levels(pooled$snr)) + 2)[-(1:2)], levels(pooled$snr))

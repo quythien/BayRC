@@ -45,20 +45,17 @@ starting values for \code{rho}, \code{M}, \code{A}, \code{phi}, and
 burn-in (default 3000).}
 
 \item{thin}{Integer; thinning interval; every \code{thin}-th
-post-burn-in sample is stored (default 20).}
+post-burn-in sample is stored (default 1).}
 
 \item{n.burn}{Integer; number of burn-in iterations discarded before
 storing samples (default 1000).}
 
 \item{seed}{Integer; random seed for reproducibility (default 15213).}
 
-\item{diagnostics}{Logical; if \code{TRUE}, compute and print basic
-post-run convergence diagnostics (RJMCMC acceptance rate, ESS for rho
-and phi) and attach them as \code{$diagnostics} on the returned list,
-via \code{mcmc_diagnostics()}. Warns if mean ESS for rho falls below
-100 (default \code{TRUE}). Can also be computed later on any MCMC
-result by calling \code{mcmc_diagnostics()} directly, even if this was
-\code{FALSE} at run time.}
+\item{diagnostics}{Logical; if \code{TRUE} (default), run
+\code{mcmc_diagnostics()} after sampling and attach the result as
+\code{$diagnostics}. The same diagnostics can be computed later from the
+returned chains.}
 
 \item{p_rhythmic}{Numeric vector of length G; prior probability
 Pr(rho_g = 1) for each gene.  Enters the RJMCMC log-prior odds as

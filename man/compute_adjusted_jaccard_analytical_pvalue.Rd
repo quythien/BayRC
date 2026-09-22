@@ -13,9 +13,9 @@ compute_adjusted_jaccard_analytical_pvalue(rho_A, rho_B)
 }
 \value{
 A list with elements \code{jaccard_obs_mean} (length-K
-  observed Jaccard per iteration), \code{pvalues} (length-K
-  hypergeometric p-values), \code{confusion} (K x 4 matrix of
-  contingency table proportions), and \code{mean_pvalue}.
+  observed Jaccard per iteration), \code{confusion} (K x 4 matrix of
+  contingency table counts), \code{pvalue_per_iter} (length-K
+  hypergeometric p-values), \code{mean_jaccard} and \code{mean_pvalue}.
 }
 \description{
 For each MCMC iteration, treats the binary rho vectors as a 2x2

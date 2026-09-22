@@ -4,8 +4,7 @@
 ## Everything is read from stage2_significant.csv, which the application
 ## scripts write.
 ##
-## Both panels come out of one ggplot, so this script writes the whole of
-## Figure 4 and assemble_figures.R has no panels to merge for it.
+## Writes the whole of Figure 4; assemble_figures.R does not touch it.
 ##
 ## Usage: Rscript pathway_transition_panels.R [outdir]
 
@@ -36,8 +35,6 @@ read_pair <- function(p) {
 
 sig <- do.call(rbind, lapply(pairs, read_pair))
 sig$pathway <- sub("^KEGG ", "", sig$pathway)
-## the axis and the legend name the same three classes, so they are capitalised
-## the same way
 sig$direction <- factor(sig$direction, levels = c("gain", "loss", "conserved"),
                         labels = c("Gain", "Loss", "Conserved"))
 sig$comparison <- factor(sig$comparison,
@@ -59,7 +56,7 @@ common <- theme_classic(base_size = 16, base_family = "Helvetica") +
         legend.text = element_text(size = 13), legend.title = element_text(size = 14),
         plot.tag = element_text(face = "bold", size = 18))
 
-## A. both comparisons on the same pathway rows, so the contrast is one scan
+## A. both comparisons on the same pathway rows
 sig$expected <- with(sig, ifelse(direction == "Gain", Expected_N_Gain,
                           ifelse(direction == "Loss", Expected_N_Loss,
                                  Expected_N_Conserved)))
@@ -87,8 +84,7 @@ comp$pathway    <- factor(comp$pathway, levels = lev)
 comp$status     <- factor(comp$status, levels = c("Gain", "Loss", "Conserved"))
 comp$comparison <- factor(comp$comparison, levels = levels(sig$comparison))
 
-## the star sits at the middle of its own segment, so the stack is measured in
-## the order it is drawn
+## each star sits at the middle of its segment, in stacking order
 comp <- comp[order(comp$comparison, comp$pathway, comp$status), ]
 comp$mid <- unlist(lapply(split(comp$frac, list(comp$comparison, comp$pathway),
                                 drop = TRUE),

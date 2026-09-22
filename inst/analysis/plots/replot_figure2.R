@@ -1,9 +1,8 @@
 ## Redraw the Figure 2 panels from the stored concordance matrices.
 ##
 ## The matrices are written by plots/heatmap_baboon.R and
-## plots/heatmap_circadian_pairs.R, so this needs neither the MCMC output nor
-## the Rcpp concordance routine and is the quick path when only the drawing
-## changes.
+## plots/heatmap_circadian_pairs.R; this script needs neither the MCMC output
+## nor the Rcpp concordance routine.
 ##
 ## Usage:
 ##   Rscript replot_figure2.R [outdir]
@@ -49,11 +48,8 @@ for (stem in names(panels)) {
   diag(m) <- 1
   d <- as.dist(1 - m)
 
-  # the assembler gives each panel half the figure width, so a wide canvas is
-  # scaled down twice over and the tissue codes stop being readable in print
-  # pheatmap takes the title from fontsize and the labels from their own. The
-  # column layout gives these panels a quarter of the page and the two-by-two a
-  # narrower slot than the panels below, so each variant carries its own sizes.
+  # one variant per layout, column and two-by-two, each with its own title
+  # (fontsize) and label sizes
   for (v in list(list(suffix = "",        base = 16,   label = 16),
                  list(suffix = "_nature", base = 14.95, label = 12.2))) {
     cairo_pdf(file.path(outdir, paste0(stem, v$suffix, ".pdf")),
@@ -79,14 +75,12 @@ for (stem in names(panels)) {
               concordance_max))
 }
 
-# Both panels are drawn on this one scale, so the colour bar is written once
-# and the assembler places it under the pair.
+# one colour bar for both panels, written to its own file
 concordance_fun <- circlize::colorRamp2(
   seq(0, concordance_max, length.out = length(concordance_colors)),
   concordance_colors)
 
-# the circadian panel runs past the cap, so its end label declares that the
-# darkest cells are clamped rather than reading as exactly 0.5
+# the top label reads ">= cap" when any cell is clamped
 bar_labels <- format(concordance_legend, digits = 2)
 if (any(off_max > concordance_max))
   bar_labels[length(bar_labels)] <- sprintf("≥ %.1f", concordance_max)

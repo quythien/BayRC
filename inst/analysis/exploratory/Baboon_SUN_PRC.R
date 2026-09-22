@@ -1,5 +1,4 @@
-# SAME SPECIE 
-
+# Baboon ILE vs LIV: concordance, phase inference, pathway enrichment and expected counts.
 
 rm(list=ls());
 
@@ -20,16 +19,11 @@ outdir = BAYRC_FIGURE_DIR
 load(file.path(BAYRC_SUMMARY_DIR, "mcmc_rho_BF3.RData"))
 load(file.path(BAYRC_SUMMARY_DIR, "phi", "mcmc_phi_BF3.RData"))
 
-
-
-
-# "mcmc_data_baboon" "mcmc_data_human"  "mcmc_phi_baboon"  "mcmc_phi_human
+# Loads mcmc_data_baboon, mcmc_data_human, mcmc_phi_baboon, mcmc_phi_human.
 
 library(KEGGREST)
 library(parallel)
 
-
-#base_result_dir <- file.path(current_aging, "results", "brain_regions")
 options(width = 10000)
 #── Packages ─────────────────────────────────────────────────────────────────────
 library(parallel); library(edgeR);   library(Rcpp)
@@ -59,9 +53,6 @@ if (file.exists(file.path(thien_dir, "permutation_functions.cpp"))) {
 source(file.path(thien_dir, "plots/heatmap.R"))
 }
 
-
-#load(file.path(current_wd, "Kyle/Circadian-analysis-main/R/pathway_data/kegg.pathway.list_hsa.RData"))
-#load(file.path(current_wd, "Kyle/Circadian-analysis-main/R/pathway_data/kegg.pathway.list_cel_GeneNames.RData"))
 load(file.path(BAYRC_PATHWAY_DIR, "hw_orth.RData"))
 load(file.path(BAYRC_PATHWAY_DIR, "human.pathway.list.RData"))
 load(file.path(BAYRC_PATHWAY_DIR, "go.pathway.list_hsa.RData"))
@@ -74,13 +65,10 @@ setwd(WD)
 scripts <- list.files(file.path(BAYRC_PACKAGE_DIR, "R"), pattern = "[.]R$", full.names = TRUE)
 sapply(scripts, source)
 
-# Reset wd
 setwd(current_aging)
 
 #---------------------------------------------------------------------------------
 to_zt <- function(t_cos) ifelse(t_cos >= 18, t_cos - 24, t_cos)
-
-
 
 baboon_LIV <- list(
   rho = mcmc_data_baboon$LIV,
@@ -143,9 +131,7 @@ t_end <- Sys.time()
 elapsed_time <- difftime(t_end, t_start, units = "mins")
 print(elapsed_time)
 
-# 2.43 minutes for p value only at 500 perm
-#  1.03 min for boot only at 100 boots
-#  0.8562239 for both 
+# About 0.9 min with 500 permutations and 100 bootstraps.
 rhy   <- detect_rhy(baboon_LIV, baboon_ILE, 0.25)
 rhy_summary <- data.frame(
   Category = c("Rhythmic in LIV",
@@ -154,15 +140,6 @@ rhy_summary <- data.frame(
             rhy$n_rhythmic_B)
 )
 
-# 
-# rhy_summary <- rbind(
-#   rhy_summary,
-#   data.frame(Category = c("LIV", "ILE"),
-#              Count = c(rhy$threshold_A, rhy$threshold_B))
-# )
-# 
-# rhy_summary
-# 
 #---------------------------------------------------------------------------------
 pA    <- rowMeans(baboon_LIV$rho)
 pB    <- rowMeans(baboon_ILE$rho)
@@ -177,7 +154,7 @@ rhy_summary <- data.frame(
 )
 rhy_summary
 
-# BFDR: 
+# BFDR: gain, loss and maintained classification
 trans_outer <- transition_classify(pA, pB, bfdr_alpha = 0.25)
 
 phase_inner <- phase_infer(
@@ -189,25 +166,13 @@ phase_inner <- phase_infer(
   P = 24, comLIVe_hdi = TRUE
 )
 
-# phase_inner2 <- phase_infer(
-#   phi_matrix1 = baboon_LIV$phi,
-#   phi_matrix2 = baboon_ILE$phi,
-#   gain_loss_status = trans_outer$gain_loss_status,
-#   bfdr_alpha = 0.2,
-#   shift = 2,
-#   P = 24, comLIVe_hdi = TRUE
-# )
-
 # === PHASE INFERENCE SUMMARY ===
 #   Maintained genes: 677 
 # BFDR α = 0.25  | shift threshold = 2 h
 # Significant phase-shifted genes: 39 
 # Significant phase-conserved genes: 335 
 # Undetermined genes: 303 
-# HDI comLIVation: enabled
-
-
-
+# HDI computation: enabled
 
 #---------------------------------------------------------------------------------
 
@@ -227,7 +192,6 @@ to_zt <- function(t_cos) ifelse(t_cos >= 18, t_cos - 24, t_cos)
 #───────────────────────────────────────────────────────────────
 gene_names <- names(phase_inner$peak1)
 
-# Create dataframe from phase_inner
 maintained_df <- data.frame(
   Gene = gene_names,
   Peak_LIV = phase_inner$peak1,
@@ -306,7 +270,7 @@ cat("  Undetermined:", n_undetermined,
     sprintf("(%.2f%%)\n", pct_undetermined_global))
 
 #───────────────────────────────────────────────────────────────
-# ComLIVe ±3 h concordance among maintained genes
+# Share of maintained genes with peaks within ±2 h
 #───────────────────────────────────────────────────────────────
 calculate_peak_difference <- function(a, b) {
   d <- abs(a - b)
@@ -382,7 +346,7 @@ p <- ggplot(plot_df, aes(
   y = Peak_LIV_ZT_plot,
   color = phase_class
 )) +
-  # Identity and ±2 h boundaries (no need for ±22 due to remapping)
+  # Identity and ±2 h bands; remapped points need no wrap-around bands
   geom_abline(intercept = 0, slope = 1,
               color = "black", linetype = "dashed", linewidth = 1.0) +
   geom_abline(intercept = 2, slope = 1,
@@ -457,9 +421,6 @@ ggsave(
   height = 8
 )
 
-
-
-#───────────────────────────────────────────────────────────────
 ################################################################################
 # COMPLETE WORKFLOW: Baboon ILE vs LIV Pathway Analysis
 ################################################################################
@@ -471,8 +432,6 @@ nperm <- 10000
 pathway_size_min <- 10
 pathway_size_max <- 300
 
-# Set outLIV directory
-# Set output directory
 output.dir <- BAYRC_OUTPUT_DIR
 dir.create(output.dir, recursive = TRUE, showWarnings = FALSE)
 
@@ -502,7 +461,6 @@ union_results <- result_union$results
 active_pathways <- result_union$results %>%
   filter(pval < 0.20) %>%
   pull(pathway)
-
 
 ################################################################################
 # STAGE 2: Test Transitions on Active Pathways (Q-value Filter)
@@ -555,22 +513,13 @@ result_cons <- pathSelect(
   nproc = 1
 )
 
-
-# result_gain$results %>%
-#   filter(padj < 0.20) %>%
-#   select(pathway, size, Gain_Index, Expected_N_Gain, pval, padj, Gain_Loss_Ratio_Arithmetic)
-# 
-# 
 result_loss$results %>%
   filter(pval < 0.10) %>%
   select(pathway, size, Loss_Index, Expected_N_Loss, pval, padj, Gain_Loss_Ratio_Arithmetic)
 
-# Add kegg phagosome in 
-
 result_cons$results %>%
   filter(padj < 0.20) %>%
   select(pathway, size, Conserved_Index, Expected_N_Conserved, pval, padj, Gain_Loss_Ratio_Arithmetic)
-
 
 cat("  Gain-enriched (LIV):  ", sum(result_gain$results$Significant), "\n")
 cat("  Loss-enriched (LIV):  ", sum(result_loss$results$Significant), "\n")
@@ -592,7 +541,6 @@ significance_table <- result_gain$results %>%
     result_cons$results %>% select(pathway, cons_sig = Significant),
     by = "pathway"
   ) %>%
-  # filter(pathway %in% active_pathways) %>% # Chang this if needed 
   mutate(
     gain_sig = replace_na(gain_sig, FALSE),
     loss_sig = replace_na(loss_sig, FALSE),
@@ -674,8 +622,6 @@ top_loss_go <- result_loss_go$results %>%
   filter(padj < 0.05) %>%
   dplyr::select(pathway, pval, padj, Top_Loss_Genes)
 
-# 27 
-
 result_cons_go <- pathSelect(
   mcmc.merge.list = list(Human_LUN = human_LUN, Baboon_LUN = baboon_LUN),
   pathway.list = go.pathway.list_hsa,
@@ -698,7 +644,6 @@ print_pathway_summary(result_gain_go, filter_by = "q", cutoff = 0.2)
 print_pathway_summary(result_loss_go, filter_by = "q", cutoff = 0.05)
 print_pathway_summary(result_cons_go, filter_by = "q", cutoff = 0.05)
 
-
 cat("Descriptive metrics calculated for", nrow(result_multiconservation), "pathways\n")
 
 result_multiconservation_filtered <- result_multiconservation %>%
@@ -711,10 +656,6 @@ result_multiconservation_filtered <- result_multiconservation %>%
   )
 
 relevant_pathways <- result_multiconservation_filtered$Pathway
-
-
-
-####################################
 
 #---------------------------------------------------------------------------------
 pA    <- rowMeans(baboon_ILE$rho)
@@ -744,15 +685,11 @@ circadian_genes <- ifelse(circadian_genes == "ARNTL", "BMAL1", circadian_genes)
 # Save back into list
 kegg.pathway.list_hsa[["KEGG Circadian rhythm"]] <- circadian_genes
 
-
 trans_outer <- transition_classify(pA, pB, bfdr_alpha = 0.25)
-
-
 
 if (!dir.exists(tempdir())) {
   dir.create(tempdir(), recursive = TRUE)
 }
-
 
 cat("\n=== PLOTTING PATHWAYS FOR BABOON ILE vs LIV ===\n")
 
@@ -778,7 +715,7 @@ for (pathway in pathways_to_plot) {
   
   cat("   Found", length(overlap), "overlapping genes\n")
   
-  # -------- Create outLIV folder for this pathway --------
+  # -------- Output folder for this pathway --------
   safe_name <- gsub("[^A-Za-z0-9_]", "_", pathway)
   out_dir <- file.path(base_path, safe_name)
   dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
@@ -811,21 +748,15 @@ for (pathway in pathways_to_plot) {
 cat("\n=== COMPLETE: ALL PATHWAYS PLOTTED ===\n")
 cat("OutLIV directory:", base_path, "\n")
 
-
 ################################################################################
-# EXPECTED COUNTS TABLE - PROBABILISTIC ESTIMATION
-# Based on posterior probabilities (not binary classification)
+# EXPECTED COUNTS: Baboon ILE vs LIV, summed posterior probabilities
 ################################################################################
-
-#########################################################################
-# BABOON ILE vs BABOON LIV : Expected Probabilistic Counts
-#########################################################################
 
 library(dplyr)
 library(kableExtra)
 
 # ----------------------------------------------------------------------
-# InLIV probabilities
+# Input probabilities
 # ----------------------------------------------------------------------
 pA <- rowMeans(baboon_ILE$rho)   # ILE
 pB <- rowMeans(baboon_LIV$rho)   # LIV
@@ -937,8 +868,7 @@ cat("========================================\n\n")
 
 print(genome_wide_expected)
 
-
-##########
+# Phase-conserved genes
 gene_names <- names(phase_inner$peak1)
 
 phase_conserved_genes <- gene_names[phase_inner$flag_cons]

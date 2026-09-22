@@ -4,22 +4,17 @@ library(ggplot2)
 library(grid)
 library(gtable)
 
-# Writes a finished legend grob to its own PDF at the size it asks for. The
-# measuring needs a device, and this one keeps it off the default that would
-# otherwise be opened in the working directory.
+# Writes a legend grob to its own PDF at the grob's size, measured on a null device.
 save_legend_grob <- function(grob, path, pad = 0.15, right = 0) {
   pdf(NULL)
   w <- convertWidth(grobWidth(grob), "in", valueOnly = TRUE)
   h <- convertHeight(grobHeight(grob), "in", valueOnly = TRUE)
   dev.off()
-  # cairo carries the glyphs the labels use, and matches the device the panels
-  # themselves are drawn on
+  # cairo, as for the panels
   cairo_pdf(paste0(path, ".pdf"), width = max(w, 1) + pad + right,
             height = max(h, 0.4) + pad)
   grid.newpage()
-  # a colour bar's end label is centred on its last tick and so reaches past the
-  # width the grob reports. Anchoring the drawing to the left leaves that
-  # overhang somewhere to go instead of running off the page.
+  # left-anchored, so an end label overhanging the bar falls into `right`
   pushViewport(viewport(x = unit(pad / 2, "in"), width = unit(max(w, 1), "in"),
                         just = "left"))
   grid.draw(grob)
@@ -28,9 +23,7 @@ save_legend_grob <- function(grob, path, pad = 0.15, right = 0) {
   cat("Saving:", paste0(path, ".pdf"), "\n")
 }
 
-# The panels of such a figure are drawn with no legend of their own, so the
-# legend has to come from a copy of one panel laid out with its guides at the
-# bottom. Only the box on the side the guides were sent to holds them.
+# Writes the legend of a ggplot, laid out horizontally on the given side.
 save_plot_legend <- function(plot, path, side = "bottom") {
   pdf(NULL)
   g <- ggplotGrob(plot + theme(legend.position = side,

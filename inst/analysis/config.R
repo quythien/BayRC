@@ -56,16 +56,15 @@ BAYRC_PIPELINE_DIR <- Sys.getenv("BAYRC_PIPELINE_DIR",
                        unset = file.path(dirname(BAYRC_DATA_DIR), "Pipeline"))
 
 # Per-tissue MCMC output, and the rho/phi summaries built from it by
-# pipeline/summarize_rho_phi.R. Point BAYRC_RESULT_DIR at result_fixed/ to run
-# the downstream analysis on the corrected sampler instead of the 2025 run.
+# pipeline/summarize_rho_phi.R. The default is the 2025 run; point
+# BAYRC_RESULT_DIR at result_fixed/ for the current run.
 BAYRC_RESULT_DIR  <- Sys.getenv("BAYRC_RESULT_DIR",
                        unset = file.path(BAYRC_GTEX_DIR, "result"))
 BAYRC_SUMMARY_DIR <- Sys.getenv("BAYRC_SUMMARY_DIR",
                        unset = file.path(BAYRC_RESULT_DIR, "summary", "hb"))
 
-# Where figures, tables and intermediate analysis output are written. The
-# analysis scripts used to reassign output.dir several times per file; they now
-# take it from here and build sub-directories underneath.
+# Where figures, tables and intermediate output are written; scripts build
+# sub-directories underneath.
 BAYRC_OUTPUT_DIR  <- Sys.getenv("BAYRC_OUTPUT_DIR",
                        unset = file.path(BAYRC_AGING_DIR, "results", "baboon",
                                          "output_final"))
@@ -83,7 +82,7 @@ bayrc_file <- function(dir, ...) {
   path
 }
 
-# Validate that critical directories exist and warn if not
+# Warn about missing input directories
 .check_dir <- function(path, name) {
   if (!dir.exists(path))
     warning("config.R: ", name, " does not exist: ", path,
@@ -102,12 +101,9 @@ for (.d in c(BAYRC_OUTPUT_DIR, BAYRC_FIGURE_DIR))
   dir.create(.d, recursive = TRUE, showWarnings = FALSE)
 rm(.d)
 
-# The summary directory decides which MCMC run every downstream number comes
-# from, and nothing further down the pipeline names it. Report it and stop if
-# the rho summary is not there, so a run against the wrong tree cannot pass
-# unnoticed.
-# A script that only arranges existing files sets bayrc.needs.summary <- FALSE
-# before sourcing this, since it reports no numbers of its own.
+# Report the summary directory every downstream number comes from, and stop if
+# its rho summary is missing. A script that only arranges existing files sets
+# bayrc.needs.summary <- FALSE before sourcing this.
 .rho <- file.path(BAYRC_SUMMARY_DIR, "mcmc_rho_BF3.RData")
 .needs <- !exists("bayrc.needs.summary") || isTRUE(bayrc.needs.summary)
 if (.needs && !file.exists(.rho))

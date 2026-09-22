@@ -1,10 +1,9 @@
 # ============================================================
-# Cosinor Residual Diagnostics - Baboon Tissues  (v2: with 95% CI bands on QQ)
-# Extension of Cosinor_plot.R
+# Cosinor Residual Diagnostics - Baboon Tissues, with 95% bands on the QQ plots
 # Tissues: LUN, PUT, SUN
 # Overlapping top genes are aligned in the same column across rows.
-# Residuals computed manually from OLS cosinor fitted values.
-# QQ plots include pointwise 95% confidence bands via Beta order-statistic CIs.
+# Residuals are taken from the OLS cosinor fitted values. Writes the QQ and
+# residual-by-time PDFs and one genome-wide diagnostics CSV per tissue.
 # ============================================================
 
 rm(list = ls())
@@ -34,11 +33,8 @@ fmt_pval <- function(p) {
   if (round(p, 2) == 0) formatC(p, format = "e", digits = 2) else as.character(round(p, 2))
 }
 
-# QQ plot with pointwise 95% confidence band.
-# Band uses the exact Beta distribution for each order statistic:
-#   the i-th order statistic's CDF value ~ Beta(i, n-i+1)
-# The band limits are then mapped to sample space via the QQ line
-# (which passes through the 25th and 75th percentiles, matching stat_qq_line).
+# QQ plot with a pointwise 95% band: the i-th order statistic's CDF value is
+# Beta(i, n-i+1), mapped to sample space through the quartile QQ line.
 make_qq_plot <- function(resid, gene_label, R2, pval) {
   n     <- length(resid)
   probs <- ppoints(n)           # (1:n - 0.5) / n
@@ -161,12 +157,8 @@ for (tissue in TISSUES) {
 }
 
 # ── Genome-wide residual diagnostics, one table per tissue ────────────────────
-# The figures show six genes; these tables carry the same two tests for every
-# gene, so the claim that the cosinor residuals are approximately normal and
-# homoscedastic can be read off the whole transcriptome rather than the panel.
 # shapiro.pval tests normality of the residuals; hetero.lm.pval regresses the
-# squared residuals on the fitted values, so a small value means the spread
-# grows with the level.
+# squared residuals on the fitted values, small when the spread grows with level
 for (tissue in TISSUES) {
   fits <- tissue_fits[[tissue]]
   fits <- fits[!sapply(fits, is.null)]
@@ -259,8 +251,7 @@ qq_ordered   <- qq_grobs[ordered_keys]
 rt_ordered   <- rt_grobs[ordered_keys]
 
 # ── Save PDFs ─────────────────────────────────────────────────────────────────
-# the supplementary scales this to a 6.5 in text block, so a panel wider than
-# about 1.75 in puts the axis labels below 5 pt in print
+# 1.75 in per panel keeps axis labels at 5 pt or more on a 6.5 in text block
 pdf_width  <- n_cols * 1.75
 pdf_height <- length(TISSUES) * 1.75
 

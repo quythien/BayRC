@@ -12,11 +12,8 @@ bayrc_family <- local({
   if (have) "Nimbus Sans" else "sans"
 })
 
-## fc-list finding the family is only enough for the cairo devices. The plain
-## pdf() device that ggsave() reaches for on a .pdf extension reads R's own
-## postscript font database instead, and without an entry there it stops with
-## "failed to find or load PDF CID font". Nimbus Sans is metrically Helvetica,
-## so it is registered against Helvetica's metrics.
+## the plain pdf() and postscript() devices need the family registered; Nimbus
+## Sans takes Helvetica's metrics
 if (bayrc_family == "Nimbus Sans" &&
     !"Nimbus Sans" %in% names(grDevices::pdfFonts())) {
   grDevices::pdfFonts("Nimbus Sans" = grDevices::Type1Font(

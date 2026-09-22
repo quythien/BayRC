@@ -47,19 +47,16 @@ CB_getAllEst <- function(res, burn=100, CI=TRUE, credMass=0.95, P=24, rhythmic=F
   params <- c("A", "phi", "M", "sigma")
   if ("t_p" %in% names(res)) params <- c(params, "t_p")
   
-  # Extract symbols and RHYindex once
   symbols <- attr(res$rho, "symbols")
   RHYindex <- attr(res$rho, "RHYindex")
   
   res.all <- lapply(params, function(a.param) {
     a.MCMC <- res[[a.param]]
     
-    # **Compute estimates for all rows first**
     a.tab <- t(sapply(1:nrow(a.MCMC), function(i) {
       get_est_CI(a.MCMC[i, ], res$rho[i, ], burn, a.param, credMass, P)
     }))
-    
-    # Convert to DataFrame and set column names
+
     a.tab <- as.data.frame(a.tab)
     colnames(a.tab) <- paste0(a.param, c(".Est", ".Lower", ".Upper"))
 
@@ -69,13 +66,10 @@ CB_getAllEst <- function(res, burn=100, CI=TRUE, credMass=0.95, P=24, rhythmic=F
         circular_width(a.tab[[2]], a.tab[[3]], P = P)
     }
 
-    # Assign row names
     if (!is.null(symbols)) rownames(a.tab) <- symbols
-    
-    # Add RHYindex column
+
     a.tab$RHYindex <- RHYindex
-    
-    # **Only filter at the end** (reducing memory allocation)
+
     if (rhythmic) a.tab <- a.tab[RHYindex == 1, , drop=FALSE]
     
     if (!CI) a.tab <- a.tab[, 1, drop=FALSE]
@@ -105,7 +99,7 @@ CB_getAllEst <- function(res, burn=100, CI=TRUE, credMass=0.95, P=24, rhythmic=F
 #'
 #' @keywords internal
 get_est_CI = function(MCMC, rho, burn, a.param, credMass, P){
-  # t = False for peak time 
+  # A is summarised over rhythmic draws only
   if(a.param=="phi"){
     out = get_t_phi_CI_est(MCMC, P, credMass, burn, rho, t=FALSE)
   }else if (a.param=="t_p"){
@@ -178,9 +172,8 @@ normalize_angle <- function(x, a = 0, P = 24) {
 #'
 #' @description
 #' Width of the arc that runs from \code{lower} forward to \code{upper} on a
-#' circle of circumference \code{P}. Unlike \code{upper - lower} this is
-#' always in \[0, P) and stays correct when the arc crosses the seam, which
-#' is the case whenever \code{upper < lower} -- common for phases near ZT 0.
+#' circle of circumference \code{P}. The result is in \[0, P), including arcs
+#' that cross the seam (\code{upper < lower}), as for phases near ZT 0.
 #'
 #' @param lower,upper Numeric; arc endpoints in hours.
 #' @param P Numeric; period (default 24).
@@ -248,56 +241,9 @@ get_t_phi_CI_est <- function(row_MCMC, P = 24, credMass = 0.95, burn = 1, rho = 
   phi.Lower <- hdi_bounds$lower
   phi.Upper <- hdi_bounds$upper
 
-  ## phi.Upper < phi.Lower means the arc crosses the seam
-
+  # phi.Upper < phi.Lower means the arc crosses the seam
   return(c(phi.Est = phi.Est, phi.Lower = phi.Lower, phi.Upper = phi.Upper))
 }
-
-# Old
-# circular_HDI <- function(samples, credMass = 0.95, P = 24, a = 0) {
-#   # Recenter the samples and extract the median.
-#   rec <- recenter_samples(samples, P = P, a = a)
-#   shifted <- rec$shifted
-#   med <- rec$med
-#   
-#   # Sort the shifted samples.
-#   sorted_samples <- sort(as.numeric(shifted))
-#   n <- length(sorted_samples)
-#   interval_size <- floor(credMass * n)
-#   
-#   # Create an extended array to capture wrap-around.
-#   extended_samples <- c(sorted_samples, sorted_samples + P)
-#   
-#   min_width <- Inf
-#   best_lower <- NA
-#   best_upper <- NA
-#   
-#   # Slide a window of size interval_size over the extended array.
-#   for (i in 1:n) {
-#     j <- i + interval_size
-#     if (j <= length(extended_samples)) {
-#       width <- extended_samples[j] - extended_samples[i]
-#       if (width < min_width) {
-#         min_width <- width
-#         best_lower <- extended_samples[i]
-#         best_upper <- extended_samples[j]
-#       }
-#     }
-#   }
-#   
-#   # Shift the interval back by adding the median.
-#   CI_lower <- best_lower + med
-#   CI_upper <- best_upper + med
-#   
-#   # Normalize back to [a, a+P)
-#   CI_lower <- normalize_angle(CI_lower, a = a, P = P)
-#   CI_upper <- normalize_angle(CI_upper, a = a, P = P)
-#   
-#   return(list(lower = CI_lower, upper = CI_upper))
-#   
-# }
-
-# New
 
 #' Compute the shortest circular highest-density interval
 #'
@@ -316,16 +262,14 @@ get_t_phi_CI_est <- function(row_MCMC, P = 24, credMass = 0.95, burn = 1, rho = 
 #'
 #' @export
 circular_HDI <- function(samples, credMass = 0.95, P = 24, a = 0) {
-  # Step 1: wrap samples into [a, a+P)
   samples <- normalize_angle(samples, a = a, P = P)
   sorted  <- sort(samples)
   n <- length(sorted)
   interval_size <- floor(credMass * n)
   
-  # Step 2: duplicate the circle to handle wrap-around
+  # a second copy shifted by P lets a window wrap past the seam
   extended <- c(sorted, sorted + P)
-  
-  # Step 3: sliding window to find shortest interval
+
   min_width <- Inf
   best_lower <- NA
   best_upper <- NA
@@ -342,14 +286,11 @@ circular_HDI <- function(samples, credMass = 0.95, P = 24, a = 0) {
     }
   }
   
-  # Step 4: normalize the result
   CI_lower <- normalize_angle(best_lower, a = a, P = P)
   CI_upper <- normalize_angle(best_upper, a = a, P = P)
   
   return(list(lower = CI_lower, upper = CI_upper))
 }
-
-
 
 #' Test whether a point lies within a circular interval
 #'

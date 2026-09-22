@@ -28,8 +28,7 @@ CB_clustering = function(MCMC, k, main = "Rhythmicity clusters"){
   
   cluster.top = MCMC$l
   rownames(cluster.top) = paste('gene',seq_len(nrow(cluster.top)),sep=' ')
-  
-  # dist.mat <- mydist(y=cluster.top)
+
   an.out = ConsensusClusterPlus::ConsensusClusterPlus(d=t(cluster.top),
                                                       maxK=k,
                                                       reps=50,

@@ -1,9 +1,9 @@
 # ============================================================
 # Cosinor Residual Diagnostics - Baboon Tissues
-# Extension of Cosinor_plot.R
 # Tissues: LUN, PUT, SUN
 # Overlapping top genes are aligned in the same column across rows.
-# Residuals computed manually from OLS cosinor fitted values.
+# Residuals are taken from the OLS cosinor fitted values. Writes the QQ and
+# residual-by-time PDFs.
 # ============================================================
 
 rm(list = ls())
@@ -184,8 +184,7 @@ qq_ordered   <- qq_grobs[ordered_keys]
 rt_ordered   <- rt_grobs[ordered_keys]
 
 # ── Save PDFs ─────────────────────────────────────────────────────────────────
-# the supplementary scales this to a 6.5 in text block, so a panel wider than
-# about 1.75 in puts the axis labels below 5 pt in print
+# 1.75 in per panel keeps axis labels at 5 pt or more on a 6.5 in text block
 pdf_width  <- n_cols * 1.75
 pdf_height <- length(TISSUES) * 1.75
 

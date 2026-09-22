@@ -14,8 +14,7 @@
 # paper.dir defaults to <BAYRC_OUTPUT_DIR>/../paper.
 #
 # Panels run along a row, or down the page for the figures named in
-# stacked.figures. Both layouts go through pdflatex and graphicx, so the whole
-# assembly is reproducible from the panels the analysis scripts write.
+# stacked.figures. Both layouts are built with pdflatex and graphicx.
 ################################################################################
 
 # Paths come from config.R; override any of them with the matching env var.
@@ -44,16 +43,14 @@ fig.out <- file.path(BAYRC_OUTPUT_DIR, "figure")
 # The left-hand name is the file the generating script writes; the right-hand
 # name is what this script calls it in paper/subfigures/.
 
-# Panels are resolved by directory and pattern rather than by an exact file
-# name, so a panel still resolves when the generating script changes the cap in
-# a file name, or when a KEGG release spells a pathway differently.
+# Panels are matched by directory and pattern rather than exact file name.
 
 find_panel <- function(dir, pattern, recursive = FALSE) {
   if (!dir.exists(dir)) return(NA_character_)
   hits <- list.files(dir, pattern = pattern, full.names = TRUE,
                      recursive = recursive)
   if (!length(hits)) return(NA_character_)
-  ## a stale panel from an earlier run can match too, so take the newest
+  ## with several matches, take the newest
   hits <- hits[order(file.info(hits)$mtime, decreasing = TRUE)]
   if (length(hits) > 1) {
     cat("  ", length(hits), "files match", pattern, "under", dir, "\n")
@@ -152,14 +149,12 @@ figures <- list(
                "F6B_baboon_human_LUN_circadian_heatmap.pdf")
 )
 
-# A figure laid out by its own script from panels built on one native width is
-# never written here, so a stale merge cannot replace it.
+# Figures laid out by their own script; this one only collects their panels.
 external.figures <- c(Figure_2 = "plots/figure2/assemble_figure2_nature.py",
                       Figure_6 = "plots/figure6/assemble_figure6.py")
 
-# Figure 5's two heatmaps are each as wide as the text block, so they stack.
-# Figure_5_row holds the same two panels along a row for comparison; every
-# other multi-panel figure runs its panels along a row.
+# Figure 5's heatmaps are each as wide as the text block, so they stack;
+# Figure_5_row lays the same two panels along a row.
 stacked.figures <- "Figure_5"
 
 # A figure listed here wraps its panels into rows of this many.
@@ -170,13 +165,7 @@ legend.under <- list(Figure_6 = 2L, Figure_5_row = 1L)
 # the colour bar belongs to the two heatmaps, not to the membership panel below
 legend.after.row <- list(Figure_2 = 1L, Figure_3 = 1L)
 
-# A figure listed here is drawn with its panels carrying no legend of their own
-# and this one placed under the row. The panels' scales have to match for that
-# to be right, which for Figure 4 is what q_limits and size_limits fix.
-# A figure whose panels share one subject carries its title once, above the
-# pair, and the panels are drawn with show_title = FALSE.
-# a panel whose subject is not obvious from the shared title names it here,
-# beside the letter
+# caption beside each panel letter, under a title the panels share
 panel.captions <- list(
   Figure_5     = c("Putamen versus substantia nigra",
                    "Putamen versus visual cortex"),
@@ -236,9 +225,7 @@ page_size <- function(pdf) {
   as.numeric(strsplit(sub(" pts.*", "", d), " x ")[[1]])
 }
 
-# A figure is scaled to the text width when it is placed, so a label set in
-# points prints at a size that depends on the page. This returns the point size
-# that prints at label.pt once the page has been scaled.
+# Point size that prints at label.pt once the page is scaled to the text width
 label_size <- function(paper.w, label.pt = 8.3, textwidth = 488.5)
   label.pt * paper.w / textwidth
 
@@ -293,10 +280,8 @@ side_by_side <- function(inputs, output, labels = LETTERS[seq_along(inputs)],
     paper.h <- paper.h + strip.w * d[2] / d[1] + gutter
   }
 
-  # A legend placed after a given row is emitted with the rows rather than after
-  # them. It cannot use \centerline, which ends the paragraph and leaves the
-  # following \\ with nothing to break, so the later rows are lost; a minipage
-  # spanning the content width keeps it inline.
+  # A legend after a given row sits inline in a content-width minipage, since
+  # \centerline would end the paragraph and drop the later rows.
   mid.strip <- character(0)
   if (length(below.after) == 1 && !is.na(below.after) && !is.na(below)) {
     d <- page_size(below)

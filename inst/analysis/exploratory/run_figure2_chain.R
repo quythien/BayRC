@@ -1,10 +1,8 @@
 ################################################################################
 # Drive the concordance heatmap scripts behind Figure 2.
 #
-# The three scripts call multi_conservation() and pheatmap() but load neither,
-# expecting a session that already has them. This attaches the package first
-# and then sources each one in its own process, so a failure in one does not
-# take the others with it.
+# The three scripts expect multi_conservation() and pheatmap() to be loaded.
+# This attaches the package and sources each script in its own process.
 #
 # Usage:
 #   Rscript run_figure2_chain.R [script]
@@ -25,8 +23,7 @@
   human     = "plots/heatmap_human.R",
   circadian = "plots/heatmap_circadian_pairs.R")
 
-# heatmap_circadian_pairs.R reads its mode from commandArgs() unless `mode`
-# already exists, and under a driver those arguments are the driver's own.
+# Preset `mode`, since heatmap_circadian_pairs.R otherwise reads the driver's arguments
 .bayrc_modes <- c(circadian = "within_baboon")
 
 .bayrc_args <- commandArgs(trailingOnly = TRUE)

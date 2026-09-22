@@ -30,7 +30,7 @@ phase_infer(
 \item{credMass}{Numeric; HDI coverage (default 0.95); only used when
 \code{compute_hdi = TRUE}.}
 
-\item{shift}{Numeric; phase-shift threshold in hours (default 4).}
+\item{shift}{Numeric; phase-shift threshold in hours (default 2).}
 
 \item{a}{Numeric; left endpoint for circular normalisation (default
 \code{-P/2}).}

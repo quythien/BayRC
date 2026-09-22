@@ -85,16 +85,14 @@ A list with the updated \code{rho}, the normalising constant
   log acceptance ratio.
 }
 \description{
-Proposes a model switch for every gene at once -- birth for genes currently
-at rho = 0, death for genes at rho = 1 -- and accepts or rejects each
+Proposes a model switch for every gene at once (birth for genes at
+rho = 0, death for genes at rho = 1) and accepts or rejects each
 independently. The acceptance ratio is assembled from the likelihood term
 (\code{log.r1}), the prior odds on rhythmicity (\code{log.r2}) and the
 proposal/prior terms for amplitude and phase (\code{log.r3}).
 
-The phase half of \code{log.r3} uses the MARGINAL posterior of phi,
-\code{log h(phi) - log Z1}, with \code{Z1} from
-\code{get_logZ1_single()}. Pairing a conditional in A with a conditional in
-phi would not give a joint density in (A, phi); the factorization has to be
-J(A, phi) = J(phi) J(A | phi).
+The proposal density factorises as J(A, phi) = J(phi) J(A | phi). The
+phase term uses the marginal posterior of phi,
+\code{log h(phi) - log Z1}, with \code{Z1} from \code{get_logZ1_single()}.
 }
 \keyword{internal}

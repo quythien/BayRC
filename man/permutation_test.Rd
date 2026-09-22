@@ -12,7 +12,7 @@ permutation_test(p_A, p_B, B = 1000)
 \item{B}{Integer; number of permutations (default 1000).}
 }
 \value{
-A list with \code{observed}, \code{p_value}, and \code{null_dist}.
+Numeric scalar; the one-sided permutation p-value.
 }
 \description{
 Computes the observed congruence index between p_A and p_B, then

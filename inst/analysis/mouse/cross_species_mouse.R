@@ -1,9 +1,7 @@
 ## Human against mouse across the six tissues the GSE54651 atlas shares with
 ## GTEx, on the frozen parameters the rest of the paper uses.
 ##
-## Baboon against human is computed on the same rows for reference, so the two
-## cross-species comparisons can be read side by side and the section can be
-## put on the tissue that carries it best rather than on lung by default.
+## Baboon against human is computed on the same rows alongside, for reference.
 
 args   <- commandArgs(trailingOnly = TRUE)
 hmdir  <- args[1]

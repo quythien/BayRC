@@ -1,4 +1,4 @@
-## Fixed-arm BayRC MCMC for one mouse tissue of the GSE54651 atlas.
+## BayRC MCMC for one mouse tissue of the GSE54651 atlas.
 ##
 ## The mouse companion to run_fixed.R. Same sampler, same settings, same
 ## thin = 1 so the stored chain has 2001 columns, and output goes under
@@ -76,8 +76,7 @@ save_file <- file.path(save_dir, paste0("mice_", tissue, "_bay_", seed, ".RDS"))
 saveRDS(CB.res, file = save_file)
 if (!file.exists(save_file)) stop("Error: File not saved correctly")
 
-## The record beside the output names the script, the input with its date and
-## the settings, so every number taken from this chain can be traced back.
+## Run record: script, input with its date, and settings
 record <- c(
   paste("script       ", "src/run_mouse.R"),
   paste("mode         ", "full run"),

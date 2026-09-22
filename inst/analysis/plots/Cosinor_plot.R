@@ -1,4 +1,5 @@
-# Scatter plot
+# Cosinor fits of selected clock and mitochondrial genes in human and baboon
+# lung, written to gene_cosinor_plots.pdf in the working directory.
 this.file <- sub("^--file=", "", grep("^--file=", commandArgs(), value = TRUE)[1])
 analysis.dir <- if (is.na(this.file)) getwd() else dirname(normalizePath(this.file))
 while (!file.exists(file.path(analysis.dir, "config.R")) &&
@@ -7,26 +8,21 @@ bayrc.needs.summary <- FALSE
 source(file.path(analysis.dir, "config.R"))
 
 load(file.path(BAYRC_GTEX_DIR, "data", "CAMO.bab.hum.RData"))
-# Baboon Lung
 library(dplyr)
 library(tidyr)
 library(purrr)
 source(file.path(BAYRC_PIPELINE_DIR, "one_cosinor_OLS_new.R"))
 
-# Plot for baboon
 baboon_LUN = list(
   expr = baboon_withTOD$baboon$LUN,
   tod = baboon_withTOD$tod$LUN
 )
 
-# Plot for human 
 human_LUN = list(
   expr = gtex$CPM.large.clean$LUN,
   tod = gtex$tod$LUN
 )
 
-###
-# Load required libraries
 library(biomaRt)
 library(dplyr)
 
@@ -34,15 +30,13 @@ library(dplyr)
 # 1. MAP HUMAN GENES TO SYMBOLS
 # ============================================
 
-# Get row names from human_LUN$expr (assuming these are Ensembl IDs)
+# human rows are Ensembl gene IDs
 human_genes <- rownames(human_LUN$expr)
 
-# Connect to Ensembl
 ensembl <- useEnsembl(biomart = "genes", 
                       dataset = "hsapiens_gene_ensembl",
                       mirror = "useast")
 
-# Query for gene symbols
 human_gene_map <- getBM(
   attributes = c('ensembl_gene_id', 'hgnc_symbol'),
   filters = 'ensembl_gene_id',
@@ -50,18 +44,15 @@ human_gene_map <- getBM(
   mart = ensembl
 )
 
-# Create a complete mapping with fallback to original ID
-# Start with a data frame of all original IDs
+# every ID keeps a row, falling back to the ID where no symbol is found
 complete_map <- data.frame(
   ensembl_gene_id = human_genes,
   stringsAsFactors = FALSE
 )
 
-# Merge with biomaRt results
 complete_map <- complete_map %>%
   left_join(human_gene_map, by = "ensembl_gene_id") %>%
   mutate(
-    # Use symbol if available and not empty, otherwise use original ID
     final_symbol = ifelse(is.na(hgnc_symbol) | hgnc_symbol == "", 
                           ensembl_gene_id, 
                           hgnc_symbol)
@@ -70,17 +61,12 @@ complete_map <- complete_map %>%
 # 2. STANDARDIZE BMAL1/ARNTL NAMING
 # ============================================
 
-# Function to standardize gene names
 standardize_gene_names <- function(symbols) {
-  symbols <- toupper(symbols)  # Convert to uppercase for consistency
-  
+  symbols <- toupper(symbols)
+
   # ARNTL (official symbol) -> BMAL1 (common name)
   symbols[symbols == "ARNTL"] <- "BMAL1"
-  
-  # You might also want to handle other aliases:
-  # symbols[symbols == "MOP3"] <- "BMAL1"  # Another ARNTL alias
-  # symbols[symbols == "BHLHE5"] <- "BMAL1"  # Yet another alias
-  
+
   return(symbols)
 }
 complete_map$final_symbol_std <- standardize_gene_names(complete_map$final_symbol)
@@ -88,17 +74,15 @@ complete_map$final_symbol_std <- standardize_gene_names(complete_map$final_symbo
 symbol_map <- setNames(complete_map$final_symbol_std, 
                        complete_map$ensembl_gene_id)
 
-# Add symbol column to human data
+# Symbol goes in as the first column
 human_LUN$expr$Symbol <- symbol_map[rownames(human_LUN$expr)]
 
-# Reorganize to put Symbol as first column
 human_LUN$expr <- human_LUN$expr %>%
   dplyr::select(Symbol, everything())
 
 baboon_LUN$expr$Symbol_std <- standardize_gene_names(baboon_LUN$expr$Symbol)
 
 
-# Plot these selected genes:
 library(ggplot2)
 library(gridExtra)
 
@@ -194,7 +178,7 @@ for(gene in genes_to_plot) {
     )
   )
   
-  # Convert peaks
+  # peaks on the -6 to 18 ZT scale
   human_peak <- ifelse(human_fit$peak > 18, human_fit$peak - 24, human_fit$peak)
   baboon_peak <- ifelse(baboon_fit$peak > 18, baboon_fit$peak - 24, baboon_fit$peak)
   

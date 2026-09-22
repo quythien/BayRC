@@ -2,7 +2,7 @@
 % Please edit documentation in R/permutation_sim.R
 \name{compute_gain_loss_iterations}
 \alias{compute_gain_loss_iterations}
-\title{Compute per-iteration gain, loss, and conservation indices}
+\title{Compute gain, loss, and conservation indices across iterations}
 \usage{
 compute_gain_loss_iterations(rho_A, rho_B)
 }
@@ -12,12 +12,13 @@ compute_gain_loss_iterations(rho_A, rho_B)
 \item{rho_B}{G x K binary matrix; posterior rho samples for condition B.}
 }
 \value{
-A list of length-K numeric vectors: \code{exp_conserved},
-  \code{exp_gain}, \code{exp_loss}, and \code{exp_union}, each
-  containing iteration-level index values.
+A list with the mean counts \code{expected_conserved},
+  \code{expected_gained} and \code{expected_lost}, and the scalars
+  \code{gain_index}, \code{loss_index} and \code{gain_loss_ratio}.
 }
 \description{
-For each MCMC iteration, computes the expected gain (rhythmic in B but
-not A), loss (rhythmic in A but not B), and conservation (rhythmic in
-both) under the probabilistic framework, as well as union size.
+Counts, in each MCMC iteration, the genes rhythmic in both conditions
+(conserved), in B only (gain) and in A only (loss), averages the counts
+over iterations, and divides by their sum to give the gain and loss
+indices.
 }

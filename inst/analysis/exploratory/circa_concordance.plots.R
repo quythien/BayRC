@@ -1,7 +1,7 @@
-# Concordance plotting helpers (from former run_concordance_*.R)
-# Source this after the corresponding analysis has created phase_inner, trans_outer, and output.dir.
-# Regenerate concordance figure for Baboon_Human_LUN
-# Source in the LUN screen session where all objects are loaded
+# Peak concordance figures for four tissue pairs, one section each.
+# Source a section after its analysis has created phase_inner, trans_outer and output.dir.
+
+# Concordance figure for Baboon_Human_LUN
 
 library(ggplot2); library(dplyr); library(ggrepel)
 if (!dir.exists(tempdir())) dir.create(tempdir(), recursive = TRUE)
@@ -156,8 +156,7 @@ ggsave(file.path(save_dir, "Baboon_Human_LUN_Peak_Concordance_0.25_2h.pdf"),
 cat("\nFigure saved to:", file.path(save_dir, "Baboon_Human_LUN_Peak_Concordance_0.25_2h.pdf"), "\n")
 
 
-# Regenerate concordance figure for Baboon_LUN_LIV
-# Source in the lun_liv screen session where all objects are loaded
+# Concordance figure for Baboon_LUN_LIV
 
 library(ggplot2); library(dplyr); library(ggrepel)
 if (!dir.exists(tempdir())) dir.create(tempdir(), recursive = TRUE)
@@ -303,8 +302,7 @@ ggsave(filename = file.path(save_dir, "Baboon_LUN_LIV_Peak_Concordance_0.25_2h_n
 cat("\nFigure saved to:", file.path(save_dir, "Baboon_LUN_LIV_Peak_Concordance_0.25_2h_new.pdf"), "\n")
 
 
-# Regenerate concordance figure for Baboon_SCN_HIP
-# Source in the SCN screen session where all objects are loaded
+# Concordance figure for Baboon_SCN_HIP
 
 library(ggplot2); library(dplyr); library(ggrepel)
 if (!dir.exists(tempdir())) dir.create(tempdir(), recursive = TRUE)
@@ -450,8 +448,7 @@ ggsave(filename = file.path(save_dir, "Baboon_SCN_HIP_Peak_Concordance_0.25_2h_n
 cat("\nFigure saved to:", file.path(save_dir, "Baboon_SCN_HIP_Peak_Concordance_0.25_2h_new.pdf"), "\n")
 
 
-# Fixed concordance figure for Baboon SUN vs PUT
-# Run this in the sun_put screen session where all objects are loaded
+# Concordance figure for Baboon SUN vs PUT
 
 library(ggplot2)
 library(dplyr)
@@ -459,7 +456,7 @@ library(ggrepel)
 
 if (!dir.exists(tempdir())) dir.create(tempdir(), recursive = TRUE)
 
-# Simple remap: minimize distance to diagonal via circular wrapping
+# Shift each point by ±24 h to minimise its distance to the diagonal
 remap_to_diagonal <- function(x, y, offset = 24) {
   x_options <- c(x, x - offset, x + offset)
   y_options <- c(y, y - offset, y + offset)
@@ -482,7 +479,7 @@ remap_to_diagonal <- function(x, y, offset = 24) {
   return(data.frame(x = best_x, y = best_y, dist = best_dist))
 }
 
-# --- Rebuild maintained_df from phase_inner and trans_outer ---
+# --- maintained_df from phase_inner and trans_outer ---
 to_zt <- function(t_cos) ifelse(t_cos >= 18, t_cos - 24, t_cos)
 
 gene_names <- names(phase_inner$peak1)
@@ -560,7 +557,7 @@ plot_df <- maintained_df %>%
   select(-remapped) %>%
   ungroup()
 
-# Diagnostic: check range of remapped values
+# Range of remapped values
 cat("\n[Remapped ranges]\n")
 cat("  SUN (x):", round(min(plot_df$Peak_SUN_ZT_plot), 2), "to", round(max(plot_df$Peak_SUN_ZT_plot), 2), "\n")
 cat("  PUT (y):", round(min(plot_df$Peak_PUT_ZT_plot), 2), "to", round(max(plot_df$Peak_PUT_ZT_plot), 2), "\n")
@@ -606,7 +603,7 @@ p <- ggplot(plot_df, aes(
     y = "Peak Hour - Putamen (ZT)",
     color = "Phase class"
   ) +
-  # Use scale for breaks/labels only (no limits — let coord_cartesian handle clipping)
+  # Scales set breaks and labels only; coord_cartesian zooms without dropping points
   scale_x_continuous(
     breaks = seq(-6, 18, 6),
     labels = sprintf("ZT%+d", seq(-6, 18, 6))
@@ -615,7 +612,6 @@ p <- ggplot(plot_df, aes(
     breaks = seq(-6, 18, 6),
     labels = sprintf("ZT%+d", seq(-6, 18, 6))
   ) +
-  # coord_cartesian zooms without removing data points
   coord_cartesian(xlim = c(-8, 20), ylim = c(-8, 20)) +
   theme_bw(base_size = 14) +
   theme(

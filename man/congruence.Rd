@@ -13,9 +13,8 @@ MCMC posterior samples for condition 1 (reference / earlier time point).}
 \item{matrix2}{Named list with element \code{rho} (G x K matrix);
 MCMC posterior samples for condition 2.}
 
-\item{delta}{Numeric; phase-shift threshold in \code{units} (currently
-unused in the probabilistic c-score; reserved for future use,
-default 3).}
+\item{delta}{Numeric; phase-shift threshold in \code{units} (not used
+by the probabilistic c-score; default 3).}
 
 \item{units}{Character; \code{"hours"} (default) or \code{"radians"}.}
 }

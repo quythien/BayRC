@@ -1,5 +1,5 @@
 ################################################################################
-# PARALLEL BOOTSTRAP VS DELTA METHOD COMPARISON (LINUX VERSION)
+# PARALLEL BOOTSTRAP VS DELTA METHOD COMPARISON
 ################################################################################
 
 
@@ -23,7 +23,7 @@
 #'   (Beta(3,2)), \code{"high_rhythmic"} (Beta(5,3)), or
 #'   \code{"low_rhythmic"} (Beta(2,5)).
 #'
-#' @return A data.frame with columns \code{p_A} and \code{p_B} (length n).
+#' @return A list with numeric vectors \code{p_A} and \code{p_B} (length n).
 #'
 generate_gene_data_full_spectrum <- function(n, conservation = 0.5, skewness = "symmetric") {
   if (skewness == "symmetric") {
@@ -76,7 +76,7 @@ calculate_congruence <- function(p_A, p_B) {
 #' @param p_A,p_B Numeric vectors; posterior rhythmicity probabilities.
 #' @param B Integer; number of permutations (default 1000).
 #'
-#' @return A list with \code{observed}, \code{p_value}, and \code{null_dist}.
+#' @return Numeric scalar; the one-sided permutation p-value.
 #'
 permutation_test <- function(p_A, p_B, B = 1000) {
   n <- length(p_A)
@@ -93,14 +93,13 @@ permutation_test <- function(p_A, p_B, B = 1000) {
 #'
 #' @description
 #' Estimates the variance of the permutation null distribution of the
-#' congruence index by bootstrapping, for use in analytical approximation
-#' testing methods.
+#' congruence index by resampling permutations of p_B.
 #'
 #' @param p_A,p_B Numeric vectors; posterior rhythmicity probabilities.
 #' @param n_boot Integer; bootstrap replicates (default 500).
 #'
-#' @return A list with \code{variance} (bootstrap estimate of the
-#'   permutation variance) and \code{se} (standard error).
+#' @return A list with \code{expected_ratio} (null mean), \code{var_ratio},
+#'   \code{sd_ratio} and \code{boot_ratios} (the resampled indices).
 #'
 bootstrap_permutation_variance <- function(p_A, p_B, n_boot = 500) {
   n <- length(p_A)
@@ -142,8 +141,8 @@ bootstrap_permutation_variance <- function(p_A, p_B, n_boot = 500) {
 #'
 #' @param p_A,p_B Numeric vectors; posterior rhythmicity probabilities.
 #'
-#' @return A list with \code{variance} (delta-method estimate) and
-#'   \code{gradient} (partial derivatives for diagnostics).
+#' @return A list with \code{expected_ratio}, \code{var_ratio} and
+#'   \code{sd_ratio}.
 #'
 delta_variance <- function(p_A, p_B) {
   n <- length(p_A)
@@ -177,8 +176,8 @@ delta_variance <- function(p_A, p_B) {
 #' @param p_A,p_B Numeric vectors; posterior rhythmicity probabilities.
 #' @param n_boot Integer; bootstrap replicates for variance estimation.
 #'
-#' @return A list with \code{z_score}, \code{p_value}, and
-#'   \code{variance_est}.
+#' @return Numeric scalar; one-sided p-value, or \code{NA} if the variance
+#'   estimate is not positive.
 #'
 gaussian_test_bootstrap <- function(p_A, p_B, n_boot = 500) {
   obs <- calculate_congruence(p_A, p_B)
@@ -194,12 +193,12 @@ gaussian_test_bootstrap <- function(p_A, p_B, n_boot = 500) {
 #'
 #' @description
 #' Tests congruence index significance using a Gaussian approximation with
-#' delta-method variance, avoiding the computational cost of bootstrapping.
+#' delta-method variance.
 #'
 #' @param p_A,p_B Numeric vectors; posterior rhythmicity probabilities.
 #'
-#' @return A list with \code{z_score}, \code{p_value}, and
-#'   \code{variance_est}.
+#' @return Numeric scalar; one-sided p-value, or \code{NA} if the variance
+#'   estimate is not positive.
 #'
 gaussian_test_delta <- function(p_A, p_B) {
   obs <- calculate_congruence(p_A, p_B)
@@ -227,15 +226,15 @@ edgeworth_correction_fixed <- function(z, skew, kurt, n) {
 #' Edgeworth expansion significance test using bootstrap variance
 #'
 #' @description
-#' Applies an Edgeworth series correction to the Gaussian approximation to
-#' better handle skewness in the permutation null distribution of the
-#' congruence index, using bootstrap-estimated variance and skewness.
+#' Gaussian test with an Edgeworth correction for skewness of the
+#' permutation null, using bootstrap-estimated variance and skewness. The
+#' correction is applied when n <= 30 and |skewness| > 0.3.
 #'
 #' @param p_A,p_B Numeric vectors; posterior rhythmicity probabilities.
 #' @param n_boot Integer; bootstrap replicates.
 #'
-#' @return A list with \code{z_score}, \code{p_value_gaussian},
-#'   \code{p_value_edgeworth}, and \code{variance_est}.
+#' @return Numeric scalar; one-sided p-value, or \code{NA} if the variance
+#'   estimate is not positive.
 #'
 edgeworth_test_bootstrap <- function(p_A, p_B, n_boot = 500) {
   n <- length(p_A)
@@ -262,13 +261,13 @@ edgeworth_test_bootstrap <- function(p_A, p_B, n_boot = 500) {
 #' Edgeworth expansion significance test using delta-method variance
 #'
 #' @description
-#' Applies the Edgeworth correction using delta-method variance and skewness
-#' estimates, avoiding the need for bootstrap replicates.
+#' Applies the Edgeworth correction using delta-method variance and the
+#' skewness of the per-gene ratios.
 #'
 #' @param p_A,p_B Numeric vectors; posterior rhythmicity probabilities.
 #'
-#' @return A list with \code{z_score}, \code{p_value_gaussian},
-#'   \code{p_value_edgeworth}, and \code{variance_est}.
+#' @return Numeric scalar; one-sided p-value, or \code{NA} if the variance
+#'   estimate is not positive.
 #'
 edgeworth_test_delta <- function(p_A, p_B) {
   n <- length(p_A)
@@ -298,15 +297,14 @@ edgeworth_test_delta <- function(p_A, p_B) {
 #' Compare all variance estimation methods for the congruence index
 #'
 #' @description
-#' Applies all four variance estimation approaches (bootstrap Gaussian,
-#' delta Gaussian, bootstrap Edgeworth, delta Edgeworth) and returns a
-#' data.frame comparing p-values, z-scores, and variance estimates.
+#' Compares the bootstrap and delta-method estimates of the permutation
+#' variance.
 #'
 #' @param p_A,p_B Numeric vectors; posterior rhythmicity probabilities.
 #' @param n_boot Integer; bootstrap replicates (default 500).
 #'
-#' @return Data.frame with one row per method and columns for method name,
-#'   z-score, p-value, and variance.
+#' @return A list with \code{var_boot}, \code{var_delta}, their
+#'   \code{ratio}, \code{abs_diff} and \code{rel_diff}.
 #'
 compare_variances <- function(p_A, p_B, n_boot = 500) {
   boot_params <- bootstrap_permutation_variance(p_A, p_B, n_boot)
@@ -329,11 +327,10 @@ compare_variances <- function(p_A, p_B, n_boot = 500) {
 #'
 #' @description
 #' Generates synthetic p_A/p_B data via \code{generate_gene_data_full_spectrum}
-#' and runs the permutation test and all four variance-based tests,
-#' returning a data.frame of results for one simulation replicate.  Designed
-#' for parallelisation over many replicates.
+#' and runs the permutation test and the four approximate tests for one
+#' replicate.
 #'
-#' @param sim_id Integer; replicate identifier (used as random seed offset).
+#' @param sim_id Integer; replicate identifier (not used in the body).
 #' @param n Integer; number of genes.
 #' @param cons Numeric; conservation level (passed to
 #'   \code{generate_gene_data_full_spectrum}).
@@ -341,13 +338,12 @@ compare_variances <- function(p_A, p_B, n_boot = 500) {
 #' @param B_perm Integer; permutations for the permutation test.
 #' @param B_boot Integer; bootstrap replicates for variance estimation.
 #'
-#' @return Data.frame with columns for sim_id, method, z_score, p_value,
-#'   observed_congruence, and variance.
+#' @return A list of the five p-values, the elapsed time of each
+#'   approximate test, and the \code{compare_variances} output.
 #'
 run_single_simulation <- function(sim_id, n, cons, skew, B_perm, B_boot) {
   dat <- generate_gene_data_full_spectrum(n, cons, skew)
-  
-  # Time bootstrap methods
+
   t1 <- system.time({
     p_gauss_boot <- gaussian_test_bootstrap(dat$p_A, dat$p_B, n_boot = B_boot)
   })
@@ -356,19 +352,17 @@ run_single_simulation <- function(sim_id, n, cons, skew, B_perm, B_boot) {
     p_edge_boot <- edgeworth_test_bootstrap(dat$p_A, dat$p_B, n_boot = B_boot)
   })
   
-  # Time delta methods
   t3 <- system.time({
     p_gauss_delta <- gaussian_test_delta(dat$p_A, dat$p_B)
   })
-  
+
   t4 <- system.time({
     p_edge_delta <- edgeworth_test_delta(dat$p_A, dat$p_B)
   })
-  
-  # Permutation test (gold standard)
+
+  # permutation p-value is the reference
   p_perm <- permutation_test(dat$p_A, dat$p_B, B = B_perm)
-  
-  # Variance comparison
+
   var_comp <- compare_variances(dat$p_A, dat$p_B, n_boot = B_boot)
   
   list(

@@ -1,13 +1,12 @@
 ################################################################################
 # Build the per-species rho / phi summary objects the downstream scripts load.
 #
-# Every figure and concordance script starts with
-#   load(".../summary/hb/mcmc_rho_BF3.RData")
-#   load(".../summary/hb/phi/mcmc_phi_BF3.RData")
-# but nothing in the repository ever wrote those two files. This script does.
+# Writes the two files every figure and concordance script loads:
+#   .../summary/hb/mcmc_rho_BF3.RData
+#   .../summary/hb/phi/mcmc_phi_BF3.RData
 #
-# It walks the per-tissue MCMC output written by CAMO_h_b.R (or by the
-# fixed-arm runner), keeps the rho and phi chains, puts the rows in Ensembl-ID
+# It walks the per-tissue MCMC output written by CAMO_h_b.R (or by
+# run_fixed.R), keeps the rho and phi chains, puts the rows in Ensembl-ID
 # order, renames them to HGNC symbols, and attaches the three attributes the
 # downstream code reads off these matrices: "symbols", "RHYindex" (Bayes
 # factor > BF at the p_rhythmic prior) and "ensembl_gene_ids". That is the
@@ -47,9 +46,7 @@ BF <- 3
 P_RHYTHMIC <- 0.2
 
 # Gene naming ------------------------------------------------------------------
-# The sampler writes Ensembl IDs (human) or leaves the rows unnamed; the
-# downstream scripts want HGNC symbols. The map is the one the 2025 run used,
-# shipped as a CSV so nothing here has to call biomaRt and drift from it.
+# Ensembl IDs to HGNC symbols, from the shipped CSV the 2025 run used.
 
 map.file <- Sys.getenv("BAYRC_SYMBOL_MAP",
   unset = file.path(BAYRC_PACKAGE_DIR, "inst", "extdata",
@@ -58,18 +55,14 @@ gene.map <- utils::read.csv(map.file, stringsAsFactors = FALSE)
 stopifnot(!anyDuplicated(gene.map$ensembl_gene_id),
           !anyDuplicated(gene.map$symbol))
 
-# Rows come out in Ensembl-ID order, which is how the 2025 artifacts are laid
-# out and how biomaRt returned them.
+# rows in Ensembl-ID order, as in the 2025 artifacts
 gene.map <- gene.map[order(gene.map$ensembl_gene_id), ]
 
 load(file.path(BAYRC_GTEX_DIR, "data", "CAMO.bab.hum.RData"))
 tissues <- sort(intersect(names(gtex$CPM.large.clean),
                           names(baboon_withTOD$baboon)))
 
-# BAYRC_TISSUES restricts the run to a few tissues, which is how --validate is
-# usually exercised: the layout rule is the same for every tissue, so three of
-# them settle whether the builder reproduces the stored artifacts, without
-# holding 8 GB of chains in memory.
+# BAYRC_TISSUES restricts the run to a few tissues, e.g. for --validate
 if (nzchar(Sys.getenv("BAYRC_TISSUES"))) {
   want <- strsplit(Sys.getenv("BAYRC_TISSUES"), "[ ,]+")[[1]]
   if (!all(want %in% tissues)) stop("unknown tissue in BAYRC_TISSUES")
@@ -110,8 +103,7 @@ collect <- function(species, what) {
       stop("genes in the symbol map are missing from ", species, " ", tis)
     m <- m[idx, , drop = FALSE]
 
-    # RHYindex is a property of rho, so it is computed once on rho and reused
-    # for phi.
+    # RHYindex comes from rho and is attached to phi as well
     rhy <- summarize_bay(res$rho[idx, , drop = FALSE], BF, P_RHYTHMIC)$Rhythmicity
 
     rownames(m) <- gene.map$symbol

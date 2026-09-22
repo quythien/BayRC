@@ -10,10 +10,10 @@ gaussian_test_delta(p_A, p_B)
 \item{p_A, p_B}{Numeric vectors; posterior rhythmicity probabilities.}
 }
 \value{
-A list with \code{z_score}, \code{p_value}, and
-  \code{variance_est}.
+Numeric scalar; one-sided p-value, or \code{NA} if the variance
+  estimate is not positive.
 }
 \description{
 Tests congruence index significance using a Gaussian approximation with
-delta-method variance, avoiding the computational cost of bootstrapping.
+delta-method variance.
 }

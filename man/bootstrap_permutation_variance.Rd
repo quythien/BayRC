@@ -12,11 +12,10 @@ bootstrap_permutation_variance(p_A, p_B, n_boot = 500)
 \item{n_boot}{Integer; bootstrap replicates (default 500).}
 }
 \value{
-A list with \code{variance} (bootstrap estimate of the
-  permutation variance) and \code{se} (standard error).
+A list with \code{expected_ratio} (null mean), \code{var_ratio},
+  \code{sd_ratio} and \code{boot_ratios} (the resampled indices).
 }
 \description{
 Estimates the variance of the permutation null distribution of the
-congruence index by bootstrapping, for use in analytical approximation
-testing methods.
+congruence index by resampling permutations of p_B.
 }

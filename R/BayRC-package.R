@@ -1,14 +1,11 @@
 #' @description
-#' BayRC (Bayesian Rhythmicity Comparison) is a unified statistical framework
-#' for comparing and interpreting circadian rhythms across biological
-#' conditions: age, disease state, tissue, species, or sex. It jointly
-#' infers gene-level rhythmicity and phase, computes posterior probabilities
-#' of rhythmic and phase concordance, and classifies rhythmic gain, loss,
-#' conservation, and direction-specific phase shifts under Bayesian false
-#' discovery rate (BFDR) control. It further supports pathway-level
-#' enrichment and genome-wide concordance scoring, providing a unified,
-#' uncertainty-aware framework for comparative circadian analysis across
-#' tissues, species, and disease contexts.
+#' BayRC (Bayesian Rhythmicity Comparison) compares circadian rhythms across
+#' biological conditions such as age, disease state, tissue, species or sex.
+#' It jointly infers gene-level rhythmicity and phase, computes posterior
+#' probabilities of rhythmic and phase concordance, and classifies rhythmic
+#' gain, loss, conservation and direction-specific phase shifts under
+#' Bayesian false discovery rate (BFDR) control. It also provides
+#' pathway-level enrichment and genome-wide concordance scores.
 #'
 #' @section Main functions:
 #' \strong{MCMC core (paper Sec. 2.1)}

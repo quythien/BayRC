@@ -1,4 +1,5 @@
-# Heatmap for concordance of Baboon
+# Genome-wide pairwise concordance across baboon tissues: writes the pair
+# results, the concordance matrix and heatmaps under three linkage methods.
 library(pheatmap)
 library(BayRC)
 # Paths come from inst/analysis/config.R; override any of them with the
@@ -75,22 +76,18 @@ AC_list <- list()
 for (nm in names(pair_results)) {
   df <- pair_results[[nm]]
   colname <- paste0(nm, "_AdjustedConcordance")
-  AC_list[[nm]] <- df[[colname]]   # this is a numeric vector (length 1 here)
+  AC_list[[nm]] <- df[[colname]]   # one value per pathway; one here
 }
-
-
 
 saveRDS(
   pair_results,
   file = file.path(output.dir, "concordance_pairwise",  "pairwise_concordance_baboon.rds")
 )
 
-
 ###############################################################################
 # 5. Build pairwise Adjusted Concordance summary heatmap
 ###############################################################################
 
-# Initialize empty matrix
 ACI_mat <- matrix(NA, nrow = length(baboon_tissues), ncol = length(baboon_tissues))
 rownames(ACI_mat) <- baboon_tissues
 colnames(ACI_mat) <- baboon_tissues
@@ -106,8 +103,7 @@ for (name in names(AC_list)) {
   ACI_mat[t2, t1] <- mean_ACI
 }
 
-diag(ACI_mat) <- 1  # perfect concordance with itself
-
+diag(ACI_mat) <- 1
 
 ###############################################################################
 # 6. Save PDF heatmap 
@@ -115,30 +111,26 @@ diag(ACI_mat) <- 1  # perfect concordance with itself
 
 library(pheatmap)
 
-# Your color palette
 col_fun <- concordance_colors
 
 outdir <- BAYRC_FIGURE_DIR
 dir.create(outdir, recursive = TRUE, showWarnings = FALSE)
 
-# Convert concordance to dissimilarity
+# tissues are clustered on 1 - concordance
 ACI_dissim <- 1 - ACI_mat
-diag(ACI_dissim) <- 0  # distance to self = 0
+diag(ACI_dissim) <- 0
 
-# Create distance objects
 row_dist <- as.dist(ACI_dissim)
 col_dist <- as.dist(ACI_dissim)
 
-# List of methods to test
 methods <- c("ward.D2", "complete", "average")
 
-# Generate a heatmap for each method using dissimilarity
 for (method in methods) {
   cairo_pdf(file.path(outdir, paste0("Baboon_Concordance_Heatmap_Dissim_", method, ".pdf")),
             width = 9, height = 8, family = bayrc_family)
   
   pheatmap(
-    ACI_mat,  # still display original concordance values
+    ACI_mat,  # cells show concordance, not the distance
     cluster_rows = hclust(row_dist, method = method),
     cluster_cols = hclust(col_dist, method = method),
     color = col_fun,
@@ -155,17 +147,13 @@ for (method in methods) {
   cat("Saved dissimilarity-based:", method, "\n")
 }
 
-
-# 1. Save the full ACI matrix as CSV
 write.csv(
   ACI_mat,
   file = file.path(outdir, "Baboon_Concordance_Matrix.csv"),
   row.names = TRUE
 )
 
-
-##### Modified version 
-
+##### The same heatmaps on the capped scale
 
 library(pheatmap)
 
@@ -174,7 +162,6 @@ col_fun <- concordance_colors
 max_val <- concordance_max
 breaksList <- concordance_breaks
 
-# Generate the heatmap
 for (method in methods) {
   cairo_pdf(file.path(outdir, paste0("Baboon_Concordance_Heatmap_0.5_", method, ".pdf")),
             width = 9, height = 8, family = bayrc_family)
@@ -190,7 +177,6 @@ for (method in methods) {
     border_color = bayrc_heat_args()$border_color,
     fontfamily = bayrc_family,
     legend = TRUE,
-    # Adjust legend labels to match the new scale
     legend_breaks = seq(0, max_val, length.out = 5),
     legend_labels = format(seq(0, max_val, length.out = 5), digits = 2)
   )

@@ -1,5 +1,6 @@
 
-####################################### only intra ###################
+# Intra-cohort concordance: each dataset is split at random into halves, BayRC is
+# run on each half, and the adjusted Spearman correlation of posteriors is recorded.
 #── Clear environment ───────────────────────────────────────────────────────────────
 rm(list=ls())
 
@@ -15,12 +16,11 @@ current_gtex <- BAYRC_DATA_DIR
 current_wd   <- BAYRC_WD_DIR
 current_aging <- BAYRC_AGING_DIR
 
-
 #── Load BA11 and BA47 data ──────────────────────────────────────────────────────
 BA11 <- readRDS(file.path(current_aging, "data/BA11_data.rds"))
 BA47 <- readRDS(file.path(current_aging, "data/BA47_data.rds"))
 
-#--Process combined data ---
+#── Combined data ───────────────────────────────────────────────────────────────
 COMBINED <- readRDS(file.path(current_aging, "data/combined_data.rds"))
 
 prepare_combined_data <- function(combined_data) {
@@ -45,8 +45,8 @@ prepare_combined_data <- function(combined_data) {
   }
   
   pheno_data <- combined_data$pheno[pheno_order, ]
-  
-  # Handle TOD columns
+
+  # TOD.x first, then TOD.y, then TOD
   if("TOD.x" %in% colnames(pheno_data)) {
     pheno_data$tod <- pheno_data$TOD.x
   } else if("TOD.y" %in% colnames(pheno_data)) {
@@ -56,8 +56,7 @@ prepare_combined_data <- function(combined_data) {
   } else {
     stop("Cannot find any TOD information in phenotype data")
   }
-  
-  # Handle age group
+
   if("AgeGroup" %in% colnames(pheno_data)) {
     pheno_data$age_group_final <- pheno_data$AgeGroup
   } else if("age_group" %in% colnames(pheno_data)) {
@@ -160,12 +159,11 @@ run_MCMC_get_posteriors <- function(data, tod, n.iter=2500, n.burn=500, P=24, se
                                     rj.phi=TRUE, rj.A=TRUE,
                                     mu_M=0, sigma_M=10^2,
                                     sigma_prior_v=2, sigma_prior_s=0)
-  # 1. If rho lost rownames, recover them
+  # Posterior rhythmicity probability per gene, in input gene order
   if (is.null(rownames(CB.res$rho))) {
     rownames(CB.res$rho) <- attr(CB.res$rho, "dimnames")[[1]]
   }
-  
-  # 2. Reorder rho matrix to match input gene order
+
   CB.res$rho <- CB.res$rho[rownames(data), , drop = FALSE]
   posteriors <- rowMeans(CB.res$rho)
   names(posteriors) <- rownames(data)
@@ -174,19 +172,17 @@ run_MCMC_get_posteriors <- function(data, tod, n.iter=2500, n.burn=500, P=24, se
 }
 
 #── Adjusted Spearman correlation function ───────────────────────────────────
+# Spearman correlation rescaled against its permutation null: (obs - null mean) / (1 - null mean)
 spearman <- function(p_A, p_B, n_perm = 1000) {
   obs <- cor(p_A, p_B, method = "spearman")
-  
-  # Permutation
+
   null_dist <- sapply(1:n_perm, function(i) {
     cor(p_A, sample(p_B), method = "spearman")
   })
-  
-  # Calculate null statistics FIRST
+
   null_mean <- mean(null_dist, na.rm = TRUE)
   null_sd <- sd(null_dist, na.rm = TRUE)
-  
-  # Then calculate adjusted values
+
   if (abs(1 - null_mean) > 0.001) {
     adjusted <- (obs - null_mean) / (1 - null_mean)
     null_adjusted <- (null_dist - null_mean) / (1 - null_mean)
@@ -211,8 +207,6 @@ spearman <- function(p_A, p_B, n_perm = 1000) {
     null_dist = null_dist
   ))
 }
-
-
 
 #── Data preparation function ────────────────────────────────────────────────────
 prepare_brain_data <- function(brain_data, region_name) {
@@ -251,6 +245,7 @@ BA11_data <- prepare_brain_data(BA11, "BA11")
 BA47_data <- prepare_brain_data(BA47, "BA47")
 
 #── Random subsetting function ───────────────────────────────────────────────────
+# Random split of the samples into two halves; the second takes the odd one out
 random_split_dataset <- function(expr_data, tod_vector, seed = NULL) {
   if (!is.null(seed)) {
     set.seed(seed)
@@ -290,7 +285,7 @@ run_intra_cohort_analysis <- function(dataset, dataset_name,
                                       n.iter = 2500,
                                       n.burn = 500,
                                       n_cores = 4,
-                                      n_perm = 1000) {  # <--- ADD permutation parameter
+                                      n_perm = 1000) {
   
   if (is.null(save_dir)) {
     save_dir <- file.path(current_aging, "results", "intra_cohort", dataset_name)
@@ -303,19 +298,14 @@ run_intra_cohort_analysis <- function(dataset, dataset_name,
   cat("Permutations per repetition:", n_perm, "\n")
   cat("Cores:", n_cores, "\n")
   cat("===============================================\n\n")
-  
-  # Define function for single repetition
-  # Define function for single repetition
+
+  # One repetition: split, run MCMC on each half, compare posteriors
   process_single_rep <- function(i) {
     rep_seed <- base_seed + i
-    
-    # Randomly split the dataset
+
     split_data <- random_split_dataset(dataset$expr, dataset$tod, seed = rep_seed)
-    
+
     tryCatch({
-      #----------------------------------------------------------
-      # Run MCMC on subset 1
-      #----------------------------------------------------------
       p_subset1 <- run_MCMC_get_posteriors(
         data = split_data$subset1$expr,
         tod  = split_data$subset1$tod,
@@ -323,13 +313,10 @@ run_intra_cohort_analysis <- function(dataset, dataset_name,
         n.burn = n.burn,
         seed = rep_seed
       )
-      
-      # Immediately clean memory
+
       gc(verbose = FALSE)
-      
-      #----------------------------------------------------------
-      # Run MCMC on subset 2
-      #----------------------------------------------------------
+
+      # Seed offset keeps the two halves on separate streams
       p_subset2 <- run_MCMC_get_posteriors(
         data = split_data$subset2$expr,
         tod  = split_data$subset2$tod,
@@ -337,17 +324,11 @@ run_intra_cohort_analysis <- function(dataset, dataset_name,
         n.burn = n.burn,
         seed = rep_seed + 10000
       )
-      
-      #----------------------------------------------------------
-      # Compute concordance and free heavy objects
-      #----------------------------------------------------------
+
       concordance_result <- spearman(p_subset1, p_subset2, n_perm = n_perm)
       rm(p_subset1, p_subset2, split_data)
       gc(verbose = FALSE)
-      
-      #----------------------------------------------------------
-      # Save lightweight result to disk (optional but recommended)
-      #----------------------------------------------------------
+
       out <- list(
         repetition = i,
         seed = rep_seed,
@@ -360,7 +341,7 @@ run_intra_cohort_analysis <- function(dataset, dataset_name,
         status = "success"
       )
       
-      saveRDS(out, file.path(save_dir, sprintf("rep_%03d.RDS", i)))  # optional
+      saveRDS(out, file.path(save_dir, sprintf("rep_%03d.RDS", i)))
       
       return(out)
       
@@ -380,9 +361,7 @@ run_intra_cohort_analysis <- function(dataset, dataset_name,
       ))
     })
   }
-  
-  
-  # PARALLELIZE the repetitions
+
   cat("Starting parallel processing...\n")
   start_time <- Sys.time()
   
@@ -394,8 +373,7 @@ run_intra_cohort_analysis <- function(dataset, dataset_name,
   elapsed <- difftime(end_time, start_time, units = "mins")
   
   cat(sprintf("\n✓ Parallel processing complete! Time: %.2f minutes\n", elapsed))
-  
-  # Convert to data frame
+
   results_df <- do.call(rbind, lapply(concordance_results, function(x) {
     data.frame(
       repetition = x$repetition,
@@ -410,19 +388,16 @@ run_intra_cohort_analysis <- function(dataset, dataset_name,
       stringsAsFactors = FALSE
     )
   }))
-  
-  # Calculate summary
+
   successful <- results_df %>% filter(status == "success")
-  
+
   summary_stats <- list(
     dataset = dataset_name,
     type = "intra_cohort",
     n_repetitions = nrow(successful),
-    # Observed correlations
     observed_mean = mean(successful$observed, na.rm = TRUE),
     observed_sd = sd(successful$observed, na.rm = TRUE),
     observed_median = median(successful$observed, na.rm = TRUE),
-    # Adjusted correlations
     adjusted_mean = mean(successful$adjusted, na.rm = TRUE),
     adjusted_sd = sd(successful$adjusted, na.rm = TRUE),
     adjusted_median = median(successful$adjusted, na.rm = TRUE),
@@ -430,9 +405,7 @@ run_intra_cohort_analysis <- function(dataset, dataset_name,
     adjusted_max = max(successful$adjusted, na.rm = TRUE),
     adjusted_ci_lower = quantile(successful$adjusted, 0.025, na.rm = TRUE),
     adjusted_ci_upper = quantile(successful$adjusted, 0.975, na.rm = TRUE),
-    # P-values
     mean_p_value = mean(successful$p_value, na.rm = TRUE),
-    # Null distribution stats
     mean_null_mean = mean(successful$null_mean, na.rm = TRUE),
     mean_null_sd = mean(successful$null_sd, na.rm = TRUE)
   )
@@ -445,8 +418,7 @@ run_intra_cohort_analysis <- function(dataset, dataset_name,
   cat(sprintf("  95%% CI: [%.4f, %.4f]\n", summary_stats$adjusted_ci_lower, summary_stats$adjusted_ci_upper))
   cat(sprintf("\nMean p-value: %.4f\n", summary_stats$mean_p_value))
   cat(sprintf("Time per repetition: %.2f minutes\n\n", as.numeric(elapsed) / n_repetitions))
-  
-  # Save results
+
   saveRDS(list(results = results_df, summary = summary_stats),
           file.path(save_dir, "analysis.RDS"))
   write.csv(results_df, file.path(save_dir, "results.csv"), row.names = FALSE)
@@ -480,12 +452,11 @@ all_datasets <- list(
 #══════════════════════════════════════════════════════════════════════════════
 # RUN INTRA-COHORT ANALYSIS (PARALLELIZED REPETITIONS)
 #══════════════════════════════════════════════════════════════════════════════
-# Set number of cores for repetitions
-n_cores <- 10  
+n_cores <- 10
 
 intra_results <- list()
 
-# Process each dataset sequentially, but parallelize repetitions within each
+# Datasets run in turn; repetitions within a dataset run in parallel
 for (dataset_name in names(all_datasets)) {
   cat("\n")
   cat("=" %>% rep(78) %>% paste0(collapse=""), "\n")
@@ -507,7 +478,6 @@ for (dataset_name in names(all_datasets)) {
 # CREATE SUMMARY
 #══════════════════════════════════════════════════════════════════════════════
 
-# Create summary table
 intra_summary <- do.call(rbind, lapply(names(intra_results), function(name) {
   s <- intra_results[[name]]$summary
   data.frame(
@@ -526,7 +496,6 @@ intra_summary <- do.call(rbind, lapply(names(intra_results), function(name) {
 
 print(intra_summary, row.names = FALSE)
 
-# Save summary
 output_dir <- file.path(current_aging, "results", "intra_cohort_analysis")
 dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
 

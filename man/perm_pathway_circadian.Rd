@@ -42,8 +42,8 @@ gene sets.}
 \item{intermediate_dir}{Character; directory for intermediate saves.}
 }
 \value{
-A named list of K arrays (one per pathway), each B x 4
-  containing permuted congruence, gain, loss, and ratio scores.
+A B x K x 4 array of permuted congruence, gain, loss, and
+  ratio scores, with pathways along the second dimension.
 }
 \description{
 Runs gene-label permutations within each pathway to build a null

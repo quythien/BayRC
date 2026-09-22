@@ -1,6 +1,6 @@
-# Three baboon brain regions through the extended heatmap, as a check on the
-# third-condition path before it is used for the cross-species figure.
-# SCN is the reference; hippocampus and putamen are the comparators.
+# Three baboon brain regions through the three-condition heatmap, written under
+# FIG6_DIR/regions3. SCN is the reference; hippocampus and putamen are the
+# comparators.
 
 library(BayRC)
 library(ComplexHeatmap)

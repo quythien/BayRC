@@ -1,3 +1,6 @@
+## Shifted, conserved and undetermined counts among maintained genes over a
+## grid of shift thresholds (hours) and bfdr_alpha, for lung and SCN-HIP.
+
 compare_phase_shift_thresholds <- function(
     phi_matrix1,
     phi_matrix2,
@@ -17,10 +20,9 @@ compare_phase_shift_thresholds <- function(
     return(NULL)
   }
   
-  # Compute phdiff matrix once
+  # signed circular difference, wrapped to [-P/2, P/2)
   phase_diff_matrix <- ((phi_matrix1 - phi_matrix2 + P/2) %% P) - P/2
-  
-  # Initialize results
+
   results <- data.frame()
   
   for (bfdr_alpha in bfdr_grid) {
@@ -36,26 +38,19 @@ compare_phase_shift_thresholds <- function(
         prob_conserved[k] <- 1 - prob_shift[k]
       }
       
-      # ---------------------------
-      # BFDR — Shifted
-      # ---------------------------
+      # BFDR, shifted
       ord_shift <- order(-prob_shift)
       BFDR_shift_sorted <- cumsum(1 - prob_shift[ord_shift]) / seq_along(prob_shift)
       idx_shift <- ord_shift[BFDR_shift_sorted <= bfdr_alpha]
       
-      # ---------------------------
-      # BFDR — Conserved
-      # ---------------------------
+      # BFDR, conserved
       ord_cons <- order(-prob_conserved)
       BFDR_cons_sorted <- cumsum(1 - prob_conserved[ord_cons]) / seq_along(prob_conserved)
       idx_cons <- ord_cons[BFDR_cons_sorted <= bfdr_alpha]
       
-      # ---------------------------
-      # Exclusive Categorization
-      # ---------------------------
+      # a gene called both ways is undetermined
       overlap <- intersect(idx_shift, idx_cons)
-      
-      # Remove overlap → Undetermined
+
       if (length(overlap) > 0) {
         idx_shift <- setdiff(idx_shift, overlap)
         idx_cons <- setdiff(idx_cons, overlap)
@@ -64,12 +59,10 @@ compare_phase_shift_thresholds <- function(
       idx_union <- union(idx_shift, idx_cons)
       idx_undetermined <- setdiff(seq_len(n_maintained), idx_union)
       
-      # Counts
       N_Shifted <- length(idx_shift)
       N_Conserved <- length(idx_cons)
       N_Undetermined <- length(idx_undetermined)
-      
-      # Append to results
+
       results <- rbind(
         results,
         data.frame(
@@ -98,11 +91,10 @@ baboon_LUNG <- list(
   phi = mcmc_phi_baboon$LUN
 )
 
-
 pA <- rowMeans(human_LUNG$rho)
 pB <- rowMeans(baboon_LUNG$rho)
 
-# Step 1: classify gain/loss first
+# classify gain/loss first
 trans_lun <- transition_classify(pA, pB, bfdr_alpha = 0.2)
 circadian_genes <- c(
   "BHLHE40","BHLHE41","BMAL1","ARNTL","BTRC","CLOCK","CREB1",
@@ -129,9 +121,8 @@ phase_lung <- compare_phase_shift_thresholds(
   gain_loss_status = trans_lun$gain_loss_status
 )
 
-
-
-######
+## Same comparison restricted to the core clock genes, splitting shifted into
+## ahead and behind.
 compare_phase_shift_thresholds_circadian <- function(
     phi_matrix1,
     phi_matrix2,
@@ -143,11 +134,9 @@ compare_phase_shift_thresholds_circadian <- function(
     P = 24
 ) {
   
-  # Maintained genes
   maintained_idx <- which(gain_loss_status == "Maintained")
   maintained_genes <- gene_names[maintained_idx]
-  
-  # Restrict to circadian genes
+
   circ_idx <- maintained_idx[maintained_genes %in% circadian_genes]
   n_circ <- length(circ_idx)
   
@@ -156,10 +145,8 @@ compare_phase_shift_thresholds_circadian <- function(
     return(NULL)
   }
   
-  # Phase difference matrix
   phase_diff_matrix <- ((phi_matrix1 - phi_matrix2 + P/2) %% P) - P/2
-  
-  # Store rows safely
+
   res_list <- list()
   rr <- 1
   
@@ -186,7 +173,7 @@ compare_phase_shift_thresholds_circadian <- function(
       idx_behind <- bfdr_apply(prob_behind)
       idx_cons   <- bfdr_apply(prob_cons)
       
-      # Enforce exclusivity
+      # a gene in all three calls is undetermined
       overlap <- Reduce(intersect, list(idx_ahead, idx_behind, idx_cons))
       if (length(overlap) > 0) {
         idx_ahead  <- setdiff(idx_ahead, overlap)
@@ -223,10 +210,6 @@ phase_lung_circ <- compare_phase_shift_thresholds_circadian(
   gene_names = rownames(human_LUNG$phi)
 )
 
-#############
-
-
-
 baboon_HIP <- list(
   rho = mcmc_data_baboon$HIP,
   phi = mcmc_phi_baboon$HIP
@@ -237,11 +220,10 @@ baboon_SCN <- list(
   phi = mcmc_phi_baboon$SCN
 )
 
-
 pA <- rowMeans(baboon_SCN$rho)
 pB <- rowMeans(baboon_HIP$rho)
 
-# Step 1: classify gain/loss first
+# classify gain/loss first
 trans_scn <- transition_classify(pA, pB, bfdr_alpha = 0.25)
 circadian_genes <- c(
   "BHLHE40","BHLHE41","BMAL1","ARNTL","BTRC","CLOCK","CREB1",
@@ -262,26 +244,16 @@ list(
   circadian_conserved = circ_cons
 )
 
-
-
-
-
-
-# Step 2: run the exclusive threshold comparison
 phase_baboon <- compare_phase_shift_thresholds(
   phi_matrix1 = baboon_SCN$phi,
   phi_matrix2 = baboon_HIP$phi,
   gain_loss_status = trans_scn$gain_loss_status
 )
 
-
-
-
-# View table
 phase_lung
 phase_baboon
 
-#### Pairwise: 
+## Every tissue shared by the two species, at one threshold.
 
 compare_all_cross_species_pairs <- function(
     mcmc_data_human,
@@ -296,7 +268,6 @@ compare_all_cross_species_pairs <- function(
   human_tissues <- names(mcmc_data_human)
   baboon_tissues <- names(mcmc_data_baboon)
   
-  # Find matching tissue names
   common_tissues <- intersect(human_tissues, baboon_tissues)
   
   results_summary <- list()
@@ -305,7 +276,6 @@ compare_all_cross_species_pairs <- function(
     
     cat("\n=== Analyzing:", tissue, "===\n")
     
-    # Extract data
     human_data <- list(
       rho = mcmc_data_human[[tissue]],
       phi = mcmc_phi_human[[tissue]]
@@ -316,13 +286,11 @@ compare_all_cross_species_pairs <- function(
       phi = mcmc_phi_baboon[[tissue]]
     )
     
-    # Classify gain/loss
     pA <- rowMeans(human_data$rho)
     pB <- rowMeans(baboon_data$rho)
     
     trans <- transition_classify(pA, pB, bfdr_alpha = bfdr_alpha)
     
-    # Compare phase shifts
     phase_results <- compare_phase_shift_thresholds(
       phi_matrix1 = human_data$phi,
       phi_matrix2 = baboon_data$phi,
@@ -331,7 +299,6 @@ compare_all_cross_species_pairs <- function(
       bfdr_grid = bfdr_phase
     )
     
-    # Store results
     if (!is.null(phase_results)) {
       results_summary[[tissue]] <- list(
         transition = trans,
@@ -346,7 +313,6 @@ compare_all_cross_species_pairs <- function(
   return(results_summary)
 }
 
-# Run comparison
 all_pairs <- compare_all_cross_species_pairs(
   mcmc_data_human,
   mcmc_phi_human,
@@ -354,7 +320,6 @@ all_pairs <- compare_all_cross_species_pairs(
   mcmc_phi_baboon
 )
 
-# Create summary table
 summary_df <- do.call(rbind, lapply(names(all_pairs), function(tissue) {
   res <- all_pairs[[tissue]]$phase
   data.frame(
@@ -368,7 +333,6 @@ summary_df <- do.call(rbind, lapply(names(all_pairs), function(tissue) {
   )
 }))
 
-# Sort by different criteria
 cat("\n=== Tissues with HIGHEST Phase Conservation ===\n")
 print(summary_df[order(-summary_df$N_Conserved), ])
 

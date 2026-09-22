@@ -111,8 +111,7 @@ pathSelect <- function(mcmc.merge.list,
     stop("No pathways pass size filters")
   }
   
-  # Determine if we need to invert ranking for loss-only tests
-  # ONLY invert for log_odds_ratio, NOT for probability-based rankings!
+  # A loss-only test inverts the log odds ratio; probability rankings are not inverted
   invert_ranking <- (score_type == "neg") && (ranking.method == "log_odds_ratio")
   
   cat("\n=== FGSEA PATHWAY ANALYSIS ===\n")
@@ -183,7 +182,7 @@ pathSelect <- function(mcmc.merge.list,
     return(metric)
   }
   
-  # Helper: Calculate pathway effect size (GEOMETRIC MEAN)
+  # Helper: pathway effect size as a geometric mean over its genes
   calculate_pathway_effect_size <- function(P_A, P_B, pathway_genes, method, epsilon = 0.001) {
     P_A_pathway <- P_A[pathway_genes]
     P_B_pathway <- P_B[pathway_genes]
@@ -219,7 +218,7 @@ pathSelect <- function(mcmc.merge.list,
     return(list(value = effect_size, name = effect_name))
   }
   
-  # Helper: Calculate gain/loss indices using CONTINUOUS probabilities
+  # Helper: gain/loss indices from the continuous probabilities
   calculate_gain_loss_indices <- function(pathway_genes, P_A, P_B, P_gain, P_loss, P_cons) {
     # Get indices for genes in this pathway
     pathway_idx <- match(pathway_genes, gene_names)
@@ -274,7 +273,7 @@ pathSelect <- function(mcmc.merge.list,
       if (expected_gain == 0) {
         NA_real_
       } else {
-        Inf   # Loss=0, Gain>0 — paper Eq. 4 gives +Inf
+        Inf   # loss 0 and gain > 0 gives +Inf (paper Eq. 4)
       }
     } else {
       expected_gain / expected_loss
@@ -397,13 +396,13 @@ pathSelect <- function(mcmc.merge.list,
     pathway_name <- fgsea_results$pathway[k]
     pathway_genes <- intersect(filtered_pathways[[pathway_name]], gene_names)
     
-    # Calculate pathway effect (GEOMETRIC MEAN)
+    # Pathway effect (geometric mean)
     pathway_effect <- calculate_pathway_effect_size(P_A, P_B, pathway_genes, ranking.method, epsilon)
     pathway_effects[k] <- pathway_effect$value
     
     if (k == 1) effect_name <- pathway_effect$name
     
-    # Calculate gain/loss indices using CONTINUOUS probabilities
+    # Gain/loss indices from the continuous probabilities
     gl_indices <- calculate_gain_loss_indices(
       pathway_genes, P_A, P_B, P_gain, P_loss, P_cons
     )
@@ -503,7 +502,7 @@ pathSelect <- function(mcmc.merge.list,
   gene_rankings <- gene_rankings[order(-gene_rankings$ranking_metric), ]
   
   if (ranking.method == "log_odds_ratio") {
-    # Store the ACTUAL log OR 
+    # Log OR without the loss-only inversion
     actual_log_OR <- calculate_ranking_metric(
       gene_rankings$P_A, 
       gene_rankings$P_B, 

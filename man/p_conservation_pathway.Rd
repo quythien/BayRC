@@ -9,16 +9,16 @@ p_conservation_pathway(observed_scores, perm_results)
 \arguments{
 \item{observed_scores}{K x 4 matrix; observed pathway scores.}
 
-\item{perm_results}{Named list of K arrays (B x 4); permutation null
-distributions.}
+\item{perm_results}{B x K x 4 array; permutation null distributions
+from \code{perm_pathway_circadian}.}
 }
 \value{
-A data.frame with one row per pathway and columns for observed
-  scores, p-values, and q-values (BH-adjusted).
+A list with \code{congruence}, a K x 1 matrix of p-values, and
+  \code{ratio}, a K x 3 matrix of right, left and two-sided p-values.
 }
 \description{
-Derives right-tailed (congruence) and three-sided (gain/loss ratio)
-permutation p-values for each pathway by comparing observed scores from
-\code{conservation_pathway_circadian} against the null distribution from
-\code{perm_pathway_circadian}.
+Derives right-tailed (congruence) and right, left and two-sided
+(gain/loss ratio) permutation p-values for each pathway by comparing
+observed scores from \code{conservation_pathway_circadian} against the
+null distribution from \code{perm_pathway_circadian}.
 }

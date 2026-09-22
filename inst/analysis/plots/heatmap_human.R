@@ -1,4 +1,5 @@
-# Heatmap for concordance of Human tissues (pairwise)
+# Genome-wide pairwise concordance across human tissues: writes the pair
+# results, the concordance matrix and heatmaps under three linkage methods.
 library(pheatmap)
 library(BayRC)
 # Paths come from inst/analysis/config.R; override any of them with the
@@ -19,7 +20,6 @@ output.dir <- BAYRC_OUTPUT_DIR
 load(file.path(BAYRC_SUMMARY_DIR, "mcmc_rho_BF3.RData"))
 load(file.path(BAYRC_SUMMARY_DIR, "phi", "mcmc_phi_BF3.RData"))
 
-# Thien functions
 thien_dir <- BAYRC_THIEN_DIR
 source(file.path(thien_dir, "Permutation_Sim.R"))
 Rcpp::sourceCpp(file.path(thien_dir, "congruence.cpp"))

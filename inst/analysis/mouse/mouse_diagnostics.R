@@ -100,9 +100,8 @@ for (t in c("LUN", "LIV")) {
 }
 
 ## 5. the gene universes the two pairs are measured on ----------------------
-# The mouse summary is cut to the genes the baboon pair also carries, so both
-# of its sides are the three-species set. run_mouse.R reports the wider set the
-# mouse chains themselves were run on.
+# The mouse summary holds the three-species set; run_mouse.R reports the wider
+# set the mouse chains were run on.
 hbr <- new.env()
 load(file.path(BAYRC_RESULT_DIR, "summary", "hb", "mcmc_rho_BF3.RData"), envir = hbr)
 cat("\n== gene universes ==\n")
@@ -111,9 +110,8 @@ cat(sprintf("  human, baboon, mouse  %5d   what a three-species panel can draw\n
             nrow(hm$mcmc_data_human[[1]])))
 
 ## 6. mouse minus human offset in every tissue ------------------------------
-# Taken over the clock genes rhythm-conserved against mouse in that tissue, as
-# a circular mean. In these per-tissue objects peak1 is the mouse peak, so the
-# mouse minus human offset is peak1 - peak2.
+# Circular mean over the rhythm-conserved clock genes; peak1 is the mouse peak
+# in these per-tissue objects, so the offset is peak1 - peak2.
 cat("\n== mouse minus human peak offset, rhythm-conserved clock genes ==\n")
 fig <- file.path(BAYRC_RESULT_DIR, "analysis", "figures")
 all_d <- c()

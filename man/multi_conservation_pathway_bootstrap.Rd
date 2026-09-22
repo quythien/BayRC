@@ -23,8 +23,7 @@ multi_conservation_pathway_bootstrap(
 
 \item{select.pathway.list}{Named list of pathway gene sets.}
 
-\item{delta}{Numeric; ignored (reserved for future phase-threshold
-concordance variant).}
+\item{delta}{Numeric; ignored.}
 
 \item{units}{Character; ignored.}
 
@@ -40,15 +39,10 @@ concordance variant).}
 Same value as \code{multi_conservation}.
 }
 \description{
-Thin wrapper around \code{\link{multi_conservation}} retained for
-backward compatibility with analysis scripts that call
-\code{multi_conservation_pathway_bootstrap}.  All computation is
-delegated to \code{multi_conservation}; the \code{delta} and
-\code{units} arguments are accepted but unused (the c-score is
-threshold-free by design; see paper Eq. 3).
+Wrapper around \code{\link{multi_conservation}}, which does all the
+computation. The \code{delta} and \code{units} arguments are accepted
+but unused, as the c-score is threshold-free (paper Eq. 3).
 
-Note: output Excel sheets are named \code{"Results"} and
-\code{"Column_Definitions"}, not \code{"congruence_index"} as in
-the legacy Thien/ version.  Update downstream read.xlsx calls
-accordingly.
+The Excel output has sheets \code{"Results"} and
+\code{"Column_Definitions"}.
 }

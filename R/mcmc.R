@@ -25,17 +25,14 @@
 #'   range of each gene; \code{Inf} leaves the amplitude prior one-sided on
 #'   \code{[A.min, Inf)}.
 #' @param thin Integer; thinning interval; every \code{thin}-th
-#'   post-burn-in sample is stored (default 20).
+#'   post-burn-in sample is stored (default 1).
 #' @param n.burn Integer; number of burn-in iterations discarded before
 #'   storing samples (default 1000).
 #' @param seed Integer; random seed for reproducibility (default 15213).
-#' @param diagnostics Logical; if \code{TRUE}, compute and print basic
-#'   post-run convergence diagnostics (RJMCMC acceptance rate, ESS for rho
-#'   and phi) and attach them as \code{$diagnostics} on the returned list,
-#'   via \code{mcmc_diagnostics()}. Warns if mean ESS for rho falls below
-#'   100 (default \code{TRUE}). Can also be computed later on any MCMC
-#'   result by calling \code{mcmc_diagnostics()} directly, even if this was
-#'   \code{FALSE} at run time.
+#' @param diagnostics Logical; if \code{TRUE} (default), run
+#'   \code{mcmc_diagnostics()} after sampling and attach the result as
+#'   \code{$diagnostics}. The same diagnostics can be computed later from the
+#'   returned chains.
 #' @param p_rhythmic Numeric vector of length G; prior probability
 #'   Pr(rho_g = 1) for each gene.  Enters the RJMCMC log-prior odds as
 #'   log(p / (1 - p)).  Default is \code{rep(0.2, 100)}.
@@ -97,34 +94,14 @@ CB_MCMC_single_rj_slice = function(Data.list, Init.value, P = 24,
 
                                 p_rhythmic=rep(0.2, 100), rj.p.stay = 0.5,
                                 A_prior= "Jeffreys_OLS_condi",
-                                #options: "trunc_Normal",
-                                # Jeffreys: p(log(A))\propto 1
-                                # Jeffreys_ridge
-                                # sq_expo: squared exponential p(A) \propto A*exp(-A^2/2)    
-                                # gamma: gamma prior p(A) \ propto A^(alpha-1)exp(-rate*A)
-                                mu_A = 1, sigma_A = 10^2, A.min = 0, # this applies to A~truncated normal
+                                mu_A = 1, sigma_A = 10^2, A.min = 0, # truncated-Normal prior on A
                                 A.max = NULL,
                                 rj.phi = TRUE, rj.A = TRUE,
-                                mu_M = 0, sigma_M = 10^2, 
+                                mu_M = 0, sigma_M = 10^2,
                                 sigma_prior_v = 4, sigma_prior_s = 1,
                                 NP_Z1 = 64   # phi-quadrature nodes for Z1
 ){
-  
-  # Data.list=dat.input; Init.value=a.init;
-  # P = 24; A.min = 0;
-  # iteration = n.iter; thin = n.thin; n.burn=n.burn;
-  # seed = 15213;
-  # p_rhythmic=0.5; rj.p.stay = 0.5;
-  # A_prior= "Jeffreys";
-  # mu_A = 1; sigma_A = 10^2; # this applies to A~truncated normal
-  # rj.phi = TRUE; rj.A = TRUE;
-  # mu_M = 0; sigma_M = 10^2;
-  # sigma_prior_v = 4; sigma_prior_s = 1;
-  # delta_MH_phi = pi/2;
-  # save.file = paste0(out.dir, "/", out.name, "/",
-  #                    "/tempSaveXXX", a.ind, ".rds")
 
-  #observations
   omega = 2*pi/P
   Y = as.matrix(Data.list[[1]])
   ## default bound is half the observed range of each gene
@@ -142,25 +119,19 @@ CB_MCMC_single_rj_slice = function(Data.list, Init.value, P = 24,
   cs.t.phi = sum(t.c*t.s)
   y.t.c.sum = apply(t(Y)*t.c, 2, sum)
   y.t.s.sum = apply(t(Y)*t.s, 2, sum)
-  #Below are for slice sampling
+  # design and OLS projection for the slice sampler
   X = cbind(t.c, t.s)
-  #OLS solution for the Jeffreys prior
-  # beta_hat =  as.matrix(Y)%*%t(solve(t(X)%*%X)%*%t(X))
   XtX = t(X)%*%X
   beta_hat0 =  t(solve(XtX)%*%t(X))
-  beta_cov0 = solve(XtX) #time sigma in each iteration
+  beta_cov0 = solve(XtX) # scaled by sigma in each iteration
   beta_cov0_11 = beta_cov0[1, 1]
   beta_cov0_22 = beta_cov0[2, 2]
   beta_cov0_12 = beta_cov0[1, 2]
   beta_cov0_rho = beta_cov0_12/sqrt(beta_cov0_11*beta_cov0_22)
-  #calculate the coefficients before(beta-mu1), need to time sigma 
+  # conditional-mean coefficients of one coordinate on the other
   beta_mean0_1 = beta_cov0_12/beta_cov0_22
   beta_mean0_2 = beta_cov0_12/beta_cov0_11
-  
-  #test use
-  # Y.list = Y; t.c.list = t.c; t.s.list = t.s; N.vec = N;
-  # A.mat = A; phi.mat = phi; sigma.mat = sigma; M.mat = M; rho.mat = rho; p.mat = p;
-  
+
   # Initialize the chain  ---------------------------------------------------
   rho = Init.value$rho;
   M = Init.value$M;
@@ -195,12 +166,10 @@ CB_MCMC_single_rj_slice = function(Data.list, Init.value, P = 24,
     
     
     # within model move -------------------------------------------------------
-    #update M    
     M = update_M_single(Y, t.c, t.s, N,
                         AcosPhi, AsinPhi, sigma, rho,
                         sigma_M, mu_M, omega, G)
-    
-    #udpate A
+
     csAphi = update_A_phi_slice(Y, X, XtX, beta_hat0,
                                 beta_cov0_11, beta_cov0_22, beta_cov0_rho,
                                 beta_mean0_1, beta_mean0_2,
@@ -246,7 +215,6 @@ CB_MCMC_single_rj_slice = function(Data.list, Init.value, P = 24,
   for(iter in 1:(iteration-n.burn)){
     
     time0 = Sys.time()
-    # iter = iter+1
     set.seed(seed+iter)
     print(paste0("iter = ", iter))
     
@@ -269,8 +237,7 @@ CB_MCMC_single_rj_slice = function(Data.list, Init.value, P = 24,
                                     A_prior,
                                     mu_A, sigma_A, A.min, A.max,
                                     omega, G, P, NP = NP_Z1)
-      if.accept.rj = cbind(if.accept.rj, rho.res$rho!=rho) 
-      #if the new rho is not the same as the old rho, it is accepted
+      if.accept.rj = cbind(if.accept.rj, rho.res$rho!=rho) # a change in rho is an accepted jump
       log.r1.store = cbind(log.r1.store, rho.res$log.r1)
       log.r1.SS.store = cbind(log.r1.SS.store, rho.res$log.r1.SS) 
       log.r3_A.store = cbind(log.r3_A.store, rho.res$log.r3_A)
@@ -280,20 +247,15 @@ CB_MCMC_single_rj_slice = function(Data.list, Init.value, P = 24,
       rho.store = cbind(rho.store, rho)
     }    
     time1 = Sys.time()
-    # samp.time$rho[iter]=time1-time0
-    
+
     # within model move -------------------------------------------------------
-    
-    #update M    
+
     M = update_M_single(Y, t.c, t.s, N,
                         AcosPhi, AsinPhi, sigma, rho,
                         sigma_M, mu_M, omega, G)
     M.store = cbind(M.store, M)
-    # print("Finished M")
     time2 = Sys.time()
-    # samp.time$M[iter]=time2-time1
-    
-    #udpate A
+
     csAphi = update_A_phi_slice(Y, X, XtX, beta_hat0,
                                 beta_cov0_11, beta_cov0_22, beta_cov0_rho,
                                 beta_mean0_1, beta_mean0_2,
@@ -314,15 +276,12 @@ CB_MCMC_single_rj_slice = function(Data.list, Init.value, P = 24,
     phi.store = cbind(phi.store, phi)
     
     time4 = Sys.time()
-    # samp.time$phi[iter]=time4-time2
-    
+
     sigma = update_sigma_single(Y, t.c, t.s, N, AcosPhi, AsinPhi, M, rho,
                                 sigma_prior_v, sigma_prior_s, omega, G)
     sigma.store = cbind(sigma.store, sigma)
-    # print("Finished sigma")
     time5 = Sys.time()
-    # samp.time$sigma[iter]=time5-time4
-    
+
     save = list(rho = rho.store,
                 M = M.store,
                 AcosPhi = AcosPhi.store,
@@ -331,9 +290,6 @@ CB_MCMC_single_rj_slice = function(Data.list, Init.value, P = 24,
                 phi = phi.store,
                 sigma = sigma.store,
                 Z1_gap = Z1_gap.store,
-                #log.r1 = log.r1.store,
-                #log.r3_A = log.r3_A.store,
-                #log.r3_phi = log.r3_phi.store,
                 if.accept.rj = if.accept.rj)
   }
   if (thin > 1) {
@@ -357,9 +313,7 @@ CB_MCMC_single_rj_slice = function(Data.list, Init.value, P = 24,
 }
 
 # Updating functions ------------------------------------------------------
-#Gibbs sampling
 
-#should update rho, A, and phi together with a reversible jump procedure
 #' Gibbs update for MESOR
 #'
 #' @description
@@ -383,19 +337,13 @@ CB_MCMC_single_rj_slice = function(Data.list, Init.value, P = 24,
 #'
 #' @keywords internal
 update_M_single = function(Y, t.c, t.s, N,
-                           #Y.list, t.c.list, t.s.list, N.vec, 
-                           AcosPhi, AsinPhi, sigma, rho, 
-                           # A.mat, phi.mat, sigma.mat, rho.mat, 
-                           sigma_M, mu_M, omega, G){#output a G*J matrix for M samples
-  # Y.list = Y; t.c.list = t.c; t.s.list = t.s; N.vec = N; A.mat = A; phi.mat = phi; sigma.mat = sigma; rho.mat = rho
-  # t.c=t_t_p.c; t.s = t_t_p.s
+                           AcosPhi, AsinPhi, sigma, rho,
+                           sigma_M, mu_M, omega, G){
   a.var = 1/(N/sigma+1/sigma_M)
   b.c = AcosPhi*rho #G*1 mat
   b.s = AsinPhi*rho
   a.cosine = cbind(b.c, b.s) %*% rbind(t.c, t.s)
   a.mean = (apply((Y-a.cosine), 1, sum)/sigma+mu_M/sigma_M)*a.var
-  # xM <<- list(a.mean = a.mean, a.var = a.var)
-  # stopifnot("M problem" = all(is.finite(a.mean))&all(a.var<10000))
   a.M = stats::rnorm(G, a.mean, sqrt(a.var))
 }
 
@@ -422,19 +370,13 @@ update_M_single = function(Y, t.c, t.s, N,
 #'
 #' @keywords internal
 update_sigma_single = function(Y, t.c, t.s, a.N,
-                               # Y.list, t.c.list, t.s.list, N.vec,
-                               AcosPhi, AsinPhi, M.vec, rho, 
-                               # A.mat, phi.mat, M.mat, rho.mat, 
+                               AcosPhi, AsinPhi, M.vec, rho,
                                sigma_prior_v, sigma_prior_s, omega, G){
-  # Y.list = Y; t.c.list = t.c; t.s.list = t.s; N.vec = N; A.mat = A; phi.mat = phi; M.mat = M; rho.mat = rho
   b.c = AcosPhi*rho #G*1 mat
   b.s = AsinPhi*rho
   a.cosine = cbind(M.vec, b.c, b.s) %*% rbind(1, t.c, t.s)
   vs2 = sigma_prior_v*sigma_prior_s
   sigma_post_vs2 = (apply((Y-a.cosine)^2, 1, sum)+vs2)/2
-  # print(paste0("SS 1:", round(mean(sigma_post_vs2[1:200]), 2), ", 0:", round(mean(sigma_post_vs2[201:400]), 2)))
-  # xsigma <<- list(shape = sigma_prior_v/2+a.n/2, rate = sigma_post_vs2)
-  # stopifnot("sigma problem" = all(xsigma$shape<10000)&all(is.finite(xsigma$rate)))
          a.sigma = invgamma::rinvgamma(G, shape = (sigma_prior_v+a.N)/2, rate = sigma_post_vs2)
          a.sigma = ifelse(a.sigma<1e-5, 1e-5, a.sigma)
   return(a.sigma)
@@ -474,13 +416,13 @@ update_A_phi_slice = function(Y, X, XtX, beta_hat0,
                               M, sigma, omega, 
                               AcosPhi, AsinPhi, G, P, A_prior,
                               A.min, A.max, 
-                              mu_A, sigma_A  # this applies to A~truncated normal(mu_A, sigma_A)
+                              mu_A, sigma_A  # A ~ truncated Normal(mu_A, sigma_A)
 ){
   beta1 = AcosPhi
   beta2 = AsinPhi
   Y_new = Y-M
   A = sqrt(beta1^2+beta2^2)
-  #for the truncation model only
+  # slice height function for the truncated-Normal prior
   f_upper_trunc = function(A0, u0){
     1/A0*exp(-1/sigma_A*(A0-mu_A)^2)-u0
   }
@@ -489,46 +431,36 @@ update_A_phi_slice = function(Y, X, XtX, beta_hat0,
     
 # A_prior=="Jeffreys_OLS_condi" -------------------------------------------
     
-    #OLS solution for the Jeffreys prior
     beta_hat = Y_new%*%beta_hat0
-    u = runif(G, 1e-5, 1/A) #sqrt(beta1^2+beta2^2) is just A
-    u = ifelse(u>1e3, 1e3, u) #avoid numerical issue for later
+    u = runif(G, 1e-5, 1/A)
+    u = ifelse(u>1e3, 1e3, u) # cap keeps the radius 1/u away from zero
     beta_cov_11 = beta_cov0_11*sigma
     beta_cov_22 = beta_cov0_22*sigma
     max_beta1 = sqrt(1/u^2-beta2^2)
     beta1_mean = beta_hat[, 1]+beta_mean0_1*(beta2-beta_hat[, 2])
     beta1_var = beta_cov_11*(1-beta_cov0_rho^2)
     beta1_new = truncnorm::rtruncnorm(G, -1*max_beta1, max_beta1, 
-                                      beta1_mean, sqrt(beta1_var)) 
-    # print(paste0("beta1_new 1:", round(mean(beta1_new[1:200]), 2), ", 0:", round(mean(beta1_new[201:400]), 2)))
-    # print(paste0("beta1_mean sd 1:", round(sd(beta1_mean[1:200]), 2), ", 0:", round(sd(beta1_mean[201:400]), 2)))
-    # print(paste0("beta1_new sd 1:", round(sd(beta1_new[1:200]), 2), ", 0:", round(sd(beta1_new[201:400]), 2)))
+                                      beta1_mean, sqrt(beta1_var))
     max_beta2 = sqrt(1/u^2-beta1_new^2)
     beta2_mean = beta_hat[, 2]+beta_mean0_2*(beta1_new-beta_hat[, 1])
     beta2_var = beta_cov_22*(1-beta_cov0_rho^2)
     beta2_new = truncnorm::rtruncnorm(G, -1*max_beta2, max_beta2, 
-                                      beta2_mean, sqrt(beta2_var)) 
-    # print(paste0("beta2_new 1:", round(mean(beta2_new[1:200]), 2), ", 0:", round(mean(beta2_new[201:400]), 2)))
-    # print(paste0("beta2_mean sd 1:", round(sd(beta2_mean[1:200]), 2), ", 0:", round(sd(beta2_mean[201:400]), 2)))
-    # print(paste0("beta2_new sd 1:", round(sd(beta2_new[1:200]), 2), ", 0:", round(sd(beta2_new[201:400]), 2)))
+                                      beta2_mean, sqrt(beta2_var))
 
   }else if(A_prior=="Jeffreys_ridge_condi"){
     
     # A_prior=="Jeffreys_ridge_condi" -----------------------------------------
     
-    #ridge regression solution 
-    # u = runif(G, 0, 1/A)
-    u = runif(G, 1e-5, 1/A) #avoid extreme small vals 
+    # ridge solution, one gene at a time
+    u = runif(G, 1e-5, 1/A)
     u = ifelse(u>1e3, 1e3, u)
     get_beta_hat0 = sapply(1:G, function(g){
-      # for(g in 1:G){
       XtXinv = solve(XtX+1/u[g]^2)
       beta_hat = Y_new[g, ]%*%t(XtXinv%*%t(X))
       beta_cov0 = XtXinv%*%XtX%*%XtXinv
       beta_cov_11 = beta_cov0[1, 1]*sigma[g]
       beta_cov_22 = beta_cov0[2, 2]*sigma[g]
       beta_cov_rho = beta_cov0[1, 2]/sqrt(beta_cov_11*beta_cov_22)
-      # }
       return(c(beta_cov_11, beta_cov_22, beta_cov_rho, beta_hat))
     })
     get_beta_hat = t(get_beta_hat0)
@@ -551,31 +483,13 @@ update_A_phi_slice = function(Y, X, XtX, beta_hat0,
     
     # A_prior=="trunc_Normal_OLS_condi" ---------------------------------------
     
-    #OLS solution 
     beta_hat = Y_new%*%beta_hat0
     u = runif(G, 1e-3, f_upper_trunc(A, 0))
     u = ifelse(u>1e3, 1e3, u)
     beta_cov_11 = beta_cov0_11*sigma
     beta_cov_22 = beta_cov0_22*sigma
 
-    #A_max = sapply(1:G, function(g){
-      # print(paste0(a, "_", g))
-     # x=tryCatch({
-      #  uniroot(f_upper_trunc, c(0, 1e3), u0=u[g], tol=1e-6)$root
-      #}, error = function(e) {
-      #  cat("An error occurred: ", conditionMessage(e), "\n")
-      #  return(conditionMessage(e))
-      #})
-      #if(grepl("not of opposite sign", x)){
-      #  if(f_upper_trunc(1e4)>0){
-      #    return(A.max[g])
-      #  }else{
-      #    return(min(1e-3, A.max[g]))
-      #  }
-      #}else{
-      #  return(min(x, A.max[g]))
-      #}
-    #})
+    # radius of the slice at height u
     A_max = sapply(1:G, function(g){
       uniroot(f_upper_trunc, c(0, 1e3), u0=u[g], tol=1e-6)$root})
     max_beta1 = sqrt(A_max^2-beta2^2)
@@ -591,10 +505,7 @@ update_A_phi_slice = function(Y, X, XtX, beta_hat0,
       pnorm(-1*max_beta1, beta1_mean, sqrt(beta1_var))
     p2=pnorm(max_beta1, beta1_mean, sqrt(beta1_var))-
       pnorm(A.min, beta1_mean, sqrt(beta1_var))
-    ## When the slice is narrow both tail probabilities underflow to 0 and
-    ## p1/(p1+p2) is 0/0; rbinom then draws NA and the NA spreads through the
-    ## whole sweep. Fall back to an even split, which is what the two equal
-    ## (zero) masses imply.
+    ## both masses can underflow to 0 on a narrow slice; split evenly then
     den = p1+p2
     p1 = ifelse(den>0, p1/den, 0.5)
     beta1_new = ifelse(rbinom(rep(1, G), rep(1, G), p1),
@@ -641,7 +552,6 @@ update_A_phi_slice = function(Y, X, XtX, beta_hat0,
     beta_cov_22 = get_beta_hat[, 2]
     beta_cov_rho = get_beta_hat[, 3]
     beta_hat = get_beta_hat[, 4:5]
-    #below are the same as A_prior=="Jeffreys"
     max_beta1 = sqrt(A_max^2-beta2^2)
     beta1_mean = beta_hat[, 1]+beta_cov_rho*sqrt(beta_cov_11/beta_cov_22)*(beta2-beta_hat[, 2])
     beta1_var = beta_cov_11*(1-beta_cov_rho^2)
@@ -660,7 +570,6 @@ update_A_phi_slice = function(Y, X, XtX, beta_hat0,
   return(list(AcosPhi = beta1_new, 
               AsinPhi = beta2_new))
 }
-
 
 get_post_A_params = function(Y, t.c, t.s, N, 
                              AcosPhi, AsinPhi, A, phi,  
@@ -684,7 +593,7 @@ get_post_A = function(Y, t.c, t.s, N,
                       AcosPhi, AsinPhi, A, phi, 
                       M, sigma, 
                       A_prior, 
-                      mu_A, sigma_A, A.min, A.max, # this applies to A~truncated normal(mu_A, sigma_A)I(A>A_min)
+                      mu_A, sigma_A, A.min, A.max, # A ~ truncated Normal(mu_A, sigma_A) on (A.min, A.max)
                       omega, G){
   b.c = cos(omega*phi) #G*1 mat
   b.s = sin(omega*phi)
@@ -694,7 +603,6 @@ get_post_A = function(Y, t.c, t.s, N,
   U.x = apply(t.phi*Y.minu.M, 1, sum)
   
   if(A_prior=="trunc_Normal_OLS_condi"){
-    #Here we are able to simplify the calculation by using AcosPhi/A and AsinPhi/A. Work later
 
     a.var = 1/(T.x/sigma+1/sigma_A)
     a.mean = (U.x/sigma+mu_A/sigma_A)*a.var
@@ -714,7 +622,7 @@ get_prior_A = function(Y, t.c, t.s, N,
                       AcosPhi, AsinPhi, A, phi, 
                       M, sigma, 
                       A_prior, 
-                      mu_A, sigma_A, A.min, A.max, # this applies to A~truncated normal(mu_A, sigma_A)I(A>A_min)
+                      mu_A, sigma_A, A.min, A.max, # A ~ truncated Normal(mu_A, sigma_A) on (A.min, A.max)
                       omega){
   
   if(A_prior=="trunc_Normal_OLS_condi"){
@@ -727,8 +635,6 @@ get_prior_A = function(Y, t.c, t.s, N,
   return(A.prior)
 }
 
-
-
 get_log_phi_post_single = function(a.Y.list, a.t.c, a.t.s, a.n,
                                    a.M.vec, AcosPhi, AsinPhi, a.sigma.vec,
                                    omega){
@@ -738,23 +644,21 @@ get_log_phi_post_single = function(a.Y.list, a.t.c, a.t.s, a.n,
   a.cosine.1 = cbind(a.M.vec, b.c, b.s) %*% rbind(1, a.t.c, a.t.s)
   diff1 = apply((a.Y.list- a.cosine.1)^2, 1, sum)
   
-  -1/2*diff1/a.sigma.vec#+kappa.vec*cos(a.phi.vec*omega-theta.vec)
+  -1/2*diff1/a.sigma.vec
 }
 
 update_phi_single = function(a.Y, a.t.c, a.t.s, a.N,
                              A.vec, M.vec, phi.vec, sigma.vec, rho.vec,
                              delta_MH_phi, omega, G, P){
-  #using metropolis algorithm
+  # Metropolis step with a von Mises proposal
   old.log.phi.post = get_log_phi_post_single(a.Y, a.t.c, a.t.s, a.N,
-                                             M.vec, A.vec, phi.vec, sigma.vec, #rho.mat[, a],
+                                             M.vec, A.vec, phi.vec, sigma.vec,
                                              omega)
-  # new.phi = Rfast::rvonmises(G, phi.mat[, a]/P*2*pi, delta_MH_phi)/(2*pi)*P
-  # new.phi = CircStats::rvm(G, phi.mat[, a]/P*2*pi, delta_MH_phi)/(2*pi)*P
   new.phi = sapply(1:G, function(g){
     CircStats::rvm(1, phi.vec[g]/P*2*pi, delta_MH_phi)/(2*pi)*P})
   
   new.log.phi.post = get_log_phi_post_single(a.Y, a.t.c, a.t.s, a.N,
-                                             M.vec, A.vec, new.phi, sigma.vec, #rho.mat[, a], 
+                                             M.vec, A.vec, new.phi, sigma.vec,
                                              omega)
   log.r = new.log.phi.post-old.log.phi.post
   a.MH.log.u = log(runif(1, 0, 1))
@@ -789,8 +693,7 @@ update_rho = function(Y.list, t.c.list, t.s.list, N.vec,
   do.call(cbind, rho.per.group)
 }
 
-## ===========================================================================
-## MARGINAL posterior of phi under M1, and its normalizing constant Z1.
+## Marginal posterior of phi under M1 and its normalizing constant Z1 ----
 ##
 ## The joint M1 kernel for one gene, conditional on M_g and sigma^2_g, is
 ##     Psi(A, phi) = L(A, phi) * pi(A) * pi(phi),      pi(phi) = 1/P
@@ -812,18 +715,15 @@ update_rho = function(Y.list, t.c.list, t.s.list, N.vec,
 ##            [ Phi((A.max - m_A)/sqrt(v_A)) - Phi((A.min - m_A)/sqrt(v_A)) ]
 ##            exp{ m_A^2/(2 v_A) - mu_A^2/(2 sigma_A^2) }
 ##
-## and the MARGINAL posterior of phi is  J(phi) = h(phi) / Z1  with
+## and the marginal posterior of phi is  J(phi) = h(phi) / Z1  with
 ## Z1 = int_0^P h(phi) dphi.
 ##
-## Note m_A^2/(2 v_A) is the profiled quadratic form: as sigma_A^2 -> Inf it
-## becomes U(phi)^2 / (2 sigma^2_g T(phi)), i.e. the Lomb-Scargle periodogram.
-## The marginal therefore favours phases whose best-fitting amplitude explains
-## the data well -- unlike the CONDITIONAL p(phi | A), which holds A fixed.
+## As sigma_A^2 -> Inf, m_A^2/(2 v_A) tends to U(phi)^2 / (2 sigma^2_g T(phi)),
+## the Lomb-Scargle periodogram.
 ##
-## h(phi) is smooth and PERIODIC on [0, P], so the uniform-grid trapezoid rule
-## converges geometrically: NP = 32 already reaches machine precision. Only Z1
-## uses the grid; log h is evaluated exactly at the current phi.
-## ===========================================================================
+## h(phi) is smooth and periodic on [0, P], so the uniform-grid trapezoid rule
+## converges geometrically (NP = 32 reaches machine precision). Only Z1 uses
+## the grid; log h is evaluated exactly at the current phi.
 
 ## log h(phi) at one phi per gene (exact, vectorized over genes)
 log_h_single = function(Y, t.c, t.s, M, sigma, phi, A_prior,
@@ -863,8 +763,7 @@ log_h_core = function(Tx, Ux, sigma, A_prior,
 get_logZ1_single = function(Y, t.c, t.s, M, sigma, A_prior,
                             mu_A, sigma_A, A.min, A.max,
                             omega, P, G, NP = 64, chunk = 2000){
-  ## any(): A.max may be a length-G vector (per-gene bound). `&&` with a
-  ## length > 1 right-hand side is an ERROR in R >= 4.3.
+  ## A.max may be a length-G vector, hence any()
   if(A_prior == "Jeffreys_OLS_condi" && any(!is.finite(A.max)))
     stop("A_prior = 'Jeffreys_OLS_condi' with A.max = Inf is an IMPROPER ",
          "prior on A, so Z1 -- and hence the Bayes factor between M0 and M1 ",
@@ -873,7 +772,6 @@ get_logZ1_single = function(Y, t.c, t.s, M, sigma, A_prior,
          "a finite A.max.")
 
   Y = as.matrix(Y)
-  ## informative failures rather than a silent NaN cascade
   if(nrow(Y) != G)
     stop("get_logZ1_single: nrow(Y) = ", nrow(Y), " but G = ", G)
   if(length(t.c) != ncol(Y) || length(t.s) != ncol(Y))
@@ -894,10 +792,7 @@ get_logZ1_single = function(Y, t.c, t.s, M, sigma, A_prior,
   tC   = t(Cmat)                                           # n x NP
   Tvec = colSums(tC^2)                                     # NP
 
-  ## Chunk over genes. The previous version built ~20 temporary G x NP
-  ## matrices at once; at G ~ 15000, NP = 64 that is >100 MB of transients per
-  ## fork, and with several forks under mclapply the children can be killed,
-  ## which surfaces only as "all scheduled cores encountered errors".
+  ## genes are processed in chunks to bound the size of the G x NP temporaries
   out = numeric(G)
   starts = seq(1, G, by = chunk)
   for(st in starts){
@@ -905,7 +800,7 @@ get_logZ1_single = function(Y, t.c, t.s, M, sigma, A_prior,
     Yc   = Y[id, , drop = FALSE] - M[id]
     Umat = Yc %*% tC                                       # |id| x NP
     Tmat = matrix(Tvec, nrow = length(id), ncol = NP, byrow = TRUE)
-    ## A.max may be per-gene, so it is subset with the chunk to match Umat's rows.
+    ## a per-gene A.max is subset to the chunk
     amx  = if(length(A.max) == 1L) A.max else A.max[id]
     lh   = log_h_core(Tmat, Umat, sigma[id], A_prior,
                       mu_A, sigma_A, A.min, amx, P)
@@ -925,17 +820,15 @@ get_logZ1_single = function(Y, t.c, t.s, M, sigma, A_prior,
 #' One reversible-jump birth/death sweep over the rhythmicity indicators
 #'
 #' @description
-#' Proposes a model switch for every gene at once -- birth for genes currently
-#' at rho = 0, death for genes at rho = 1 -- and accepts or rejects each
+#' Proposes a model switch for every gene at once (birth for genes at
+#' rho = 0, death for genes at rho = 1) and accepts or rejects each
 #' independently. The acceptance ratio is assembled from the likelihood term
 #' (\code{log.r1}), the prior odds on rhythmicity (\code{log.r2}) and the
 #' proposal/prior terms for amplitude and phase (\code{log.r3}).
 #'
-#' The phase half of \code{log.r3} uses the MARGINAL posterior of phi,
-#' \code{log h(phi) - log Z1}, with \code{Z1} from
-#' \code{get_logZ1_single()}. Pairing a conditional in A with a conditional in
-#' phi would not give a joint density in (A, phi); the factorization has to be
-#' J(A, phi) = J(phi) J(A | phi).
+#' The proposal density factorises as J(A, phi) = J(phi) J(A | phi). The
+#' phase term uses the marginal posterior of phi,
+#' \code{log h(phi) - log Z1}, with \code{Z1} from \code{get_logZ1_single()}.
 #'
 #' @param Y G x N expression matrix.
 #' @param t.c,t.s Length-N vectors of cos and sin of omega * t.
@@ -973,22 +866,13 @@ RJMCMC_single_slice = function(Y, t.c, t.s, N,
                                M, sigma, p.vec = rep(0.5, G), rho, 
                                propose.phi = FALSE, propose.A = TRUE,
                                A_prior, 
-                               mu_A, sigma_A, A.min, A.max, # this applies to A~truncated normal(mu_A, sigma_A)I(A>A_min)
+                               mu_A, sigma_A, A.min, A.max, # A ~ truncated Normal(mu_A, sigma_A) on (A.min, A.max)
                                omega, G, P,
                                NP = 64){   # phi-quadrature nodes for Z1
-  ## omega, G and P are formals 27-29, so a positional caller with the wrong
-  ## arity is named here rather than three frames deep in get_post_A.
+  ## omega, G and P are formals 27-29; check them here for positional callers
   if(missing(omega) || missing(G) || missing(P))
     stop("RJMCMC_single_slice: omega/G/P are missing. The caller supplied ",
          nargs(), " positional arguments; 29 are required before NP.")
-                      # c.t=c.t.phi; s.t=s.t.phi; cs.t= cs.t.phi;
-                      # y.t.c.sum.num=y.t.c.sum; y.t.s.sum.num=y.t.s.sum;
-                      # p.vec = p_rhythmic
-
-# t.c=t_t_p.c; t.s=t_t_p.s;
-#                       t.c.sum=t_t_p.c.sum; t.s.sum=t_t_p.s.sum;
-#                       c.t=c.t_t_p.phi; s.t=s.t_t_p.phi; cs.t=cs.t_t_p.phi;
-#                       y.t.c.sum.num=y.t_t_p.c.sum; y.t.s.sum.num=y.t_t_p.s.sum;
 
   # current state
   b.c.cur = AcosPhi*rho #G*1 mat
@@ -1001,20 +885,19 @@ RJMCMC_single_slice = function(Y, t.c, t.s, N,
   log.lik_jump0 =  apply((Y-a.cosine.jump)^2, 1, sum) #without -(2*sigma^2)-1
   
   if(propose.A){
-    # A.vec = sqrt(AcosPhi^2+AsinPhi^2)
-    A.post = get_post_A(Y, t.c, t.s, N, 
-                        AcosPhi, AsinPhi, A, phi, 
-                        M, sigma, 
-                        A_prior, 
-                        mu_A, sigma_A, A.min, A.max, # this applies to A~truncated normal(mu_A, sigma_A)I(A>A_min)
+    A.post = get_post_A(Y, t.c, t.s, N,
+                        AcosPhi, AsinPhi, A, phi,
+                        M, sigma,
+                        A_prior,
+                        mu_A, sigma_A, A.min, A.max,
                         omega, G)
-    ## ifelse(x == 0, 1e-7, .) substituted a density of ~1 where -Inf was meant
+    ## floor at 1e-300 so a zero density gives a very negative log, not -Inf
     log.A.post = log(pmax(A.post, 1e-300))
-    A.prior = get_prior_A(Y, t.c, t.s, N, 
-                         AcosPhi, AsinPhi, A, phi, 
-                         M, sigma, 
-                         A_prior, 
-                         mu_A, sigma_A, A.min, A.max, # this applies to A~truncated normal(mu_A, sigma_A)I(A>A_min)
+    A.prior = get_prior_A(Y, t.c, t.s, N,
+                         AcosPhi, AsinPhi, A, phi,
+                         M, sigma,
+                         A_prior,
+                         mu_A, sigma_A, A.min, A.max,
                          omega)
     log.A.prior = log(pmax(A.prior, 1e-300))
   }else{
@@ -1022,29 +905,22 @@ RJMCMC_single_slice = function(Y, t.c, t.s, N,
   }
   
   if(propose.phi){
-    ## Marginal posterior of phi, log J(phi) = log h(phi) - log Z1. The
-    ## reversible-jump ratio factorises as J(A, phi) = J(phi) J(A | phi), so
-    ## this slot carries the marginal in phi and get_post_A the conditional.
+    ## log J(phi) = log h(phi) - log Z1; get_post_A supplies J(A | phi)
     logZ1 = get_logZ1_single(Y, t.c, t.s, M, sigma, A_prior,
                              mu_A, sigma_A, A.min, A.max,
                              omega, P, G, NP)
     log.phi.post = log_h_single(Y, t.c, t.s, M, sigma, phi, A_prior,
                                 mu_A, sigma_A, A.min, A.max, omega, P) - logZ1
-    ## phi ~ Uniform(0, P) since kappa_0 = 0, so the density is 1/P and its
-    ## log is -log(P) = -3.178. The previous line supplied 1/P = +0.042, the
-    ## density itself rather than its log, inflating r by exp(3.22) = 25x in
-    ## the M0 -> M1 direction and deflating it 25x in reverse.
+    ## phi ~ Uniform(0, P), so the log prior density is -log(P)
     log.phi.prior = log(1/P)
   }else{
     log.phi.prior = 1; log.phi.post = 1; logZ1 = rep(NA_real_, G)
   }
   log.r1 = -1/(2*sigma)*(log.lik_jump0-log.lik_cur0)
-  log.r2 = log((p.vec+1e-5)/(1-p.vec+1e-5))#*((-1)^rho) #already taken care below
+  log.r2 = log((p.vec+1e-5)/(1-p.vec+1e-5))
   log.r3 = log.A.prior+log.phi.prior-log.A.post-log.phi.post
-  log.r = log.r1+(log.r2+log.r3)*((-1)^rho) #if rho.mat = 1, then reverse
-  ## Without this, a single non-finite log.r makes ifelse() return NA, rho
-  ## becomes NA, and the NA propagates into update_M_single and kills the sweep
-  ## at iteration 1. Treat a non-finite ratio as "reject".
+  log.r = log.r1+(log.r2+log.r3)*((-1)^rho) # sign flips for a death move
+  ## a non-finite ratio is a rejection
   log.r[!is.finite(log.r)] = -Inf
 
   a.jump.log.u = log(runif(G, 0, 1))
@@ -1060,10 +936,6 @@ RJMCMC_single_slice = function(Y, t.c, t.s, N,
               log.r3_phi = (log.phi.prior-log.phi.post)*((-1)^rho)
   ))
 }
-
-
-
-
 
 # Other functions ---------------------------------------------------------
 
@@ -1091,9 +963,7 @@ try_save = function(expr, out, save.file){
   })
 }
 
-## An NA anywhere in rho or in the (AcosPhi, AsinPhi) pair spreads through the
-## rest of the sweep and comes back as a chain of NAs hours later. Stop at the
-## iteration that produced it instead, and say which state went bad.
+## Stop at the iteration that first produces an NA in rho, AcosPhi or AsinPhi.
 stop_on_na = function(rho, AcosPhi, AsinPhi, iter, stage){
   bad = c(rho = anyNA(rho),
           AcosPhi = anyNA(AcosPhi),
@@ -1143,16 +1013,10 @@ rtruncgamma = function(n, a, b, shape, rate){
   
   log_a_new_p = G.min+log(1-u+u*exp(G.max-G.min))
   if(log_a_new_p>G.max){
-    log_a_new_p=G.max #By calculation, log_a_new_p will never be larger than G.max, but there is numerical issue...
+    log_a_new_p=G.max # guards against rounding above G.max
   }
-  
-  # a.new.p = exp(Rmpfr::mpfr(as.character(G.min), 128))+
-  #   u*(exp(Rmpfr::mpfr(as.character(G.max), 128))-exp(Rmpfr::mpfr(as.character(G.min), 128)))
-  # u = runif(n)
-  # (log_a_new_p = G.min+log(1-u+u*exp(G.max-G.min)))
-  # (log_a_new_p<G.max)
-  # stats::qgamma(log_a_new_p, shape, rate, lower.tail = TRUE, log.p = TRUE)
-  new.k = stats::qgamma(log_a_new_p, shape, rate, lower.tail = TRUE, log.p = TRUE) #still gets inf
+
+  new.k = stats::qgamma(log_a_new_p, shape, rate, lower.tail = TRUE, log.p = TRUE)
   if(is.infinite(new.k)|is.na(new.k)){
     print(a)
     print(b)
@@ -1173,7 +1037,8 @@ rtrunclgamma = function(n, a, b, shape, rate){
   a.new.p = exp(Rmpfr::mpfr(as.character(G.min), 128))+
     u*(exp(Rmpfr::mpfr(as.character(G.max), 128))-exp(Rmpfr::mpfr(as.character(G.min), 128)))
   
-  new.k = stats::qgamma(as.numeric(log(a.new.p)), shape, scale = 1/rate, log.p = TRUE) #still gets inf
+  new.k = stats::qgamma(as.numeric(log(a.new.p)), shape, scale = 1/rate, log.p = TRUE)
+  # an infinite quantile falls back to a uniform draw on the lower half
   if(is.infinite(new.k)){
     new.k = runif(1, a, (a+b)/2)
   }
@@ -1224,11 +1089,7 @@ rootsMinMax = function(f, roots, range){
   return(MinMax)
 }
 
-####################################################
-####################################################
-
-####################################################
-####################################################
+# Diagnostics -------------------------------------------------------------
 
 #' Post-hoc MCMC convergence diagnostics
 #'
@@ -1237,11 +1098,9 @@ rootsMinMax = function(f, roots, range){
 #' \code{CB_MCMC_single_rj_slice()} attaches when called with
 #' \code{diagnostics = TRUE} (its default): per-gene RJMCMC acceptance rate,
 #' per-gene effective sample size (ESS) for the rhythmicity indicator
-#' \code{rho}, and per-gene ESS for phase \code{phi}. Use this on an MCMC
-#' result that was run with \code{diagnostics = FALSE}; the underlying
-#' \code{rho}, \code{phi}, and \code{if.accept.rj} matrices are always
-#' stored in the returned object regardless of that flag, so diagnostics can
-#' always be computed after the fact.
+#' \code{rho}, and per-gene ESS for phase \code{phi}. It applies to any
+#' result, since \code{rho}, \code{phi} and \code{if.accept.rj} are stored
+#' whatever the \code{diagnostics} setting.
 #'
 #' @param mcmc_result List returned by \code{CB_MCMC_single_rj_slice()} (or
 #'   compatible), containing \code{$rho}, \code{$phi}, and
@@ -1251,19 +1110,15 @@ rootsMinMax = function(f, roots, range){
 #'   its circular autocorrelation.
 #'
 #' @details
-#' \code{phi} is periodic (an hour near \code{P} is one step from an hour
-#' near 0), so its lag-1 autocorrelation is computed on the circle: phase is
-#' converted to radians and the autocorrelation is the mean cosine of
-#' successive phase differences, \code{mean(cos(phi_rad[-1] -
-#' phi_rad[-K]))}, rather than a linear Pearson correlation on the raw
-#' hour values (which would be distorted by wraparound near \code{0/P}).
-#' \code{rho} is binary and unaffected by this, so its ESS still uses linear
-#' lag-1 autocorrelation.
+#' \code{phi} is periodic, so its lag-1 autocorrelation is computed on the
+#' circle as the mean cosine of successive phase differences in radians,
+#' \code{mean(cos(phi_rad[-1] - phi_rad[-K]))}. The ESS for the binary
+#' \code{rho} uses the linear lag-1 autocorrelation.
 #'
 #' @return A list: \code{acceptance_rate}, \code{ess_rho}, \code{ess_phi}
 #'   (all per-gene, named by gene), \code{mean_acceptance_rate},
-#'   \code{mean_ess_rho}, \code{mean_ess_phi}, \code{n_samples}, and
-#'   \code{p_rhythmic_posterior}. Also printed as a summary; warns if mean
+#'   \code{mean_ess_rho}, \code{mean_ess_phi}, \code{n_samples},
+#'   \code{p_rhythmic_posterior} and \code{phi_posterior_median}. Also printed as a summary; warns if mean
 #'   ESS for rho falls below 100.
 #'
 #' @export
@@ -1277,14 +1132,13 @@ mcmc_diagnostics = function(mcmc_result, P = 24) {
   if (is.null(mcmc_result$rho) || is.null(mcmc_result$if.accept.rj))
     stop("mcmc_result must contain $rho and $if.accept.rj (as returned by CB_MCMC_single_rj_slice()).")
 
-  # Per-gene RJMCMC acceptance rate: proportion of proposed jumps accepted.
-  # if.accept.rj == -1 means stay was drawn (no jump proposed).
+  # acceptance rate over proposed jumps; -1 marks an iteration with no proposal
   proposed <- mcmc_result$if.accept.rj != -1
   n_proposed <- rowSums(proposed)
   n_accepted <- rowSums(mcmc_result$if.accept.rj == 1, na.rm = TRUE)
   accept_rate <- ifelse(n_proposed > 0, n_accepted / n_proposed, NA_real_)
 
-  # Per-gene ESS for rho using lag-1 autocorrelation (no external dependencies).
+  # ESS for rho from the lag-1 autocorrelation
   ess_rho <- apply(mcmc_result$rho, 1, function(x) {
     K <- length(x)
     if (K < 4 || var(x) < 1e-10) return(NA_real_)
@@ -1293,8 +1147,7 @@ mcmc_diagnostics = function(mcmc_result, P = 24) {
     K * (1 - r1) / (1 + r1)
   })
 
-  # Per-gene ESS for phi using circular lag-1 autocorrelation (phi wraps at
-  # 0/P, so a linear correlation on the raw hour values would be wrong).
+  # ESS for phi from the circular lag-1 autocorrelation
   ess_phi <- if (is.null(mcmc_result$phi)) {
     NA_real_
   } else {
@@ -1308,9 +1161,7 @@ mcmc_diagnostics = function(mcmc_result, P = 24) {
     })
   }
 
-  # Per-gene posterior phase estimate: circular median over the rhythmic
-  # draws only (phi is only biologically meaningful when rho = 1 for that
-  # draw), paralleling p_rhythmic_posterior's per-gene summary for rho.
+  # circular median of phi over the draws with rho = 1
   phi_posterior_median <- if (is.null(mcmc_result$phi)) {
     NA_real_
   } else {

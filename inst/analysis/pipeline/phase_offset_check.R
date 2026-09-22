@@ -1,10 +1,8 @@
 ################################################################################
-# Signed phase offset for the Figure 3 panels, both samplers.
+# Signed phase offset for the Figure 3 panels, for the previous run and the
+# current run. The 3B caption reports an offset of about 3 h above the diagonal.
 #
-# The 3B caption reports a systematic offset of about 3 h, seen as
-# displacement above the diagonal. This recomputes that offset for each run.
-#
-# Sign convention, taken from the case-study scripts rather than assumed:
+# Sign convention, as in the case-study scripts:
 #
 #   3A  Baboon_SCN_HIP.R  phi_matrix1 = HIP, phi_matrix2 = SCN
 #                         plot x = SCN, y = Hippocampus
@@ -16,8 +14,7 @@
 #
 #   deltaPhi > 0  ==  the gene sits ABOVE the diagonal.
 #
-# deltaPhi.Est is only filled in when compute_hdi = TRUE, which is why it
-# reads NA at the default; it is requested explicitly here.
+# deltaPhi.Est is filled in only when compute_hdi = TRUE, so it is requested here.
 #
 # Usage:
 #   Rscript phase_offset_check.R
@@ -63,10 +60,7 @@ one_run <- function(dir) {
                          compute_hdi = TRUE)
 
     keep <- names(trans$gain_loss_status)[trans$gain_loss_status == "Maintained"]
-    # The "within +/-2 h" count comes from the difference of the two
-    # peak estimates, not from deltaPhi.Est: for 3B the peak difference gives
-    # 116 of 553 (21.0%), which is the number in the caption, while
-    # deltaPhi.Est gives 118 (21.3%). They agree exactly for 3A.
+    # the caption's "within +/-2 h" count uses the peak difference, not deltaPhi.Est
     dp <- ((inner$peak1[keep] - inner$peak2[keep] + P/2) %% P) - P/2
     d  <- inner$deltaPhi.Est[keep]
     within <- abs(dp) < SHIFT

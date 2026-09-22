@@ -1,8 +1,6 @@
 # Everything a figure needs that sits downstream of the MCMC and upstream of the
 # palette, so --replot draws without loading the draws or re-running inference.
-#
-# The posterior draws are kept only for the genes a panel actually draws, which
-# is why this file is small enough to sit beside the figures.
+# Posterior draws are kept only for the genes a panel draws.
 
 plot_cache_stamp <- function() {
   rho <- file.path(BAYRC_SUMMARY_DIR, "mcmc_rho_BF3.RData")
@@ -23,8 +21,7 @@ write_plot_cache <- function(path, dataA, dataB, panel_genes, ...) {
   cat("plot cache:", path, "\n")
 }
 
-# a cache drawn under a record from another run would put yesterday's numbers
-# under today's palette, so both the directory and the write date are checked
+# refuses a cache written against another summary directory or write date
 read_plot_cache <- function(path) {
   if (!file.exists(path))
     stop("--replot: no plot cache at ", path,

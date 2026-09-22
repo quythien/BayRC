@@ -1,10 +1,7 @@
 """Lay Figure 2 out as a two-by-two block of panels.
 
-Printed type depends on a panel's native width and on how many panels stand
-across the figure, not on the slot they are drawn into: widening a slot scales
-the panel up and the finished figure down by the same factor. Panels that have
-to carry type at one size are therefore built on one native width, and this
-script only places them.
+Printed type is set by each panel's native width, so this script only places
+the panels.
 
 Usage: python3 assemble_figure2_nature.py [panel_dir] [out.pdf]
 
@@ -31,15 +28,12 @@ out = Path(sys.argv[2]) if len(sys.argv) > 2 else here / "Figure_2.pdf"
 PANELS = ["Fig2A_genomewide_nature.pdf", "Fig2B_circadian_nature.pdf",
           "Fig2C_circadian_membership_nature.pdf",
           "option8_balanced_global_nature.pdf"]
-# the lower panels carry more in the same width, so the upper row is drawn
-# into a narrower slot and its type raised to match what the lower row prints
+# slot width per row; the upper row is drawn narrower
 ROW_SLOT = [480, 520]
 SLOT, MARGIN, GUTTER, GAP_X, GAP_Y, LETTER = max(ROW_SLOT), 5, 15, 15, 62, 18
-# the concordance scale belongs to both panels of the top row, so it is placed
-# once, centred in the band between the rows rather than inside either panel
+# the top row's shared concordance scale, centred in the band between the rows
 SHARED, SHARED_SCALE = "Fig2_concordance_legend.pdf", 1.15
-# the base-14 faces a viewer substitutes are not embedded, so the letters are
-# drawn from a font file the way the panels themselves are, where one is found
+# panel letters use an embedded font file where one is found, else Helvetica Bold
 LETTER_FONT = os.environ.get("BAYRC_LETTER_FONT",
                              "/System/Library/Fonts/Supplemental/Arial Bold.ttf")
 letter_face = dict(fontname="panel", fontfile=LETTER_FONT) \
@@ -58,11 +52,9 @@ page = doc.new_page(width=width, height=height)
 
 for i, (d, b, s) in enumerate(zip(src, box, scale)):
     x = MARGIN + GUTTER + (GUTTER + SLOT + GAP_X) * (i % 2)
-    # a narrower panel stands centred over the one below it, while its letter
-    # stays on the column edge with the others
+    # panels centred in their slot and row; letters stay on the column edge
     inset = (SLOT - b.width * s) / 2
     y = MARGIN + (rows[0] + GAP_Y) * (i // 2)
-    # a shorter panel sits centred in its row, so the row reads as one band
     y += (rows[i // 2] - b.height * s) / 2
     page.show_pdf_page(fitz.Rect(x + inset, y, x + inset + b.width * s,
                                  y + b.height * s), d, 0)

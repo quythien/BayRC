@@ -1,10 +1,7 @@
 ## Figure 2C: when the core clock peaks in each tissue, with the tissues split
-## by the same clustering panel B draws.
-##
-## The split is read off panel B's own dendrogram rather than written down, so
-## the panel explains that panel instead of restating it. Each ring is one clock
-## gene and each point one tissue at its posterior peak time, with the 95%
-## circular HDI drawn as an arc.
+## by the two-cluster cut of panel B's dendrogram. Each ring is one clock gene
+## and each point one tissue at its posterior peak time, with the 95% circular
+## HDI drawn as an arc.
 ##
 ## Usage: Rscript clock_phase_dial.R [outdir]
 
@@ -21,13 +18,11 @@ outdir <- if (length(args) >= 1) args[1] else file.path(BAYRC_FIGURE_DIR, "figur
 dir.create(outdir, recursive = TRUE, showWarnings = FALSE)
 
 bfdr_alpha <- 0.25
-# the loop order, so a reader can check the rings run activators, repressors,
-# nuclear receptors, output
+# loop order: activators, repressors, nuclear receptors, output
 clock <- c("BMAL1", "CLOCK", "NPAS2", "PER1", "PER2", "CRY1", "CRY2",
            "NR1D1", "NR1D2", "DBP")
 
-# the resultant of the unit vectors, which is how a mean and a spread are taken
-# on a circle; a plain mean would put two draws either side of ZT0 at midday
+# circular mean and sd in hours, from the resultant of the unit vectors
 circ_mean <- function(x, P = 24) {
   a <- 2 * pi * x / P
   (atan2(mean(sin(a)), mean(cos(a))) %% (2 * pi)) * P / (2 * pi)
@@ -48,8 +43,7 @@ m <- as.matrix(read.csv(conc, row.names = 1, check.names = FALSE))
 diag(m) <- 1
 groups <- cutree(hclust(as.dist(1 - m), method = "ward.D2"), k = 2)
 
-# the cluster panel B shows as tight is the one with the higher mean
-# off-diagonal concordance among its own members
+# the tight cluster is the one with the higher mean within-cluster concordance
 within <- vapply(sort(unique(groups)), function(g) {
   s <- m[groups == g, groups == g, drop = FALSE]
   mean(s[row(s) != col(s)])
@@ -90,8 +84,7 @@ peaks$cluster <- factor(peaks$cluster,
                         levels = c("High-concordance cluster", "Remaining tissues"))
 peaks$ring    <- as.integer(peaks$gene)
 
-# an arc is a path in polar coordinates, so each HDI is drawn as a run of
-# points from its lower to its upper bound, going the short way round the seam
+# each HDI as a run of points from its lower to its upper bound, across the seam
 arcs <- do.call(rbind, lapply(seq_len(nrow(peaks)), function(i) {
   r <- peaks[i, ]
   span <- (r$upper - r$lower) %% 24
@@ -99,8 +92,7 @@ arcs <- do.call(rbind, lapply(seq_len(nrow(peaks)), function(i) {
              peak = (r$lower + seq(0, span, length.out = 24)) %% 24)
 }))
 
-# the cluster's genes are drawn outside the ring and the rest inside it, so the
-# two never sit on top of each other
+# the cluster is drawn just outside each ring and the rest just inside it
 peaks$r <- peaks$ring + ifelse(peaks$cluster == "High-concordance cluster", .18, -.18)
 arcs$r  <- arcs$ring  + ifelse(arcs$cluster  == "High-concordance cluster", .18, -.18)
 
@@ -136,7 +128,7 @@ print(p)
 dev.off()
 cat("Saving:", file.path(outdir, "Fig2C_clock_phase_dial.pdf"), "\n")
 
-# the spread of peak times within each group, which is what the dial shows
+# circular sd of peak times across tissues, per gene and group
 spread <- do.call(rbind, lapply(levels(peaks$cluster), function(g) {
   do.call(rbind, lapply(clock, function(k) {
     d <- peaks$peak[peaks$cluster == g & peaks$gene == k]

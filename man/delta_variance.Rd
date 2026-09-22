@@ -10,8 +10,8 @@ delta_variance(p_A, p_B)
 \item{p_A, p_B}{Numeric vectors; posterior rhythmicity probabilities.}
 }
 \value{
-A list with \code{variance} (delta-method estimate) and
-  \code{gradient} (partial derivatives for diagnostics).
+A list with \code{expected_ratio}, \code{var_ratio} and
+  \code{sd_ratio}.
 }
 \description{
 Uses the delta method to analytically approximate the variance of the
