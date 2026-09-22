@@ -75,7 +75,8 @@ make_qq_plot <- function(resid, gene_label, R2, pval) {
     labs(title = sprintf("%s\nR2 = %.3f, p = %s", gene_label, R2, fmt_pval(pval)),
          x = "Theoretical Quantiles", y = "Sample Quantiles") +
     theme_bw(base_size = 11) +
-    theme(plot.title = element_text(face = "bold", size = 10, hjust = 0.5))
+    theme(plot.title = element_text(face = "bold", size = 8, hjust = 0.5),
+          plot.margin = margin(4, 10, 4, 4))
 }
 
 make_resid_tod_plot <- function(resid, tod, gene_label) {
@@ -85,7 +86,8 @@ make_resid_tod_plot <- function(resid, tod, gene_label) {
     geom_hline(yintercept = 0, linetype = "dashed", color = "red") +
     labs(title = gene_label, x = "Time of Day (ZT)", y = "Residual") +
     theme_bw(base_size = 11) +
-    theme(plot.title = element_text(face = "bold", size = 10, hjust = 0.5))
+    theme(plot.title = element_text(face = "bold", size = 8, hjust = 0.5),
+          plot.margin = margin(4, 10, 4, 4))
 }
 
 empty_plot <- function() {
