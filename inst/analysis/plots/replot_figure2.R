@@ -24,15 +24,13 @@ outdir <- if (length(args) >= 1) args[1] else
   file.path(BAYRC_FIGURE_DIR, "figure2")
 dir.create(outdir, recursive = TRUE, showWarnings = FALSE)
 
-# the concordance matrices are written under the analysis output root
-fig_dir <- BAYRC_OUTPUT_DIR
-
 panels <- list(
   Fig2A_genomewide = list(
-    csv   = file.path(fig_dir, "all_plots", "Baboon_Concordance_Matrix.csv"),
+    # heatmap_baboon.R writes this one beside its own figures
+    csv   = file.path(BAYRC_FIGURE_DIR, "Baboon_Concordance_Matrix.csv"),
     title = "Genome-wide rhythmicity concordance"),
   Fig2B_circadian = list(
-    csv   = file.path(fig_dir, "heatmap_circadian_pairs", "within_baboon",
+    csv   = file.path(BAYRC_OUTPUT_DIR, "heatmap_circadian_pairs", "within_baboon",
                       "pairwise_concordance_baboon_circadian_Matrix.csv"),
     title = "Circadian pathway concordance")
 )
