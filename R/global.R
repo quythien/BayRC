@@ -68,7 +68,7 @@ perm_conservation_global <- function(dat1, dat2, delta = 3, units = "hours", B =
   }
   
   G <- nrow(dat1$rho)
-  # Updated metrics (removed Cp and Dp, added gain_loss_ratio)
+  # the four summaries computed for each permutation
   metrics <- c("congruence_index", "gain_index", "loss_index", "gain_loss_ratio")
   
   # Create output array for ALL metrics

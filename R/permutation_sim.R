@@ -64,7 +64,6 @@
 #'       across iterations (excluding NA).}
 #'   }
 #'
-# NEW: Compute iteration-level Jaccard index
 compute_iteration_jaccard <- function(rho_A, rho_B) {
   # rho_A, rho_B: binary matrices (genes × iterations)
   # Returns: list with jaccard values and confusion matrices
