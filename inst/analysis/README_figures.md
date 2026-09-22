@@ -4,6 +4,9 @@ Every paper figure maps to one script here, with the inputs it reads and the
 files it writes. Start from the table; the sections below give the detail and
 the order to run things in.
 
+`README_numbers.md` maps every number the manuscript quotes to the script and
+output it comes from.
+
 Figure 1 is a hand-drawn flowchart. No script produces it.
 
 | Figure | Script | Writes |
@@ -124,7 +127,7 @@ Rscript plots/heatmap_circadian_pairs.R within_baboon
 Rscript applications/Baboon_SCN_HIP.R
 Rscript applications/Baboon_PUT_SUN.R
 Rscript applications/Baboon_PUT_VIC.R
-Rscript applications/Baboon_Human_LUN.R
+Rscript applications/Baboon_Human_LUN.R    # cut to the genes mouse also measures
 
 # 4. Figure 2
 Rscript plots/replot_figure2.R                             # panels A, B and the colour bar
@@ -169,9 +172,11 @@ The application scripts state these as plain assignments near the top.
 bfdr_alpha     0.25     BFDR level, in transition_classify and phase_infer
 shift          2        phase window in hours
 pathway list   kegg_pathway_list_hsa.rds, gene sets cut to the measured genes
-min_measured   15       pathways kept at 15 or more measured genes
-stage 1        union enrichment, BH q < 0.10, a screen rather than a test
-stage 2        gain, loss and conservation on the active set, q < 0.20
+min_measured   15       pathways kept at 15 or more measured genes, which is
+                        229 pathways on the 5,066 baboon-human genes and 225 on
+                        the 4,893 the three species share
+stage 1        union enrichment, BH q < 0.20, a screen rather than a test
+stage 2        gain, loss and conservation on the active set, q < 0.05
 nperm          10000    fgsea permutations
 ```
 
