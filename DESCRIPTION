@@ -19,6 +19,8 @@ Description: BayRC (Bayesian Rhythmicity Comparison) provides a unified
     concordance analysis, pathway-level enrichment, and genome-wide concordance
     scoring with permutation-based inference.
 License: GPL-3
+URL: https://github.com/quythien/BayRC
+BugReports: https://github.com/quythien/BayRC/issues
 Encoding: UTF-8
 Imports:
     Rcpp,

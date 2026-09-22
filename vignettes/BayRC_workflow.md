@@ -1,6 +1,6 @@
 # BayRC Workflow: Comparative Circadian Genomics
 
-2026-09-18
+2026-09-22
 
 - [Data and Setup](#data-and-setup)
   - [A fast gene panel for this
@@ -43,12 +43,14 @@ BayRC needs two things per condition: an expression matrix (genes by
 samples, log scale, gene symbols as row names) and a zeitgeber time
 vector (one value per sample).
 
-The package ships real data from GSE98965 (Mure et al. 2018, *Science*):
+The package ships real data from GSE98965 (Mure et al. 2018, *Science*):
 5,066 genes, 12 timepoints (ZT0 to ZT22, every 2 hours), in two baboon
 tissues, omental fat (OMF, visceral adipose) and thyroid (THR).
 
 ``` r
 library(BayRC)
+#> Warning: replacing previous import 'stats::filter' by 'dplyr::filter' when
+#> loading 'BayRC'
 
 baboon <- readRDS(system.file("extdata", "baboon_OMF_THR_GSE98965.rds", package = "BayRC"))
 kegg   <- readRDS(system.file("extdata", "kegg_pathway_list_hsa.rds",   package = "BayRC"))
@@ -244,8 +246,8 @@ c(lower = round(hdi_ARNTL$lower, 2), upper = round(hdi_ARNTL$upper, 2),
 ```
 
 > **Interpretation:** `ARNTL`’s posterior peak time in omental fat is
-> about ZT 13.6, with a 95% credible interval of roughly ZT 12.5 to ZT
-> 14.6, a tight window from only 12 samples. A wide interval, or one
+> about ZT 13.6, with a 95% credible interval of roughly ZT 12.6 to ZT
+> 14.7, a tight window from only 12 samples. A wide interval, or one
 > straddling ZT0/24, would mean the peak time itself is poorly
 > constrained even for a confidently rhythmic gene: amplitude, phase,
 > and rhythmicity are three separate questions, each with its own
@@ -261,7 +263,7 @@ three vectors gets its own BFDR threshold, the same rule as above
 applied to the transition probability instead of the raw rhythmicity
 probability. This replaces the older practice of intersecting
 fixed-cutoff gene lists with a Venn diagram, shown to overstate how much
-circadian reprogramming has actually occurred (Pelikan et al. 2022).
+circadian reprogramming has actually occurred (Pelikan et al. 2022).
 
 ``` r
 trans <- transition_classify(pA, pB, bfdr_alpha = 0.25)
@@ -393,13 +395,15 @@ result_union$results[order(result_union$results$pval),
 ```
 
 > **Interpretation:** Neither pathway clears Q \< 0.20 for the union
-> direction at this scale (KEGG GnRH signaling pathway is closest, Q =
-> 0.21). That does not mean these pathways carry no circadian signal
-> here; it means the union test, which rewards rhythmicity in either
-> condition without regard to which one, is not the direction where
-> their signal shows up on this panel. Stage 2 below tests each specific
-> direction directly instead of relying on this pre-screen to find it,
-> exactly the same logic `README.md` walks through at full genome scale.
+> direction at this scale: both land at Q = 0.75, well short of the
+> cutoff, though KEGG Long-term depression has the smaller raw p-value
+> (0.45 vs. 0.75 for KEGG GnRH signaling pathway). That does not mean
+> these pathways carry no circadian signal here; it means the union
+> test, which rewards rhythmicity in either condition without regard to
+> which one, is not the direction where their signal shows up on this
+> panel. Stage 2 below tests each specific direction directly instead of
+> relying on this pre-screen to find it, exactly the same logic
+> `README.md` walks through at full genome scale.
 
 ## Stage 2: what kind of transition is each pathway enriched for
 
@@ -444,19 +448,19 @@ result_cons$results[, c("pathway", "pval", "padj", "Gain_Loss_Ratio_Arithmetic")
 > **Gain-loss ratio (GLR):** `Gain_Loss_Ratio_Arithmetic` compares
 > expected gains to expected losses within a pathway; GLR \> 1 means the
 > pathway gained more rhythmicity than it lost, GLR \< 1 the reverse.
-> KEGG GnRH signaling pathway is significant for conservation here (Q =
-> 0.18) with GLR = 0.74, loss-leaning; KEGG Long-term depression is not
-> significant for conservation (Q = 0.44). Combined with Step 4: this
-> pathway’s genes mostly stay rhythmic in both tissues (why
-> conservation, not gain or loss, is where the signal lands) while
-> shifting peak time (why almost all of them showed up phase-shifted,
-> not phase-conserved, above).
+> Neither pathway is significant for conservation here: both land at Q =
+> 0.84, matching the union result above. GLR sits close to 1 for KEGG
+> GnRH signaling pathway (1.05, roughly balanced) and above 1 for KEGG
+> Long-term depression (1.59, gain-leaning). Combined with the heatmap
+> below: this small panel does not resolve a conservation signal for
+> either pathway, consistent with only 4 of the 60 genes clearing the
+> conservation threshold panel-wide in Step 3.
 
 # Step 5B: Genome-Wide Concordance
 
 `multi_conservation()` collapses the whole comparison into one number:
 an adjusted Jaccard concordance score (the c-score), related to the
-transcriptomic congruence framework of Zong et al. (2023), centered at 0
+transcriptomic congruence framework of Zong et al. (2023), centered at 0
 under no more overlap than chance and approaching 1 under perfect
 agreement, with a permutation p-value and a bootstrap confidence
 interval. `select.pathway.list = "global"` runs it over every gene in
@@ -483,17 +487,17 @@ round(global[, c("A_vs_B_AdjustedConcordance", "A_vs_B_PValue",
 #> 1               0.254                1.207
 ```
 
-> **Interpretation:** The adjusted concordance here is about 0.02 (95%
-> CI roughly 0.001 to 0.042, p = 0.049, barely under 0.05). Do not read
-> this as an estimate of genome-wide OMF-THR concordance: this panel is
-> built around two specific pathways and a handful of clock genes, not a
-> random sample of the transcriptome, and the small candidate-gene count
-> limits what the permutation test can resolve. Treat this as
-> confirmation the function runs correctly end to end; `README.md`’s
-> Quick Start reports the equivalent score on the full, unbiased
-> 5,066-gene set. As a general reading guide: a c-score above roughly
-> 0.3 with a small p-value indicates strong transcriptome-wide
-> conservation, 0.1 to 0.2 indicates modest but real conservation, and a
+> **Interpretation:** The adjusted concordance here is about 0.134 (95%
+> CI roughly 0.069 to 0.254, p = 0.012). Do not read this as an estimate
+> of genome-wide OMF-THR concordance: this panel is built around two
+> specific pathways and a handful of clock genes, not a random sample of
+> the transcriptome, and the small candidate-gene count limits what the
+> permutation test can resolve. Treat this as confirmation the function
+> runs correctly end to end; `README.md`’s Quick Start reports the
+> equivalent score on the full, unbiased 5,066-gene set. As a general
+> reading guide: a c-score above roughly 0.3 with a small p-value
+> indicates strong transcriptome-wide conservation, 0.1 to 0.2 indicates
+> modest but real conservation (where this panel’s score falls), and a
 > score near 0 with a non-significant p-value indicates two largely
 > independent circadian programs.
 
@@ -538,14 +542,16 @@ plot_heatmap(
 | 5\. Phase posterior, THR | Same reading as panel 4, other condition | Compare bar position against panel 4 to see the shift visually |
 | 6\. Delta peak (hours) | Signed peak-time difference, THR minus OMF | Positive bars mean THR peaks later; negative mean earlier; gray means not classified |
 
-> **Interpretation:** Most rows show a filled orange bar in panel 1
-> (conserved rhythm) and red in panel 2 (shifted phase), matching Step
-> 4: this panel is dominated by genes that stayed rhythmic but reset
-> their peak time. Panel 4/5 histograms sit visibly apart for these
-> genes, one tissue’s bar to the left of the other’s, which is what a
-> real phase shift looks like in this figure; genes with no panel 1/2
-> color did not clear the BFDR threshold and are correctly left
-> unclassified rather than forced into a category.
+> **Interpretation:** Only 1 of the 22 genes in this pathway clears a
+> transition threshold: it shows a filled blue bar in panel 1 (loss in
+> THR). None show gain or conservation, so panel 2 (phase status) stays
+> empty here, since it only applies to conserved genes. The other 21
+> rows are gray in panels 1 and 2: they did not clear the BFDR threshold
+> in Step 2/3 and are correctly left unclassified rather than forced
+> into a category. This reflects the small-panel limits discussed above,
+> not a property of the pathway itself: the same six-panel view on the
+> full 5,066-gene run in `README.md` resolves more of this pathway’s
+> genes.
 
 # Biological Interpretation Checklist
 
@@ -602,11 +608,11 @@ order:
   2010;38(5):2587-2619.
 - Stephens M. False discovery rates: a new deal. *Biostatistics*.
   2016;18(2):275-294.
-- Mure LS, Le HD, Benegiamo G, et al. Diurnal transcriptome atlas of a
+- Mure LS, Le HD, Benegiamo G, et al. Diurnal transcriptome atlas of a
   primate across major neural and peripheral tissues. *Science*.
   2018;359(6381):eaao0318.
   [10.1126/science.aao0318](https://doi.org/10.1126/science.aao0318)
-- Zong W, Rahman T, Zhu L, et al. Transcriptomic congruence analysis for
+- Zong W, Rahman T, Zhu L, et al. Transcriptomic congruence analysis for
   evaluating model organisms. *PNAS*. 2023;120(6):e2202584120.
   [10.1073/pnas.2202584120](https://doi.org/10.1073/pnas.2202584120)
 - Pelikan A, Herzel H, Kramer A, Ananthasubramaniam B. Venn diagram

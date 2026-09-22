@@ -1,11 +1,9 @@
 # Builds man/figures/circular_hdi_demo.png from the bundled quickstart-scale
-# OMF posterior (2,500 iterations, from
-# inst/analysis/quickstart_baboon_OMF_THR.R). Assumes mcmc_OMF is already
-# built in the environment (see that script for the exact steps).
+# OMF posterior (2,500 iterations). Assumes mcmc_OMF is in the session, built as
+# in exploratory/quickstart_baboon_OMF_THR.R.
 #
-# Gene symbols are looked up via rownames(mcmc_OMF$rho)/rownames(mcmc_OMF$phi),
-# set by match_symbols(); a match_symbols()-processed object has no
-# separate $gname field (it's NULL), so don't index through that.
+# Genes are indexed by rownames(mcmc_OMF$rho), set by match_symbols(); the
+# object's $gname is NULL.
 
 suppressMessages(library(ggplot2))
 
@@ -36,9 +34,7 @@ make_panel <- function(g) {
   if (p$hdi$upper >= p$hdi$lower) {
     arc_df <- data.frame(x = seq(p$hdi$lower, p$hdi$upper, length.out = 100), seg = 1)
   } else {
-    # Wrap-around HDI: two disjoint segments (lower->24 and 0->upper) need
-    # distinct `seg` groups, or geom_path connects them straight across the
-    # circle instead of leaving the non-HDI majority of the circle empty.
+    # an arc crossing the seam is two segments, grouped so geom_path keeps them apart
     arc_df <- rbind(data.frame(x = seq(p$hdi$lower, 24, length.out = 60), seg = 1),
                      data.frame(x = seq(0, p$hdi$upper, length.out = 60), seg = 2))
   }

@@ -1,22 +1,14 @@
-# Builds man/figures/cosinor_examples.png: raw expression scatter + OLS
-# cosinor fit (BayRC's one_cosinor_OLS()/Cosinor_fit(), the classical
-# frequentist baseline) for one example gene per transition/phase
-# category (Gain, Loss, Phase-conserved, Phase-shifted), baboon OMF vs
-# THR, on the bundled quickstart-scale posterior (2,500 iterations, from
-# inst/analysis/quickstart_baboon_OMF_THR.R). Assumes mcmc_OMF, mcmc_THR,
-# bf_OMF, bf_THR, trans, phase are already built in the environment (see
-# quickstart_baboon_OMF_THR.R for the exact steps).
+# Builds man/figures/cosinor_examples.png: expression and the OLS cosinor fit
+# (Cosinor_fit()) for one gene per category (Gain, Loss, Phase-conserved,
+# Phase-shifted), baboon OMF vs THR, on the bundled quickstart-scale posterior
+# (2,500 iterations). Assumes mcmc_OMF, mcmc_THR, bf_OMF, bf_THR, trans and
+# phase are in the session, built as in exploratory/quickstart_baboon_OMF_THR.R.
 #
-# trans$gain_loss_status and phase$flag_* are already named by gene
-# symbol (inherited from rownames(mcmc_OMF$rho)/rownames(mcmc_OMF$phi),
-# set by match_symbols()); do not try to re-name them from mcmc_OMF$gname,
-# which does not exist on a match_symbols()-processed object and is NULL.
+# trans and phase are named by gene symbol through match_symbols(); the
+# objects' $gname is NULL.
 #
-# p/q come from Cosinor_fit() run genome-wide on each tissue (BH-adjusted
-# across all 5,066 genes), not from a single-gene fit, so q is a real,
-# not fabricated, multiple-testing-adjusted value. BF comes from the
-# RJMCMC posterior (bf_OMF/bf_THR), a separate estimate from a different
-# model; the classical fit is for visualization only.
+# p and q come from a genome-wide Cosinor_fit() per tissue, BH over 5,066 genes.
+# BF comes from the RJMCMC posterior; the cosinor curve is for display only.
 
 suppressMessages(library(ggplot2))
 
@@ -37,9 +29,7 @@ pick_gene <- function(candidate_names, rank_by = NULL, decreasing = TRUE) {
   candidate_names[1]
 }
 
-# CRY2 (a core clock gene) and ARNTL (BMAL1) are used directly for Gain
-# and Phase-shifted, since both land in real, well-supported categories
-# here and are far more recognizable than an arbitrary top-ranked gene.
+# Clock genes CRY2 and ARNTL (BMAL1) stand for Gain and Phase-shifted
 gain_gene  <- "CRY2"
 loss_gene  <- pick_gene(names(status)[status == "Loss"], rank_by = trans$p_loss)
 cons_gene  <- pick_gene(names(phase$flag_cons)[phase$flag_cons %in% TRUE],
@@ -50,7 +40,7 @@ genes <- c(Gain = gain_gene, Loss = loss_gene, "Phase-conserved" = cons_gene,
            "Phase-shifted" = shift_gene)
 cat("Selected genes:\n"); print(genes)
 
-# Genome-wide classical cosinor fit, both tissues, for real BH q-values.
+# Genome-wide cosinor fit in both tissues, for BH q-values
 x_OMF <- list(data = as.data.frame(log2(baboon$expr_OMF + 1)), time = zt, gname = baboon$gene_symbol)
 x_THR <- list(data = as.data.frame(log2(baboon$expr_THR + 1)), time = zt, gname = baboon$gene_symbol)
 rhythm_OMF <- Cosinor_fit(x_OMF)$rhythm

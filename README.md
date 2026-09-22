@@ -39,8 +39,8 @@ library(BayRC)
 
 ```
 
-**Imports:** `Rcpp`, `circular`, `ggplot2`, `dplyr`  
-**Suggests:** `ComplexHeatmap`, `KEGGREST`, `biomaRt`, `edgeR`, `DESeq2`, `parallel`
+**Imports:** `Rcpp`, `circular`, `ggplot2`, `dplyr`, `fgsea`, `KEGGREST`, and others (see `DESCRIPTION`)  
+**Suggests:** `ComplexHeatmap`, `circlize`, `biomaRt`, `knitr`, `rmarkdown`, and others (see `DESCRIPTION`)
 
 ---
 
@@ -57,13 +57,22 @@ data_list_OMF <- list(data = as.data.frame(log2(baboon$expr_OMF + 1)),
 data_list_THR <- list(data = as.data.frame(log2(baboon$expr_THR + 1)),
                       time = baboon$zt, gname = baboon$gene_symbol)
 
+n_genes <- nrow(data_list_OMF$data)
 init_OMF <- CBt_init_single(Data.list = data_list_OMF, P = 24, FitCosinor = TRUE, seed = 1)
 init_THR <- CBt_init_single(Data.list = data_list_THR, P = 24, FitCosinor = TRUE, seed = 1)
 
 mcmc_OMF <- CB_MCMC_single_rj_slice(Data.list = data_list_OMF, Init.value = init_OMF, P = 24,
-                                    iteration = 2500, n.burn = 500, seed = 1)
+                                    iteration = 2500, n.burn = 500, seed = 1,
+                                    p_rhythmic = rep(0.2, n_genes), rj.p.stay = 0.5,
+                                    A_prior = "trunc_Normal_OLS_condi", mu_A = 1, sigma_A = 10^2,
+                                    A.min = 0, rj.phi = TRUE, rj.A = TRUE, mu_M = 0, sigma_M = 10^2,
+                                    sigma_prior_v = 2, sigma_prior_s = 0)
 mcmc_THR <- CB_MCMC_single_rj_slice(Data.list = data_list_THR, Init.value = init_THR, P = 24,
-                                    iteration = 2500, n.burn = 500, seed = 1)
+                                    iteration = 2500, n.burn = 500, seed = 1,
+                                    p_rhythmic = rep(0.2, n_genes), rj.p.stay = 0.5,
+                                    A_prior = "trunc_Normal_OLS_condi", mu_A = 1, sigma_A = 10^2,
+                                    A.min = 0, rj.phi = TRUE, rj.A = TRUE, mu_M = 0, sigma_M = 10^2,
+                                    sigma_prior_v = 2, sigma_prior_s = 0)
 
 mcmc_OMF <- match_symbols(mcmc_OMF, BF = 3, p_rhythmic = 0.2)
 mcmc_THR <- match_symbols(mcmc_THR, BF = 3, p_rhythmic = 0.2)
@@ -163,20 +172,20 @@ reports:
 mcmc_diagnostics(mcmc_OMF)
 # === MCMC Diagnostics ===
 # Samples stored:         2001
-# Mean acceptance rate:   0.319
-# Mean ESS (rho):         762
-# Mean ESS (phi):         389.2
+# Mean acceptance rate:   0.334
+# Mean ESS (rho):         747.3
+# Mean ESS (phi):         393.8
 ```
 
 ```r
 bf_OMF <- summarize_bay(mcmc_OMF$rho, BF = 3, p_rhythmic = 0.2)
 head(bf_OMF[order(-bf_OMF$BayesF), c("RowAverage", "BayesF")], 5)
 #                     RowAverage BayesF
-# ABCF3                     1.00  4e+20
 # ARNTL                     1.00  4e+20
-# ATMIN                     1.00  4e+20
+# DYNC1LI1                  1.00  4e+20
 # ENSPANG00000009554        1.00  4e+20
-# FAM214A                   1.00  4e+20   # all five have posterior support 1.0 in every
+# ENSPANG00000019578        1.00  4e+20
+# FAF1                      1.00  4e+20   # all five have posterior support 1.0 in every
 #                                          # retained sample; BF diverges as posterior approaches 1
 
 detected <- detect_rhy(mcmc_OMF, mcmc_THR, bfdr_alpha = 0.20)
@@ -228,7 +237,7 @@ in THR, a real shift of about 3 hours; it is significant in both tissues
 kegg <- readRDS(system.file("extdata", "kegg_pathway_list_hsa.rds", package = "BayRC"))
 
 # pathSelect() tests one transition direction per call. Here all three are
-# tested against the same 220 testable KEGG pathways:
+# tested against the same 298 testable KEGG pathways:
 result_gain <- pathSelect(mcmc.merge.list = list(A = mcmc_OMF, B = mcmc_THR),
                           pathway.list = kegg, dataset.names = c("A", "B"),
                           ranking.method = "gain", score_type = "pos",
@@ -241,12 +250,12 @@ result_cons <- pathSelect(mcmc.merge.list = list(A = mcmc_OMF, B = mcmc_THR),
                           pathway.list = kegg, dataset.names = c("A", "B"),
                           ranking.method = "conserved", score_type = "pos",
                           qvalue.cut = 0.20, nperm = 500)
-# gain: 1 of 220 significant (padj < 0.20)
-# loss: 13 of 220 significant, top hit KEGG Long-term depression (Q = 0.028);
+# gain: 1 of 298 significant (padj < 0.20)
+# loss: 13 of 298 significant, top hit KEGG Long-term depression (Q = 0.028);
 #       KEGG Circadian rhythm and KEGG Circadian entrainment also score in this
 #       direction, but do not clear the cutoff at this run's scale
 #       (Q = 0.83 and Q = 0.75)
-# conserved: 1 of 220 significant (KEGG DNA replication, Q = 0.024)
+# conserved: 1 of 298 significant (KEGG DNA replication, Q = 0.024)
 #
 # Loss is the only direction with a strong pathway-level signal here, even
 # though the gene-level results above show a substantial gain set as well:
@@ -291,13 +300,13 @@ automatically (`diagnostics = TRUE` by default in
 `CB_MCMC_single_rj_slice()`) and can also be called later on any saved
 result, since the underlying `rho`, `phi`, and `if.accept.rj` matrices are
 stored regardless of that flag. For the `mcmc_OMF` run above,
-`mcmc_diagnostics()` reports an acceptance rate of 0.319, `ESS(rho) =
-762`, and `ESS(phi) = 389.2`, based on 2,001 stored posterior samples.
+`mcmc_diagnostics()` reports an acceptance rate of 0.334, `ESS(rho) =
+747.3`, and `ESS(phi) = 393.8`, based on 2,001 stored posterior samples.
 
-The acceptance rate of 0.319 indicates that about one third of proposed
+The acceptance rate of 0.334 indicates that about one third of proposed
 RJMCMC moves were accepted, a range generally consistent with healthy
-posterior exploration. `ESS(rho) = 762` suggests reasonably good mixing
-for the binary rhythmicity indicator. `ESS(phi) = 389.2` is lower, but
+posterior exploration. `ESS(rho) = 747.3` suggests reasonably good mixing
+for the binary rhythmicity indicator. `ESS(phi) = 393.8` is lower, but
 ESS for phase should be interpreted together with posterior rhythmicity:
 tight, well-resolved phase posteriors can have lower ESS than diffuse,
 weakly informed ones. Taken together, these diagnostics suggest adequate
@@ -442,9 +451,9 @@ d$n_rhythmic_A  # 2,652 of 5,066
 | Bayes factor ≥ 5 | 2,525 / 5,066 | 2,763 / 5,066 |
 | Bayes factor ≥ 10 ("strong" evidence) | 1,857 / 5,066 | 2,308 / 5,066 |
 | BFDR-controlled, `α = 0.20` | 2,652 / 5,066 | 3,345 / 5,066 |
-| BFDR-controlled, `α = 0.15` | 2,607 / 5,066 | 3,099 / 5,066 |
-| BFDR-controlled, `α = 0.10` | 2,061 / 5,066 | 2,701 / 5,066 |
-| BFDR-controlled, `α = 0.05` | 1,320 / 5,066 | 2,165 / 5,066 |
+| BFDR-controlled, `α = 0.15` | 2,146 / 5,066 | 2,956 / 5,066 |
+| BFDR-controlled, `α = 0.10` | 1,568 / 5,066 | 2,515 / 5,066 |
+| BFDR-controlled, `α = 0.05` | 864 / 5,066 | 1,917 / 5,066 |
 
 Bayes factor counts are best read as a quick per-gene screen, analogous
 to raw p-values, whereas the BFDR-controlled counts provide the
@@ -506,7 +515,7 @@ result_loss <- pathSelect(mcmc.merge.list = list(A = mcmc_OMF, B = mcmc_THR),
 `fgsea`) asking whether the genes in a pathway rank higher on the
 loss-direction statistic than would be expected for a random gene set of
 the same size under repeated gene-label permutation. `Q_loss` is the
-corresponding BH-adjusted value across all 220 pathways tested, so both
+corresponding BH-adjusted value across all 298 pathways tested, so both
 columns quantify **loss enrichment only**. By contrast, the expected
 numbers of gain, loss, and conserved genes are separate, threshold-free
 summaries already computed in `result_loss$results`; no additional step
@@ -528,20 +537,20 @@ own right. The 10 strongest hits from `result_loss`, sorted by `Q_loss`, are:
 
 | Pathway | Size | `p_loss` | `Q_loss` | Exp. gain | Exp. loss | Exp. conserved |
 |---|---|---|---|---|---|---|
-| KEGG Long-term depression | 16 | 3.0e-05 | 0.0065 | 5.5 | 4.1 | 5.4 |
-| KEGG GnRH signaling pathway | 22 | 2.4e-04 | 0.0258 | 5.2 | 6.2 | 8.8 |
-| KEGG ErbB signaling pathway | 33 | 9.5e-04 | 0.0542 | 6.3 | 10.2 | 13.2 |
-| KEGG Serotonergic synapse | 18 | 9.9e-04 | 0.0542 | 6.5 | 4.0 | 5.6 |
-| KEGG IL-17 signaling pathway | 26 | 1.6e-03 | 0.0616 | 3.5 | 8.1 | 9.9 |
-| KEGG Renal cell carcinoma | 33 | 1.7e-03 | 0.0616 | 7.5 | 8.2 | 13.7 |
-| KEGG Alcoholic liver disease | 42 | 2.1e-03 | 0.0616 | 7.0 | 12.4 | 15.6 |
-| KEGG Apelin signaling pathway | 34 | 2.2e-03 | 0.0616 | 8.7 | 9.0 | 12.8 |
-| KEGG Relaxin signaling pathway | 42 | 2.7e-03 | 0.0665 | 10.5 | 10.7 | 15.4 |
-| KEGG Non-small cell lung cancer | 26 | 3.1e-03 | 0.0672 | 6.1 | 6.4 | 11.1 |
+| KEGG Long-term depression | 16 | 1.3e-04 | 0.0282 | 6.0 | 3.3 | 5.0 |
+| KEGG Gap junction | 15 | 9.8e-04 | 0.1083 | 5.9 | 2.9 | 4.3 |
+| KEGG Serotonergic synapse | 18 | 1.7e-03 | 0.1235 | 7.1 | 3.5 | 5.0 |
+| KEGG Alcoholic liver disease | 42 | 3.3e-03 | 0.1620 | 8.7 | 11.0 | 14.5 |
+| KEGG GnRH signaling pathway | 22 | 3.7e-03 | 0.1620 | 6.0 | 5.2 | 8.3 |
+| KEGG Hepatitis C | 56 | 4.5e-03 | 0.1624 | 13.9 | 12.6 | 20.7 |
+| KEGG Phospholipase D signaling pathway | 36 | 5.2e-03 | 0.1624 | 12.1 | 6.9 | 11.5 |
+| KEGG Fc epsilon RI signaling pathway | 21 | 7.3e-03 | 0.1822 | 5.5 | 5.4 | 7.0 |
+| KEGG Non-small cell lung cancer | 26 | 7.5e-03 | 0.1822 | 7.4 | 5.8 | 9.6 |
+| KEGG FoxO signaling pathway | 49 | 9.6e-03 | 0.1822 | 10.1 | 13.0 | 15.2 |
 
-A total of 24 pathways clear `Q_loss < 0.20`. KEGG Circadian rhythm and
+A total of 13 pathways clear `Q_loss < 0.20`. KEGG Circadian rhythm and
 KEGG Circadian entrainment also appear in this loss-ranked list, but in
-this run they do not pass the cutoff (`Q_loss = 0.29` and `0.31`,
+this run they do not pass the cutoff (`Q_loss = 0.83` and `0.75`,
 respectively). Any pathway that clears the cutoff can be passed directly
 to `plot_heatmap()`, together with its member genes from `kegg` and the
 `trans` and `phase` objects computed above:
@@ -561,17 +570,17 @@ plot_heatmap(
 
 Two examples are shown below, both significant loss-direction hits from the same OMF-vs-THR posterior analysis:
 
-**KEGG Long-term depression** (`Q_loss = 0.0065`, the strongest
+**KEGG Long-term depression** (`Q_loss = 0.0282`, the strongest
 statistical hit) shows a genuinely mixed gene-level pattern: among 16
-matched genes, 4 gain rhythmicity in THR, 4 lose rhythmicity in THR, 4
-remain rhythmic in both tissues, and 4 are non-rhythmic.
+matched genes, 4 gain rhythmicity in THR, 2 remain rhythmic in both
+tissues, and 10 are non-rhythmic; none lose rhythmicity in THR outright.
 
 ![KEGG Long-term depression pathway heatmap, baboon OMF vs THR](man/figures/pathway_heatmap_demo_ltd.png)
 
-**KEGG GnRH signaling pathway** (`Q_loss = 0.0258`, the second-strongest
-hit) includes 22 matched genes: 3 gain rhythmicity in THR, 2 lose
-rhythmicity in THR, 6 remain rhythmic in both tissues, and 11 are
-non-rhythmic.
+**KEGG GnRH signaling pathway** (`Q_loss = 0.1620`, another significant
+loss-direction hit) includes 22 matched genes: 4 gain rhythmicity in
+THR, 5 remain rhythmic in both tissues, and 13 are non-rhythmic; none
+lose rhythmicity in THR outright.
 
 ![KEGG GnRH signaling pathway heatmap, baboon OMF vs THR](man/figures/pathway_heatmap_demo_gnrh.png)
 
@@ -579,7 +588,7 @@ non-rhythmic.
 
 ## Key Functions
 
-BayRC exports 23 functions, grouped below in the same way as the paper's
+BayRC exports 24 functions, grouped below in the same way as the paper's
 Methods section (§2.1 through §2.4).
 
 ### 1. MCMC Core (paper §2.1)
@@ -595,6 +604,7 @@ Methods section (§2.1 through §2.4).
 | `Cosinor_fit()` | Classical OLS cosinor fit; the non-Bayesian baseline used for comparison in the paper |
 | `circular_HDI()` | Shortest-arc 95% credible interval for a phase posterior |
 | `circular_median()` | Circular median of a phase posterior |
+| `circular_width()` | Length of a circular arc from a lower to an upper bound, correct when the arc crosses the ZT0/24 seam |
 
 Because phase is periodic, a standard linear credible interval is not
 appropriate: a gene peaking near ZT23 and one peaking near ZT01 are one

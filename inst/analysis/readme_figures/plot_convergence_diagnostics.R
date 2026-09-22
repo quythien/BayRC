@@ -3,9 +3,7 @@
 # load a cached mcmc_ILE), then compute diag_ILE <- mcmc_diagnostics(mcmc_ILE)
 # before sourcing this script.
 #
-# Picks one gene with high phi ESS (fast-mixing, tight trace) and one with
-# low phi ESS (slow-mixing, sticky trace) to show what good vs. poor mixing
-# actually looks like, rather than showing only a flattering example.
+# Draws the genes with the highest and the lowest phi ESS.
 
 suppressMessages(library(ggplot2))
 

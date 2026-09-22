@@ -220,7 +220,7 @@ c(lower = round(hdi_ARNTL$lower, 2), upper = round(hdi_ARNTL$upper, 2),
 ```
 
 > **Interpretation:** `ARNTL`'s posterior peak time in omental fat is about
-> ZT 13.6, with a 95% credible interval of roughly ZT 12.5 to ZT 14.6, a
+> ZT 13.6, with a 95% credible interval of roughly ZT 12.6 to ZT 14.7, a
 > tight window from only 12 samples. A wide interval, or one straddling
 > ZT0/24, would mean the peak time itself is poorly constrained even for a
 > confidently rhythmic gene: amplitude, phase, and rhythmicity are three
@@ -318,8 +318,9 @@ result_union$results[order(result_union$results$pval),
 ```
 
 > **Interpretation:** Neither pathway clears Q < 0.20 for the union
-> direction at this scale (KEGG GnRH signaling pathway is closest, Q =
-> 0.21). That does not mean these pathways carry no circadian signal here;
+> direction at this scale: both land at Q = 0.75, well short of the cutoff,
+> though KEGG Long-term depression has the smaller raw p-value (0.45 vs.
+> 0.75 for KEGG GnRH signaling pathway). That does not mean these pathways carry no circadian signal here;
 > it means the union test, which rewards rhythmicity in either condition
 > without regard to which one, is not the direction where their signal
 > shows up on this panel. Stage 2 below tests each specific direction
@@ -339,13 +340,14 @@ result_cons$results[, c("pathway", "pval", "padj", "Gain_Loss_Ratio_Arithmetic")
 
 > **Gain-loss ratio (GLR):** `Gain_Loss_Ratio_Arithmetic` compares expected
 > gains to expected losses within a pathway; GLR > 1 means the pathway
-> gained more rhythmicity than it lost, GLR < 1 the reverse. KEGG GnRH
-> signaling pathway is significant for conservation here (Q = 0.18) with
-> GLR = 0.74, loss-leaning; KEGG Long-term depression is not significant
-> for conservation (Q = 0.44). Combined with Step 4: this pathway's genes
-> mostly stay rhythmic in both tissues (why conservation, not gain or
-> loss, is where the signal lands) while shifting peak time (why almost
-> all of them showed up phase-shifted, not phase-conserved, above).
+> gained more rhythmicity than it lost, GLR < 1 the reverse. Neither
+> pathway is significant for conservation here: both land at Q = 0.84,
+> matching the union result above. GLR sits close to 1 for KEGG GnRH
+> signaling pathway (1.05, roughly balanced) and above 1 for KEGG
+> Long-term depression (1.59, gain-leaning). Combined with the heatmap
+> below: this small panel does not resolve a conservation signal for
+> either pathway, consistent with only 4 of the 60 genes clearing the
+> conservation threshold panel-wide in Step 3.
 
 # Step 5B: Genome-Wide Concordance
 
@@ -371,18 +373,19 @@ round(global[, c("A_vs_B_AdjustedConcordance", "A_vs_B_PValue",
                   "A_vs_B_GainLossRatio")], 3)
 ```
 
-> **Interpretation:** The adjusted concordance here is about 0.02 (95% CI
-> roughly 0.001 to 0.042, p = 0.049, barely under 0.05). Do not read this
-> as an estimate of genome-wide OMF-THR concordance: this panel is built
-> around two specific pathways and a handful of clock genes, not a random
-> sample of the transcriptome, and the small candidate-gene count limits
-> what the permutation test can resolve. Treat this as confirmation the
-> function runs correctly end to end; `README.md`'s Quick Start reports the
+> **Interpretation:** The adjusted concordance here is about 0.134 (95% CI
+> roughly 0.069 to 0.254, p = 0.012). Do not read this as an estimate of
+> genome-wide OMF-THR concordance: this panel is built around two specific
+> pathways and a handful of clock genes, not a random sample of the
+> transcriptome, and the small candidate-gene count limits what the
+> permutation test can resolve. Treat this as confirmation the function
+> runs correctly end to end; `README.md`'s Quick Start reports the
 > equivalent score on the full, unbiased 5,066-gene set. As a general
 > reading guide: a c-score above roughly 0.3 with a small p-value
 > indicates strong transcriptome-wide conservation, 0.1 to 0.2 indicates
-> modest but real conservation, and a score near 0 with a non-significant
-> p-value indicates two largely independent circadian programs.
+> modest but real conservation (where this panel's score falls), and a
+> score near 0 with a non-significant p-value indicates two largely
+> independent circadian programs.
 
 # The Six-Panel Pathway Heatmap
 
@@ -411,14 +414,15 @@ plot_heatmap(
 | 5. Phase posterior, THR | Same reading as panel 4, other condition | Compare bar position against panel 4 to see the shift visually |
 | 6. Delta peak (hours) | Signed peak-time difference, THR minus OMF | Positive bars mean THR peaks later; negative mean earlier; gray means not classified |
 
-> **Interpretation:** Most rows show a filled orange bar in panel 1
-> (conserved rhythm) and red in panel 2 (shifted phase), matching Step 4:
-> this panel is dominated by genes that stayed rhythmic but reset their
-> peak time. Panel 4/5 histograms sit visibly apart for these genes, one
-> tissue's bar to the left of the other's, which is what a real phase
-> shift looks like in this figure; genes with no panel 1/2 color did not
-> clear the BFDR threshold and are correctly left unclassified rather than
-> forced into a category.
+> **Interpretation:** Only 1 of the 22 genes in this pathway clears a
+> transition threshold: it shows a filled blue bar in panel 1 (loss in
+> THR). None show gain or conservation, so panel 2 (phase status) stays
+> empty here, since it only applies to conserved genes. The other 21 rows
+> are gray in panels 1 and 2: they did not clear the BFDR threshold in
+> Step 2/3 and are correctly left unclassified rather than forced into a
+> category. This reflects the small-panel limits discussed above, not a
+> property of the pathway itself: the same six-panel view on the full
+> 5,066-gene run in `README.md` resolves more of this pathway's genes.
 
 # Biological Interpretation Checklist
 
