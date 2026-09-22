@@ -72,10 +72,11 @@ make_qq_plot <- function(resid, gene_label, R2, pval) {
                 fill = "grey70", alpha = 0.4, inherit.aes = FALSE) +
     stat_qq(color = "steelblue", size = 1.8, alpha = 0.7) +
     stat_qq_line(color = "red", linetype = "dashed", linewidth = 0.8) +
-    labs(title = sprintf("%s\nR2 = %.3f, p = %s", gene_label, R2, fmt_pval(pval)),
+    labs(title = sprintf("%s\ncosinor R2 = %.3f\np = %s", gene_label, R2, fmt_pval(pval)),
          x = "Theoretical Quantiles", y = "Sample Quantiles") +
     theme_bw(base_size = 11) +
     theme(plot.title = element_text(face = "bold", size = 8, hjust = 0.5),
+          axis.title = element_text(size = 8),
           plot.margin = margin(4, 10, 4, 4))
 }
 
@@ -87,6 +88,7 @@ make_resid_tod_plot <- function(resid, tod, gene_label) {
     labs(title = gene_label, x = "Time of Day (ZT)", y = "Residual") +
     theme_bw(base_size = 11) +
     theme(plot.title = element_text(face = "bold", size = 8, hjust = 0.5),
+          axis.title = element_text(size = 8),
           plot.margin = margin(4, 10, 4, 4))
 }
 

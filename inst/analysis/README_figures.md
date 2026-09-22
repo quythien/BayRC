@@ -26,7 +26,7 @@ Figure 1 is a hand-drawn flowchart. No script produces it.
 | S5 | `plots/S5_Bayes_Cosinor_Agreement_LUN.R` | `BAYRC_FIGURE_DIR` |
 | Table S8 | `pipeline/bfdr_calibration.R <seed>` for seeds 1 to 10, then `--summary` | `calibration/bfdr_calibration_summary.csv` |
 | S8 | `pipeline/bfdr_calibration.R <seed> 2000 - <n> <A> 1` over n in 12, 24, 48, A in 0.5, 1, 1.5, 2, 3 and seeds 1 to 10, then `plots/figure_S_operating.R` | `Figure_S_operating.pdf`, `calibration/bfdr_operating_characteristics.csv`, `calibration/bayrc_cosinor_auc.csv` |
-| Table 1 | `applications/Baboon_PUT_SUN.R`, `applications/Baboon_PUT_VIC.R` | `<pair>/stage2_significant.csv`, `<pair>/pathway_metrics.csv` |
+| Table 1 | `applications/Baboon_PUT_SUN.R`, `applications/Baboon_PUT_VIC.R`, then `gain_loss_ratios.R` | `<pair>/stage2_significant.csv`, `<pair>/pathway_metrics.csv`, `gain_loss_ratios.csv` |
 
 Relative paths in the third column are under `BAYRC_FIGURE_DIR`. `<paper>` is
 `$BAYRC_RESULT_DIR/paper` with the settings below.
@@ -272,12 +272,9 @@ the one item here without a script of its own:
 - `stage2_significant.csv` supplies the pathway size, the expected gain, loss
   and conserved counts, and the Stage 2 q-values. The expected union is their
   sum.
-- `pathway_metrics.csv` supplies the adjusted concordance and the gain-loss
-  ratio.
-
-The two files come from the same run of the same script but from different
-estimators, so the printed gain-loss ratio is not the ratio of the printed
-expected gain and loss: for KEGG Pathways of neurodegeneration against
-substantia nigra the counts give 23.9 / 62.3 = 0.38 while `multi_conservation`
-reports 0.34. Anyone editing the table should take each column from the file
-named above rather than recomputing it from its neighbours.
+- `pathway_metrics.csv` supplies the adjusted concordance.
+- `gain_loss_ratios.R` supplies the gain-loss ratio, E[Gain] / E[Loss] as the
+  Methods define it: per pathway from the expected counts in
+  `stage2_significant.csv`, and genome-wide from the marginal posterior
+  probabilities. It also prints the Spearman correlation over the 325 baboon
+  tissue pairs that the Results quote.
