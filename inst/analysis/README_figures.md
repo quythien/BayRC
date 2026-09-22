@@ -24,6 +24,7 @@ Figure 1 is a hand-drawn flowchart. No script produces it.
 | 6 | `plots/figure6/assemble_figure6.py` | `figure6/Figure_6_column.pdf` |
 | S4 | `plots/Cosinor_residual_diagnostics_LUN*.R` | `BAYRC_FIGURE_DIR` |
 | S5 | `plots/S5_Bayes_Cosinor_Agreement_LUN.R` | `BAYRC_FIGURE_DIR` |
+| Table 1 | `applications/Baboon_PUT_SUN.R`, `applications/Baboon_PUT_VIC.R` | `<pair>/stage2_significant.csv`, `<pair>/pathway_metrics.csv` |
 
 Relative paths in the third column are under `BAYRC_FIGURE_DIR`. `<paper>` is
 `$BAYRC_RESULT_DIR/paper` with the settings below.
@@ -260,3 +261,21 @@ Check a figure at the size it will print rather than on screen.
 - `pipeline/CAMO_Aging_*.R`, `pipeline/Pipleline.R` and `plots/figures.R`
   belong to the aging analysis and read from `BAYRC_AGING_DIR`; they are not
   behind any figure in this paper.
+
+## Table 1
+
+Table 1 is assembled by hand from two files each case study writes, and it is
+the one item here without a script of its own:
+
+- `stage2_significant.csv` supplies the pathway size, the expected gain, loss
+  and conserved counts, and the Stage 2 q-values. The expected union is their
+  sum.
+- `pathway_metrics.csv` supplies the adjusted concordance and the gain-loss
+  ratio.
+
+The two files come from the same run of the same script but from different
+estimators, so the printed gain-loss ratio is not the ratio of the printed
+expected gain and loss: for KEGG Pathways of neurodegeneration against
+substantia nigra the counts give 23.9 / 62.3 = 0.38 while `multi_conservation`
+reports 0.34. Anyone editing the table should take each column from the file
+named above rather than recomputing it from its neighbours.
