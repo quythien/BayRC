@@ -2,9 +2,16 @@
 rm(list=ls())
 
 #── Paths ─────────────────────────────────────────────────────────────────────────
-current_gtex <- "/home/qtp1/Projects/Collaborative"
-current_wd   <- "/home/qtp1/Projects/Circadian"
-current_aging <- "/home/qtp1/Projects/Collaborative/Paper/Congruence/PNAS_aging"
+# Paths come from config.R; override any of them with the matching env var.
+bayrc.needs.summary <- FALSE
+this.file <- sub("^--file=", "", grep("^--file=", commandArgs(), value = TRUE)[1])
+analysis.dir <- if (is.na(this.file)) getwd() else dirname(normalizePath(this.file))
+while (!file.exists(file.path(analysis.dir, "config.R")) &&
+       dirname(analysis.dir) != analysis.dir) analysis.dir <- dirname(analysis.dir)
+source(file.path(analysis.dir, "config.R"))
+current_gtex <- BAYRC_DATA_DIR
+current_wd   <- BAYRC_WD_DIR
+current_aging <- BAYRC_AGING_DIR
 
 #── Load BA11 and BA47 data ──────────────────────────────────────────────────────
 BA11 <- readRDS(file.path(current_aging, "data/BA11_data.rds"))
@@ -43,7 +50,7 @@ load(file.path(BAYRC_PATHWAY_DIR, "go.pathway.list_hsa.RData"))
 
 #── Benchmarking with cosinor results ────────────────────────────────────────────────────────────────
 # Add the cosinor method results here
-source("/home/qtp1/Projects/Pipeline/one_cosinor_OLS_new.R")
+source(bayrc_file(BAYRC_PIPELINE_DIR, "one_cosinor_OLS_new.R"))
 
 
 #── Source R scripts ─────────────────────────────────────────────────────────────
@@ -706,7 +713,7 @@ write.csv(concordance_table_extended,
 #################################################################################
 library(circular)
 
-output = "/home/qtp1/Projects/Collaborative/Paper/Congruence/PNAS_aging/output"
+output = file.path(current_aging, "output")
 # Load the extended Bayesian results
 final_results_extended <- readRDS(file.path(base_result_dir, "final_brain_circadian_results_extended.RDS"))
 
@@ -975,8 +982,8 @@ ann_colors <- list(
 
 # Save as PDF
 pdf(
-  file = paste0("/home/qtp1/Projects/Collaborative/Paper/Congruence/PNAS_aging/results/brain_regions/plot/", 
-                pathway_name, "_heatmap_0to24.pdf"),
+  file = file.path(current_aging, "results/brain_regions/plot",
+                   paste0(pathway_name, "_heatmap_0to24.pdf")),
   width = 14,
   height = 8
 )

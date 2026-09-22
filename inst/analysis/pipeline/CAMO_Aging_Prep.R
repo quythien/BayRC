@@ -1,4 +1,13 @@
-setwd("/Users/thienpham/Library/CloudStorage/OneDrive-UniversityofPittsburgh/Projects/Collaborative/Paper/Congruence/PNAS_aging")
+# Paths come from config.R; override any of them with the matching env var.
+bayrc.needs.summary <- FALSE
+this.file <- sub("^--file=", "", grep("^--file=", commandArgs(), value = TRUE)[1])
+analysis.dir <- if (is.na(this.file)) getwd() else dirname(normalizePath(this.file))
+while (!file.exists(file.path(analysis.dir, "config.R")) &&
+       dirname(analysis.dir) != analysis.dir) analysis.dir <- dirname(analysis.dir)
+source(file.path(analysis.dir, "config.R"))
+current_wd <- BAYRC_WD_DIR
+# the data and results below are read relative to the aging project directory
+setwd(BAYRC_AGING_DIR)
 options(width = "140")
 
 # Reading in 
@@ -96,9 +105,9 @@ saveRDS(list(expr = BA47_expr, pheno = pheno), "data/BA47_data.rds")
 BA11 <- readRDS("data/BA11_data.rds")
 BA47 <- readRDS("data/BA47_data.rds")
 
-source("/Users/thienpham/Library/CloudStorage/OneDrive-UniversityofPittsburgh/Projects/Circadian/Kyle/Circadian-analysis-main/R/src/fitSinCurve.R")
-source("/Users/thienpham/Library/CloudStorage/OneDrive-UniversityofPittsburgh/Projects/Circadian/Kyle/Circadian-analysis-main/R/src/circadianDrawing_axis.R")
-source("/Users/thienpham/Library/CloudStorage/OneDrive-UniversityofPittsburgh/Projects/Pipeline/one_cosinor_OLS_new.R")
+source(file.path(current_wd, "Kyle/Circadian-analysis-main/R/src/fitSinCurve.R"))
+source(file.path(current_wd, "Kyle/Circadian-analysis-main/R/src/circadianDrawing_axis.R"))
+source(bayrc_file(BAYRC_PIPELINE_DIR, "one_cosinor_OLS_new.R"))
 
 fit_cosinor <- function(df_expr, tod, region = "region", species_name = NULL) {
   # Keep complete cases on TOD
@@ -357,9 +366,9 @@ ba11_cosinor[ba11_cosinor$Gene == "FKBP5", ]$Peak    # 2.76 vs. paper 3
 BA11 <- readRDS("data/BA11_data.rds")
 BA47 <- readRDS("data/BA47_data.rds")
 
-source("/Users/thienpham/Library/CloudStorage/OneDrive-UniversityofPittsburgh/Projects/Circadian/Kyle/Circadian-analysis-main/R/src/fitSinCurve.R")
-source("/Users/thienpham/Library/CloudStorage/OneDrive-UniversityofPittsburgh/Projects/Circadian/Kyle/Circadian-analysis-main/R/src/circadianDrawing_axis.R")
-source("/Users/thienpham/Library/CloudStorage/OneDrive-UniversityofPittsburgh/Projects/Pipeline/one_cosinor_OLS_new.R")
+source(file.path(current_wd, "Kyle/Circadian-analysis-main/R/src/fitSinCurve.R"))
+source(file.path(current_wd, "Kyle/Circadian-analysis-main/R/src/circadianDrawing_axis.R"))
+source(bayrc_file(BAYRC_PIPELINE_DIR, "one_cosinor_OLS_new.R"))
 
 
 # Step 1: Combine BA11 and BA47 expression data

@@ -1,8 +1,15 @@
 #── Paths ─────────────────────────────────────────────────────────────────────────
-current_gtex <- "/home/qtp1/Projects/Collaborative"
-current_wd   <- "/home/qtp1/Projects/Circadian"
-current_aging <- "/home/qtp1/Projects/Collaborative/Paper/Congruence/PNAS_aging"
-output = "/home/qtp1/Projects/Collaborative/Paper/Congruence/PNAS_aging/output"
+# Paths come from config.R; override any of them with the matching env var.
+bayrc.needs.summary <- FALSE
+this.file <- sub("^--file=", "", grep("^--file=", commandArgs(), value = TRUE)[1])
+analysis.dir <- if (is.na(this.file)) getwd() else dirname(normalizePath(this.file))
+while (!file.exists(file.path(analysis.dir, "config.R")) &&
+       dirname(analysis.dir) != analysis.dir) analysis.dir <- dirname(analysis.dir)
+source(file.path(analysis.dir, "config.R"))
+current_gtex <- BAYRC_DATA_DIR
+current_wd   <- BAYRC_WD_DIR
+current_aging <- BAYRC_AGING_DIR
+output = file.path(current_aging, "output")
 base_result_dir <- file.path(current_aging, "results", "brain_regions")
 # Load the extended Bayesian results
 #final_results_extended <- readRDS(file.path(base_result_dir, "final_brain_circadian_results_extended.RDS"))
@@ -40,7 +47,7 @@ load(file.path(BAYRC_PATHWAY_DIR, "go.pathway.list_hsa.RData"))
 
 #── Benchmarking with cosinor results ────────────────────────────────────────────────────────────────
 # Add the cosinor method results here
-source("/home/qtp1/Projects/Pipeline/one_cosinor_OLS_new.R")
+source(bayrc_file(BAYRC_PIPELINE_DIR, "one_cosinor_OLS_new.R"))
 
 
 #── Source R scripts ─────────────────────────────────────────────────────────────
@@ -261,7 +268,7 @@ for (sheet in names(all_acs_results)) {
   writeData(wb, sheet = sheet, all_acs_results[[sheet]])
 }
 
-saveWorkbook(wb, file = "/home/qtp1/Projects/Collaborative/Paper/Congruence/PNAS_aging/output/Pairwise_ACS_Pathway_GSEA.xlsx", overwrite = TRUE)
+saveWorkbook(wb, file = file.path(current_aging, "output/Pairwise_ACS_Pathway_GSEA.xlsx"), overwrite = TRUE)
 
 #──────────────────────────────────────────────────────────────────
 # Phase inference 
@@ -328,8 +335,8 @@ for (res in results_list) {
   writeData(wb_conserve, sheet = res$label, res$conserve_df)
 }
 
-saveWorkbook(wb_diff,     file = "/home/qtp1/Projects/Collaborative/Paper/Congruence/PNAS_aging/results/brain_regions/phase_shift_diff_FDR_4h.xlsx",     overwrite = TRUE)
-saveWorkbook(wb_conserve, file = "/home/qtp1/Projects/Collaborative/Paper/Congruence/PNAS_aging/results/brain_regions/phase_shift_conserve_FDR_4h.xlsx", overwrite = TRUE)
+saveWorkbook(wb_diff,     file = file.path(current_aging, "results/brain_regions/phase_shift_diff_FDR_4h.xlsx"),     overwrite = TRUE)
+saveWorkbook(wb_conserve, file = file.path(current_aging, "results/brain_regions/phase_shift_conserve_FDR_4h.xlsx"), overwrite = TRUE)
 
 
 ####################################
@@ -462,7 +469,7 @@ for (i in seq_len(nrow(tasks))) {
 #####3
 data_rho$older
 # Save density plot of row means as PNG
-png("/home/qtp1/Projects/Collaborative/Paper/Congruence/PNAS_aging/results/brain_regions/rho_rowmeans_density.png", width = 800, height = 600)
+png(file.path(current_aging, "results/brain_regions/rho_rowmeans_density.png"), width = 800, height = 600)
 
 plot(
   density(rowMeans(data_rho$older, na.rm = TRUE)),

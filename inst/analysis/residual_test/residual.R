@@ -1,5 +1,9 @@
-# setwd("~/Documents/BayCT")
-setwd("/Users/thienpham/Library/CloudStorage/OneDrive-UniversityofPittsburgh/Projects/Circadian/Kyle/Circadian-analysis-main/R/v1/BayRC/Thien/analysis")
+# the inputs sit beside this script, under inst/analysis/residual_test
+this.file <- sub("^--file=", "", grep("^--file=", commandArgs(), value = TRUE)[1])
+analysis.dir <- if (is.na(this.file)) getwd() else dirname(normalizePath(this.file))
+while (!file.exists(file.path(analysis.dir, "config.R")) &&
+       dirname(analysis.dir) != analysis.dir) analysis.dir <- dirname(analysis.dir)
+setwd(analysis.dir)
 observed_para_resid_pval = read.csv("./residual_test/observed_para_resid.csv", row.names = 1)
 resid.list = get(load("./residual_test/residual_putamen.RData"))
 fitted.list = get(load("./residual_test/fitted_putamen.RData"))

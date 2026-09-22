@@ -10,13 +10,22 @@
 
 # saveRDS(
 #   mcmc_age,
-#   file = "/home/qtp1/Projects/Collaborative/Paper/Congruence/PNAS_aging/data/mcmc_young_old.rds"
+#   file = file.path(current_aging, "data/mcmc_young_old.rds")
 # )
 
 rm(list = ls())
 gc()
 
-mcmc_age = readRDS("/home/qtp1/Projects/Collaborative/Paper/Congruence/PNAS_aging/data/mcmc_young_old.rds")
+# Paths come from config.R; override any of them with the matching env var.
+bayrc.needs.summary <- FALSE
+this.file <- sub("^--file=", "", grep("^--file=", commandArgs(), value = TRUE)[1])
+analysis.dir <- if (is.na(this.file)) getwd() else dirname(normalizePath(this.file))
+while (!file.exists(file.path(analysis.dir, "config.R")) &&
+       dirname(analysis.dir) != analysis.dir) analysis.dir <- dirname(analysis.dir)
+source(file.path(analysis.dir, "config.R"))
+current_aging <- BAYRC_AGING_DIR
+
+mcmc_age = readRDS(file.path(current_aging, "data/mcmc_young_old.rds"))
 
 
 # Track total execution time
@@ -30,12 +39,12 @@ mcmc_age = readRDS("/home/qtp1/Projects/Collaborative/Paper/Congruence/PNAS_agin
 #     ncores = 2, 
 #     parallel = FALSE,
 #     B = 100000,
-#     output.dir = "/home/qtp1/Projects/Collaborative/Paper/Congruence/PNAS_aging/results/brain_regions/Conservation_Pathway_Test_100000"  
+#     output.dir = file.path(current_aging, "results/brain_regions/Conservation_Pathway_Test_100000")  
 #   )
 # })
 library(openxlsx)
 
-output.dir = "/home/qtp1/Projects/Collaborative/Paper/Congruence/PNAS_aging/results/brain_regions/Conservation_Pathway_Test_1e6"  
+output.dir = file.path(current_aging, "results/brain_regions/Conservation_Pathway_Test_1e6")  
 if (!dir.exists(output.dir)) {
   dir.create(output.dir, recursive = TRUE, showWarnings = FALSE)
 }
@@ -296,7 +305,7 @@ for(test_pathway in pathways_to_analyze) {
       pathway_name = test_pathway,
       BF_threshold = 2,
       p_rhythmic = 0.20,
-      save_path = "/home/qtp1/Projects/Collaborative/Paper/Congruence/PNAS_aging/results/brain_regions/plot/heatmap"
+      save_path = file.path(current_aging, "results/brain_regions/plot/heatmap")
     )
     cat("  Successfully created plot for", test_pathway, "\n")
   }, error = function(e) {

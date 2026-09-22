@@ -4,24 +4,21 @@
 rm(list=ls())
 
 #── Paths ─────────────────────────────────────────────────────────────────────────
-current_gtex <- "/home/qtp1/Projects/Collaborative"
-current_wd   <- "/home/qtp1/Projects/Circadian"
-current_aging <- "/home/qtp1/Projects/Collaborative/Paper/Congruence/PNAS_aging"
-
-
-current_gtex <- "/Users/thienpham/Library/CloudStorage/OneDrive-UniversityofPittsburgh/Projects/Collaborative"
-current_wd   <- "/Users/thienpham/Library/CloudStorage/OneDrive-UniversityofPittsburgh/Projects/Circadian"
-current_aging <- "/Users/thienpham/Library/CloudStorage/OneDrive-UniversityofPittsburgh/Collaborative/Paper/Congruence/PNAS_aging"
-
+# Paths come from config.R; override any of them with the matching env var.
+bayrc.needs.summary <- FALSE
+this.file <- sub("^--file=", "", grep("^--file=", commandArgs(), value = TRUE)[1])
+analysis.dir <- if (is.na(this.file)) getwd() else dirname(normalizePath(this.file))
+while (!file.exists(file.path(analysis.dir, "config.R")) &&
+       dirname(analysis.dir) != analysis.dir) analysis.dir <- dirname(analysis.dir)
+source(file.path(analysis.dir, "config.R"))
+current_gtex <- BAYRC_DATA_DIR
+current_wd   <- BAYRC_WD_DIR
+current_aging <- BAYRC_AGING_DIR
 
 
 #── Load BA11 and BA47 data ──────────────────────────────────────────────────────
 BA11 <- readRDS(file.path(current_aging, "data/BA11_data.rds"))
 BA47 <- readRDS(file.path(current_aging, "data/BA47_data.rds"))
-#local 
-BA11<- readRDS("/Users/thienpham/Library/CloudStorage/OneDrive-UniversityofPittsburgh/Projects/Collaborative/Paper/Congruence/PNAS_aging/data/BA11_data.rds")
-BA47<- readRDS("/Users/thienpham/Library/CloudStorage/OneDrive-UniversityofPittsburgh/Projects/Collaborative/Paper/Congruence/PNAS_aging/data/BA47_data.rds")
-COMBINED <- readRDS("/Users/thienpham/Library/CloudStorage/OneDrive-UniversityofPittsburgh/Projects/Collaborative/Paper/Congruence/PNAS_aging/data/combined_data.rds")
 
 #--Process combined data ---
 COMBINED <- readRDS(file.path(current_aging, "data/combined_data.rds"))
@@ -129,7 +126,7 @@ load(file.path(BAYRC_PATHWAY_DIR, "hw_orth.RData"))
 load(file.path(BAYRC_PATHWAY_DIR, "human.pathway.list.RData"))
 load(file.path(BAYRC_PATHWAY_DIR, "go.pathway.list_hsa.RData"))
 
-source("/home/qtp1/Projects/Pipeline/one_cosinor_OLS_new.R")
+source(bayrc_file(BAYRC_PIPELINE_DIR, "one_cosinor_OLS_new.R"))
 
 #── Source R scripts ─────────────────────────────────────────────────────────────
 WD <- dirname(BAYRC_PACKAGE_DIR)

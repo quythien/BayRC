@@ -31,11 +31,11 @@ fig_dir <- BAYRC_OUTPUT_DIR
 panels <- list(
   Fig2A_genomewide = list(
     csv   = file.path(fig_dir, "all_plots", "Baboon_Concordance_Matrix.csv"),
-    title = "Genome-wide rhythmicity"),
+    title = "Genome-wide rhythmicity concordance"),
   Fig2B_circadian = list(
     csv   = file.path(fig_dir, "heatmap_circadian_pairs", "within_baboon",
                       "pairwise_concordance_baboon_circadian_Matrix.csv"),
-    title = "Circadian pathway")
+    title = "Circadian pathway concordance")
 )
 
 off_max <- setNames(numeric(length(panels)), names(panels))
@@ -51,17 +51,26 @@ for (stem in names(panels)) {
 
   # the assembler gives each panel half the figure width, so a wide canvas is
   # scaled down twice over and the tissue codes stop being readable in print
-  cairo_pdf(file.path(outdir, paste0(stem, ".pdf")), width = 7, height = 7)
-  pheatmap(m,
-           cluster_rows  = hclust(d, method = "ward.D2"),
-           cluster_cols  = hclust(d, method = "ward.D2"),
-           color         = concordance_colors,
-           breaks        = concordance_breaks,
-           border_color  = NA,
-           main          = p$title,
-           fontsize      = 14,
-           legend        = FALSE)
-  dev.off()
+  # pheatmap takes the title from fontsize and the labels from their own. The
+  # column layout gives these panels a quarter of the page and the two-by-two a
+  # narrower slot than the panels below, so each variant carries its own sizes.
+  for (v in list(list(suffix = "",        base = 16,   label = 16),
+                 list(suffix = "_nature", base = 14.95, label = 12.2))) {
+    cairo_pdf(file.path(outdir, paste0(stem, v$suffix, ".pdf")),
+              width = 7, height = 7)
+    pheatmap(m,
+             cluster_rows  = hclust(d, method = "ward.D2"),
+             cluster_cols  = hclust(d, method = "ward.D2"),
+             color         = concordance_colors,
+             breaks        = concordance_breaks,
+             border_color  = NA,
+             main          = p$title,
+             fontsize      = v$base,
+             fontsize_row  = v$label,
+             fontsize_col  = v$label,
+             legend        = FALSE)
+    dev.off()
+  }
 
   off <- m[row(m) != col(m)]
   off_max[stem] <- max(off)
@@ -86,11 +95,23 @@ concordance_bar <- ComplexHeatmap::Legend(
   col_fun = concordance_fun, title = "Adjusted c-score",
   at = concordance_legend, labels = bar_labels,
   direction = "horizontal", legend_width = unit(7, "cm"),
-  title_position = "lefttop", title_gp = gpar(fontsize = 10, fontface = "bold"),
-  labels_gp = gpar(fontsize = 9))
+  title_position = "lefttop", title_gap = unit(3, "mm"),
+  title_gp = gpar(fontsize = 10.7, fontface = "bold"),
+  labels_gp = gpar(fontsize = 10.1))
 # the end label is wider than the tick it sits on, so it needs room to its right
 save_legend_grob(concordance_bar@grob, file.path(outdir, "Fig2_concordance_legend"),
                  right = 0.3)
+
+concordance_bar_v <- ComplexHeatmap::Legend(
+  col_fun = concordance_fun, title = "Adjusted c-score",
+  at = concordance_legend, labels = bar_labels,
+  direction = "vertical", legend_height = unit(6.4, "cm"),
+  grid_width = unit(6, "mm"), title_position = "topleft",
+  title_gap = unit(3.5, "mm"),
+  title_gp = gpar(fontsize = 12, fontface = "bold"),
+  labels_gp = gpar(fontsize = 11))
+save_legend_grob(concordance_bar_v@grob,
+                 file.path(outdir, "Fig2_concordance_legend_vertical"))
 
 write_run_record(file.path(outdir, "run_record.txt"), "plots/replot_figure2.R",
                  c(list(colour_cap = concordance_max,

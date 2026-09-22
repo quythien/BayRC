@@ -58,7 +58,11 @@ if (!requireNamespace("devtools", quietly = TRUE))
 # Option 1: installed package
 # library(BayRC)
 
-# Option 2: load from source during development
-BAYRC_ROOT <- "/home/qtp1/Projects/Circadian/Kyle/Circadian-analysis-main/R/v1/BayRC"
+# Option 2: load from source during development. The checkout is the one this
+# script sits in; BAYRC_PACKAGE_DIR points at another.
+this.file <- sub("^--file=", "", grep("^--file=", commandArgs(), value = TRUE)[1])
+BAYRC_ROOT <- Sys.getenv("BAYRC_PACKAGE_DIR",
+                         unset = if (is.na(this.file)) getwd() else
+                           dirname(dirname(normalizePath(this.file))))
 devtools::load_all(BAYRC_ROOT)
 message("BayRC loaded successfully.")

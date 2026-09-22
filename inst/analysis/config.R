@@ -9,19 +9,37 @@
 #   export BAYRC_DATA_DIR=/path/to/your/data
 #   Rscript inst/analysis/applications/Baboon_PUT_SUN.R
 
-BAYRC_DATA_DIR    <- Sys.getenv("BAYRC_DATA_DIR",
-                       unset = "/home/qtp1/Projects/Collaborative")
+# Every default is derived from where this file sits: inst/analysis inside the
+# package checkout, which in turn sits at Kyle/Circadian-analysis-main/R/v1/BayRC
+# under the Circadian project directory, with the collaborative data beside that
+# directory. A checkout placed elsewhere sets the variables instead.
+.config.file <- local({
+  for (f in rev(sys.frames()))
+    if (is.character(f$ofile)) return(normalizePath(f$ofile))
+  file.path(getwd(), "config.R")
+})
+.up <- function(path, n) {
+  for (i in seq_len(n)) path <- dirname(path)
+  path
+}
+BAYRC_PACKAGE_DIR <- Sys.getenv("BAYRC_PACKAGE_DIR",
+                       unset = .up(.config.file, 3))
 BAYRC_WD_DIR      <- Sys.getenv("BAYRC_WD_DIR",
-                       unset = "/home/qtp1/Projects/Circadian")
+                       unset = .up(BAYRC_PACKAGE_DIR, 5))
+BAYRC_DATA_DIR    <- Sys.getenv("BAYRC_DATA_DIR",
+                       unset = file.path(dirname(BAYRC_WD_DIR), "Collaborative"))
 BAYRC_AGING_DIR   <- Sys.getenv("BAYRC_AGING_DIR",
                        unset = file.path(BAYRC_DATA_DIR,
                                          "Paper/Congruence/PNAS_aging"))
-BAYRC_PACKAGE_DIR <- Sys.getenv("BAYRC_PACKAGE_DIR",
-                       unset = file.path(BAYRC_WD_DIR,
-                                         "Kyle/Circadian-analysis-main/R/v1/BayRC"))
-BAYRC_PATHWAY_DIR <- Sys.getenv("BAYRC_PATHWAY_DIR",
-                       unset = file.path(BAYRC_WD_DIR,
-                                         "Kyle/Circadian-analysis-main/R/pathway_data"))
+# The pathway lists are read from R/pathway_data beside the checkout where that
+# directory exists, and otherwise from the copies the package ships in extdata.
+BAYRC_PATHWAY_DIR <- Sys.getenv("BAYRC_PATHWAY_DIR", unset = "")
+if (!nzchar(BAYRC_PATHWAY_DIR)) {
+  .pathway <- c(file.path(BAYRC_WD_DIR, "Kyle/Circadian-analysis-main/R/pathway_data"),
+                file.path(BAYRC_PACKAGE_DIR, "inst", "extdata"),
+                system.file("extdata", package = "BayRC"))
+  BAYRC_PATHWAY_DIR <- .pathway[c(which(dir.exists(.pathway)), 1)[1]]
+}
 # The helper sources the analysis scripts pull in sit beside the package in some
 # checkouts and inside it in others, so both are tried before either is assumed.
 BAYRC_THIEN_DIR   <- Sys.getenv("BAYRC_THIEN_DIR", unset = "")
@@ -54,6 +72,17 @@ BAYRC_OUTPUT_DIR  <- Sys.getenv("BAYRC_OUTPUT_DIR",
 BAYRC_FIGURE_DIR  <- Sys.getenv("BAYRC_FIGURE_DIR",
                        unset = file.path(BAYRC_AGING_DIR, "all_plots"))
 
+# A file outside the repository is reached through the variable that locates
+# it, so a missing one names what to set.
+bayrc_file <- function(dir, ...) {
+  path <- file.path(dir, ...)
+  if (!file.exists(path))
+    stop("config.R: ", path, " does not exist.\n  Set env var ",
+         deparse(substitute(dir)), " to the directory holding ",
+         paste(..., collapse = "/"), ".", call. = FALSE)
+  path
+}
+
 # Validate that critical directories exist and warn if not
 .check_dir <- function(path, name) {
   if (!dir.exists(path))
@@ -64,7 +93,8 @@ BAYRC_FIGURE_DIR  <- Sys.getenv("BAYRC_FIGURE_DIR",
 .check_dir(BAYRC_WD_DIR,      "BAYRC_WD_DIR")
 .check_dir(BAYRC_PATHWAY_DIR, "BAYRC_PATHWAY_DIR")
 .check_dir(BAYRC_RESULT_DIR,  "BAYRC_RESULT_DIR")
-rm(.check_dir)
+rm(.check_dir, .config.file, .up)
+suppressWarnings(rm(.pathway, .thien))
 
 # Output directories are created rather than warned about, since a fresh
 # checkout will not have them yet.

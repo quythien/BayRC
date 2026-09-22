@@ -1,10 +1,17 @@
 rm(list = ls())
 
-current_gtex   <- "/home/qtp1/Projects/Collaborative"
-current_wd     <- "/home/qtp1/Projects/Circadian"
-current_aging  <- "/home/qtp1/Projects/Collaborative/Paper/Congruence/PNAS_aging"
+# Paths come from config.R; override any of them with the matching env var.
+bayrc.needs.summary <- FALSE
+this.file <- sub("^--file=", "", grep("^--file=", commandArgs(), value = TRUE)[1])
+analysis.dir <- if (is.na(this.file)) getwd() else dirname(normalizePath(this.file))
+while (!file.exists(file.path(analysis.dir, "config.R")) &&
+       dirname(analysis.dir) != analysis.dir) analysis.dir <- dirname(analysis.dir)
+source(file.path(analysis.dir, "config.R"))
+current_gtex   <- BAYRC_DATA_DIR
+current_wd     <- BAYRC_WD_DIR
+current_aging  <- BAYRC_AGING_DIR
 
-outdir <- "/home/qtp1/Projects/Collaborative/Paper/Congruence/PNAS_aging/all_plots"
+outdir <- file.path(current_aging, "all_plots")
 
 base_result_dir <- file.path(current_aging, "results", "brain_regions")
 final_results_extended <- readRDS(file.path(base_result_dir, "final_brain_circadian_results_extended.RDS"))
@@ -60,7 +67,7 @@ load(file.path(BAYRC_PATHWAY_DIR, "human.pathway.list.RData"))
 load(file.path(BAYRC_PATHWAY_DIR, "go.pathway.list_hsa.RData"))
 
 kegg.pathway.list_hsa <- readRDS(
-  "/home/qtp1/Projects/Circadian/Kyle/Circadian-analysis-main/R/pathway_data/kegg_pathway_list_hsa.rds"
+  file.path(BAYRC_PATHWAY_DIR, "kegg_pathway_list_hsa.rds")
 )
 
 #── Source R scripts ─────────────────────────────────────────────────────────────
@@ -104,7 +111,7 @@ older <- list(
 #---------------------------------------------------------------------------------
 # Global concordance score 
 #---------------------------------------------------------------------------------
-output.dir <- "/home/qtp1/Projects/Collaborative/Paper/Congruence/PNAS_aging/results/brain_regions/output_final"
+output.dir <- file.path(current_aging, "results/brain_regions/output_final")
 if (!dir.exists(output.dir)) {
   dir.create(output.dir, recursive = TRUE, showWarnings = FALSE)
 }
@@ -421,7 +428,7 @@ pathway_size_min <- 10
 pathway_size_max <- 300
 
 # Set output directory
-output.dir <- "/home/qtp1/Projects/Collaborative/Paper/Congruence/PNAS_aging/results/baboon/output_final"
+output.dir <- file.path(current_aging, "results/baboon/output_final")
 dir.create(output.dir, recursive = TRUE, showWarnings = FALSE)
 
 ################################################################################
@@ -677,7 +684,7 @@ trans_outer <- transition_classify(pA, pB, bfdr_alpha = 0.25)
 # )
 
 pathways_to_plot = relevant_pathways
-source("/home/qtp1/Projects/Collaborative/Paper/Congruence/PNAS_aging/code/heatmap.R")
+source(file.path(current_aging, "code/heatmap.R"))
 
 cat("\n=== PLOTTING PATHWAYS FOR BABOON vs HUMAN LIV ===\n")
 if (!dir.exists(tempdir())) {

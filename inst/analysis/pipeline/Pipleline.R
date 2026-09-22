@@ -1,9 +1,16 @@
 #── Paths ─────────────────────────────────────────────────────────────────────────
-current_gtex <- "/home/qtp1/Projects/Collaborative"
-current_wd   <- "/home/qtp1/Projects/Circadian"
-current_aging <- "/home/qtp1/Projects/Collaborative/Paper/Congruence/PNAS_aging"
-output = "/home/qtp1/Projects/Collaborative/Paper/Congruence/PNAS_aging/output"
-source("/home/qtp1/Projects/Pipeline/one_cosinor_OLS_new.R")
+# Paths come from config.R; override any of them with the matching env var.
+bayrc.needs.summary <- FALSE
+this.file <- sub("^--file=", "", grep("^--file=", commandArgs(), value = TRUE)[1])
+analysis.dir <- if (is.na(this.file)) getwd() else dirname(normalizePath(this.file))
+while (!file.exists(file.path(analysis.dir, "config.R")) &&
+       dirname(analysis.dir) != analysis.dir) analysis.dir <- dirname(analysis.dir)
+source(file.path(analysis.dir, "config.R"))
+current_gtex <- BAYRC_DATA_DIR
+current_wd   <- BAYRC_WD_DIR
+current_aging <- BAYRC_AGING_DIR
+output = file.path(current_aging, "output")
+source(bayrc_file(BAYRC_PIPELINE_DIR, "one_cosinor_OLS_new.R"))
 # 
 
 library(KEGGREST)
@@ -27,12 +34,6 @@ biomart_cache <- file.path(tempdir(), "biomart")
 if (dir.exists(biomart_cache)) {
   unlink(biomart_cache, recursive = TRUE)
 }
-
-current_gtex <- "/Users/thienpham/Library/CloudStorage/OneDrive-UniversityofPittsburgh/Projects/Collaborative"
-current_wd   <- "/Users/thienpham/Library/CloudStorage/OneDrive-UniversityofPittsburgh/Projects/Circadian"
-current_aging <- "/Users/thienpham/Library/CloudStorage/OneDrive-UniversityofPittsburgh/Projects/Collaborative/Paper/Congruence/PNAS_aging"
-output = "/Users/thienpham/Library/CloudStorage/OneDrive-UniversityofPittsburgh/Projects/Collaborative/Paper/Congruence/PNAS_aging/output"
-source("/Users/thienpham/Library/CloudStorage/OneDrive-UniversityofPittsburgh/Projects/Pipeline/one_cosinor_OLS_new.R")
 
 #base_result_dir <- file.path(current_aging, "results", "brain_regions")
 options(width = 10000)
@@ -66,8 +67,8 @@ load(file.path(BAYRC_PATHWAY_DIR, "hw_orth.RData"))
 load(file.path(BAYRC_PATHWAY_DIR, "human.pathway.list.RData"))
 load(file.path(BAYRC_PATHWAY_DIR, "go.pathway.list_hsa.RData"))
 
-kegg.pathway.list_hsa <- readRDS("/Users/thienpham/Library/CloudStorage/OneDrive-UniversityofPittsburgh/Projects/Collaborative/Paper/Congruence/PNAS_aging/kegg_pathway_list_hsa.rds")
-#kegg.pathway.list_hsa <- readRDS("/home/qtp1/Projects/Circadian/Kyle/Circadian-analysis-main/R/pathway_data/kegg_pathway_list_hsa.rds")
+kegg.pathway.list_hsa <- readRDS(file.path(current_aging, "kegg_pathway_list_hsa.rds"))
+#kegg.pathway.list_hsa <- readRDS(file.path(BAYRC_PATHWAY_DIR, "kegg_pathway_list_hsa.rds"))
 
 #── Source R scripts ─────────────────────────────────────────────────────────────
 WD <- dirname(BAYRC_PACKAGE_DIR)
@@ -76,9 +77,8 @@ scripts <- list.files("R", full.names=TRUE)
 sapply(scripts, source)
 
 #── Real Data ─────────────────────────────────────────────────────────────
-#source("/home/qtp1/Projects/Circadian/Kyle/Circadian-analysis-main/R/src/Thien/Permutation_Sim.R")
-source("/Users/thienpham/Library/CloudStorage/OneDrive-UniversityofPittsburgh/Projects/Circadian/Kyle/Circadian-analysis-main/R/src/Thien/Permutation_Sim.R")
-mcmc_age = readRDS("/Users/thienpham/Library/CloudStorage/OneDrive-UniversityofPittsburgh/Projects/Collaborative/Paper/Congruence/PNAS_aging/data/mcmc_young_old.rds")
+source(file.path(current_wd, "Kyle/Circadian-analysis-main/R/src/Thien/Permutation_Sim.R"))
+mcmc_age = readRDS(file.path(current_aging, "data/mcmc_young_old.rds"))
 
 # Heatmap ─────────────────────────────────────────────────────────────
 COMBINED <- readRDS(file.path(current_aging, "data/combined_data.rds"))
@@ -230,7 +230,7 @@ to_zt <- function(t_cos) ifelse(t_cos >= 18, t_cos - 24, t_cos)
 
 # Load data
 full_output <- readxl::read_excel(
-  "/Users/thienpham/Library/CloudStorage/OneDrive-UniversityofPittsburgh/Projects/Collaborative/Paper/Congruence/PNAS_aging/results/brain_regions/all_genes_merged.xlsx",
+  file.path(current_aging, "results/brain_regions/all_genes_merged.xlsx"),
   sheet = 1
 )
 
@@ -342,7 +342,7 @@ p
 #───────────────────────────────────────────────────────────────
 # Save
 #───────────────────────────────────────────────────────────────
-save_dir <- "/Users/thienpham/Library/CloudStorage/OneDrive-UniversityofPittsburgh/Projects/Collaborative/Paper/Congruence/PNAS_aging/figure/cosinor"
+save_dir <- file.path(current_aging, "figure/cosinor")
 dir.create(save_dir, showWarnings = FALSE)
 ggsave(file.path(save_dir, "Peak_Concordance_Plot_ZT_NoShade.pdf"),
        plot = p, width = 9, height = 8)
@@ -438,7 +438,7 @@ plot_gene_cosinor <- function(gene_list, COMBINED_data, df, period = 24, alpha =
   # ⃣ Save all genes to individual PDFs
   #──────────────────────────────────────────────
   if (missing(save_path) || is.null(save_path) || save_path == "") {
-    save_path <- "/Users/thienpham/Library/CloudStorage/OneDrive-UniversityofPittsburgh/Projects/Collaborative/Paper/Congruence/PNAS_aging/figure/cosinor"
+    save_path <- file.path(current_aging, "figure/cosinor")
     cat("save_path not provided — using default path:\n", save_path, "\n")
   } else {
     cat("Using user-defined save_path:\n", save_path, "\n")
@@ -583,7 +583,7 @@ p_shift <- plot_cos(df_BHLHE40, "Phase-Shifted Biomarker", "BHLHE40")
 #──────────────────────────────────────────────
 # Save to PDF
 #──────────────────────────────────────────────
-save_path <- "/Users/thienpham/Library/CloudStorage/OneDrive-UniversityofPittsburgh/Projects/Collaborative/Paper/Congruence/PNAS_aging/figure/cosinor"
+save_path <- file.path(current_aging, "figure/cosinor")
 pdf_file <- file.path(save_path, "BHLHE41_40__cosinor.pdf")
 library(grid)
 
@@ -601,18 +601,13 @@ dev.off()
 # Speed 5 
 
 # Step 0: Run MCMC and get the output 
-mcmc_age = readRDS("/home/qtp1/Projects/Collaborative/Paper/Congruence/PNAS_aging/data/mcmc_young_old.rds")
-
-# /home/qtp1/Projects/Collaborative/Paper/Congruence/PNAS_aging/results/brain_regions
-
-mcmc_age = readRDS("/Users/thienpham/Library/CloudStorage/OneDrive-UniversityofPittsburgh/Projects/Collaborative/Paper/Congruence/PNAS_aging/data/mcmc_young_old.rds")
+mcmc_age = readRDS(file.path(current_aging, "data/mcmc_young_old.rds"))
 # mcmc_age <- readRDS(
-#   "/Users/thienpham/Library/CloudStorage/OneDrive-UniversityofPittsburgh/Projects/Collaborative/Paper/Congruence/PNAS_aging/data/mcmc_BA1147.rds"
+#   file.path(current_aging, "data/mcmc_BA1147.rds")
 # )
-mcmc_full <- readRDS("/home/qtp1/Projects/Collaborative/Paper/Congruence/PNAS_aging/results/brain_regions/final_brain_circadian_results.RDS")
+mcmc_full <- readRDS(file.path(current_aging, "results/brain_regions/final_brain_circadian_results.RDS"))
 
-#full_output <- readxl::read_excel("/home/qtp1/Projects/Collaborative/Paper/Congruence/PNAS_aging/results/brain_regions/all_genes_merged.xlsx", sheet = 1)
-full_output <- readxl::read_excel("/Users/thienpham/Library/CloudStorage/OneDrive-UniversityofPittsburgh/Projects/Collaborative/Paper/Congruence/PNAS_aging/results/brain_regions/all_genes_merged.xlsx", sheet = 1)
+full_output <- readxl::read_excel(file.path(current_aging, "results/brain_regions/all_genes_merged.xlsx"), sheet = 1)
 
 
 #--- Note ---#
@@ -671,19 +666,18 @@ library(KEGGREST)
 # 
 # close(pb)
 # cat("\nDone! Processed", length(kegg.pathway.list_hsa), "pathways\n")
-# saveRDS(kegg.pathway.list_hsa, "/Users/thienpham/Library/CloudStorage/OneDrive-UniversityofPittsburgh/Projects/Collaborative/Paper/Congruence/PNAS_aging/kegg_pathway_list_hsa.rds")
+# saveRDS(kegg.pathway.list_hsa, file.path(current_aging, "kegg_pathway_list_hsa.rds"))
 
 #───────────────────────────────────────────────────────────────
 # Analytical part 
 
 #───────────────────────────────────────────────────────────────
 # Global concordance score 
-output.dir <- "/Users/thienpham/Library/CloudStorage/OneDrive-UniversityofPittsburgh/Projects/Collaborative/Paper/Congruence/PNAS_aging/results/brain_regions/playground"
-# output.dir <- "/home/qtp1/Projects/Collaborative/Paper/Congruence/PNAS_aging/results/brain_regions/output_final"
+output.dir <- file.path(current_aging, "results/brain_regions/playground")
+# output.dir <- file.path(current_aging, "results/brain_regions/output_final")
 
 Rcpp::sourceCpp(file.path(current_wd, "Kyle/Circadian-analysis-main/R/src/Thien/congruence.cpp"))# Global concordance score 
-source("/Users/thienpham/Library/CloudStorage/OneDrive-UniversityofPittsburgh/Projects/Circadian/Kyle/Circadian-analysis-main/R/src/Thien/Permutation_Sim.R")
-# source("/home/qtp1/Projects/Circadian/Kyle/Circadian-analysis-main/R/src/Thien/Permutation_Sim.R")
+source(file.path(current_wd, "Kyle/Circadian-analysis-main/R/src/Thien/Permutation_Sim.R"))
 
 # Analyze ALL genes together
 # Ci needs a lot more time 
@@ -813,7 +807,7 @@ results_summary <- data.frame(
 
 results_summary
 
-mcmc_full <- readRDS("/home/qtp1/Projects/Collaborative/Paper/Congruence/PNAS_aging/results/brain_regions/final_brain_circadian_results.RDS")
+mcmc_full <- readRDS(file.path(current_aging, "results/brain_regions/final_brain_circadian_results.RDS"))
 
 
 #───────────────────────────────────────────────────────────────
@@ -876,7 +870,7 @@ trans <- transition_classify(pYoung, pOld, 0.25)
 table(trans$gain_loss_status)
 View(trans$results)
 write.xlsx(trans$results,
-           file = "/Users/thienpham/Library/CloudStorage/OneDrive-UniversityofPittsburgh/Projects/Collaborative/Paper/Congruence/PNAS_aging/transition_Young_Old_bfdr_0.25.xlsx",
+           file = file.path(current_aging, "transition_Young_Old_bfdr_0.25.xlsx"),
            sheetName = "Transition_0.25_Young_Old",
            rowNames = FALSE)
 
@@ -1089,7 +1083,7 @@ plot_gene_cosinor(
   df = df,
   period = 24,
   alpha = 0.05,
-  save_path = "/Users/thienpham/Library/CloudStorage/OneDrive-UniversityofPittsburgh/Projects/Collaborative/Paper/Congruence/PNAS_aging/figure/cosinor/conserved"
+  save_path = file.path(current_aging, "figure/cosinor/conserved")
 )
 
 
@@ -1382,7 +1376,7 @@ coord_polar(start = -pi/2, direction = 1) +
   )
 
 print(p)
-save_path <- "/Users/thienpham/Library/CloudStorage/OneDrive-UniversityofPittsburgh/Projects/Collaborative/Paper/Congruence/PNAS_aging/figure"
+save_path <- file.path(current_aging, "figure")
 pdf_file <- file.path(save_path, "clock_plot_combined_2.pdf")
 png_file <- file.path(save_path, "clock_plot_combined_@.png")
 
@@ -1640,7 +1634,7 @@ to_zt <- function(t_cos) ifelse(t_cos >= 18, t_cos - 24, t_cos)
 # Load peak data
 #───────────────────────────────────────────────────────────────
 full_output <- read_excel(
-  "/Users/thienpham/Library/CloudStorage/OneDrive-UniversityofPittsburgh/Projects/Collaborative/Paper/Congruence/PNAS_aging/results/brain_regions/all_genes_merged.xlsx",
+  file.path(current_aging, "results/brain_regions/all_genes_merged.xlsx"),
   sheet = 1
 )
 
@@ -1878,7 +1872,7 @@ p
 #───────────────────────────────────────────────────────────────
 # Save
 #───────────────────────────────────────────────────────────────
-save_dir <- "/Users/thienpham/Library/CloudStorage/OneDrive-UniversityofPittsburgh/Projects/Collaborative/Paper/Congruence/PNAS_aging/figure/cosinor"
+save_dir <- file.path(current_aging, "figure/cosinor")
 dir.create(save_dir, showWarnings = FALSE)
 ggsave(file.path(save_dir, "Peak_Concordance_Plot_Maintained_conserved.pdf"),
        plot = p, width = 9, height = 8)
@@ -2285,7 +2279,7 @@ conditionalFormatting(
 
 cat("Expected counts summary sheet added with organized columns.\n")
 cat("Expected counts summary sheet added with organized columns.\n")
-saveWorkbook(wb, "/Users/thienpham/Library/CloudStorage/OneDrive-UniversityofPittsburgh/Projects/Collaborative/Paper/Congruence/PNAS_aging/pathway_results_filtered.xlsx", overwrite = TRUE)
+saveWorkbook(wb, file.path(current_aging, "pathway_results_filtered.xlsx"), overwrite = TRUE)
 
 
 
@@ -2315,7 +2309,7 @@ phase_inner_01 <- phase_infer(
   P = 24
 )
 
-source("/Users/thienpham/Library/CloudStorage/OneDrive-UniversityofPittsburgh/Projects/Collaborative/Paper/Congruence/PNAS_aging/code/heatmap.R")
+source(file.path(current_aging, "code/heatmap.R"))
 
 
 ###############################################
@@ -2382,7 +2376,7 @@ conserved_pathways <- c(
 # SET UP OUTPUT DIRECTORIES
 ###############################################
 
-base_path <- "/Users/thienpham/Library/CloudStorage/OneDrive-UniversityofPittsburgh/Projects/Collaborative/Paper/Congruence/PNAS_aging/results/brain_regions/output_final/heatmap_new"
+base_path <- file.path(current_aging, "results/brain_regions/output_final/heatmap_new")
 
 dirs <- c("GAIN", "LOSS", "CONSERVATION", "OTHER")
 for (d in dirs) dir.create(file.path(base_path, d), showWarnings = FALSE, recursive = TRUE)
@@ -2542,7 +2536,7 @@ print(tasks)
 # CREATE OUTPUT DIRECTORIES
 # ============================================
 
-base_path <- "/Users/thienpham/Library/CloudStorage/OneDrive-UniversityofPittsburgh/Projects/Collaborative/Paper/Congruence/PNAS_aging/results/brain_regions/output_final/module"
+base_path <- file.path(current_aging, "results/brain_regions/output_final/module")
 if(!dir.exists(base_path)) dir.create(base_path, recursive = TRUE)
 
 out_base <- file.path(base_path, "out")

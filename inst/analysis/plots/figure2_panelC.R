@@ -67,33 +67,105 @@ p <- ggplot(cells, aes(tissue, gene, fill = posterior)) +
   geom_tile(colour = "white", linewidth = .4) +
   # a ring on the cells that clear the threshold, so the panel carries the call
   # as well as the posterior behind it
-  geom_point(data = cells[cells$called, ], shape = 21, size = 1.15,
+  geom_point(data = cells[cells$called, ],
+             aes(shape = "Called rhythmic at BFDR"), size = 1.15,
              fill = NA, colour = "white", stroke = .55) +
+  scale_shape_manual(name = NULL, values = c(`Called rhythmic at BFDR` = 21),
+                     labels = sprintf("Called rhythmic at BFDR = %.2f", bfdr_alpha)) +
   facet_grid(~ block, scales = "free_x", space = "free_x") +
   scale_fill_gradientn(colours = concordance_colors, limits = c(0, 1),
                        name = expression(Pr(rho == 1))) +
+  guides(shape = "none") +
   scale_x_discrete(expand = c(0, 0)) +
   scale_y_discrete(expand = c(0, 0)) +
   labs(title = "Rhythmic membership of the circadian pathway",
-       subtitle = sprintf("Posterior probability that the gene is rhythmic in that tissue; a ring marks the genes called rhythmic at BFDR = %.2f",
+       subtitle = sprintf("Posterior probability of rhythmicity; ○ marks genes called rhythmic at BFDR = %.2f",
                           bfdr_alpha),
        x = NULL, y = NULL) +
   theme_bayrc(base_size = 14) +
   # this panel spans the figure while A and B take half of it each, so its type
   # is set smaller here to print at the same size as theirs
-  theme(plot.title = element_text(face = "bold", size = 11.5),
-        plot.subtitle = element_text(size = 9.5, margin = margin(b = 6)),
-        axis.text.x = element_text(size = 10, angle = 90, vjust = .5, hjust = 1),
-        axis.text.y = element_text(size = 10, face = "italic"),
-        strip.text = element_text(face = "bold", size = 12),
+  theme(plot.title = element_text(face = "bold", size = 18),
+        plot.subtitle = element_text(size = 14, margin = margin(b = 7)),
+        axis.text.x = element_text(size = 15, angle = 90, vjust = .5, hjust = 1),
+        axis.text.y = element_text(size = 15, face = "italic"),
+        strip.text = element_text(face = "bold", size = 15),
         strip.background = element_blank(),
         panel.grid = element_blank(),
         panel.spacing = unit(6, "pt"),
-        legend.position = "right")
+        legend.position = "right",
+        legend.title = element_text(size = 15, face = "bold"),
+        legend.text = element_text(size = 14),
+        legend.key.height = unit(13, "mm"))
 
 cairo_pdf(file.path(outdir, "Fig2C_circadian_membership.pdf"),
           width = 8.5, height = 5.4)
-print(p)
+# the column layout gives this panel the whole width of a column that holds two
+# panels side by side above it, so it is scaled up more than they are and its
+# type is set down by the same ratio
+print(p +
+      theme(plot.title = element_text(size = 12.5),
+            plot.subtitle = element_text(size = 9.5),
+            axis.text.x = element_text(size = 10),
+            axis.text.y = element_text(size = 10),
+            strip.text = element_text(size = 10),
+            # a block name is wider than the block it sits over
+            strip.clip = "off",
+            legend.title = element_text(size = 10.5),
+            legend.text = element_text(size = 9.5),
+            legend.key.width = unit(4, "mm"),
+            legend.key.height = unit(22, "mm")))
+dev.off()
+
+# The same panel for the two-by-two layout, where it sits beside the phase
+# heatmap. It is drawn on that panel's canvas so the two carry type at one size,
+# and the extra height gives each gene name a row taller than the name itself.
+cairo_pdf(file.path(outdir, "Fig2C_circadian_membership_nature.pdf"),
+          width = 9.375, height = 8.6)
+print(p +
+      # a blank name gives the ring key the title row the bar has, so the two
+      # keys stand on one line
+      # plotmath sets its own face, so the name is written out and left to the
+      # theme, which is what the panel beside it does
+      labs(subtitle = NULL) +
+      # plotmath sets its own face, so the name is written out here and left
+      # to the theme, which is what the panel beside it does
+      guides(fill = guide_colourbar(position = "right", direction = "vertical",
+               title = "Pr(\u03c1 = 1)",
+               title.hjust = .5,
+               barwidth = unit(6, "mm"), barheight = unit(62, "mm")),
+             shape = guide_legend(position = "bottom", direction = "horizontal",
+               title = NULL,
+               override.aes = list(size = 4.2, stroke = 1.2, colour = "white",
+                                   fill = NA))) +
+      theme(# the block names and the body are set to the heights the phase
+            # panel puts them at, so the two read across
+            plot.title = element_text(face = "bold", size = 24,
+                                      margin = margin(b = 14)),
+            strip.text = element_text(face = "bold", size = 17,
+                                      margin = margin(t = 0, b = 5.4)),
+            axis.text.x = element_text(size = 15),
+            axis.text.y = element_text(size = 15),
+            legend.position = "bottom",
+            legend.box.just = "top",
+            legend.key.height = unit(5, "mm"),
+            legend.key.width = unit(26, "mm"),
+            legend.title = element_text(size = 16, face = "bold",
+                                        margin = margin(b = 26)),
+            legend.text = element_text(size = 15),
+            # the ring is white, so its key needs a dark tile and an edge
+            legend.key = element_rect(fill = concordance_colors[185],
+                                      colour = "black", linewidth = .4),
+            legend.title.position = "top",
+            axis.ticks = element_blank(),
+            panel.spacing = unit(8.5, "pt"),
+            legend.margin = margin(t = 6, b = 34),
+            # a block name is wider than the block it sits over
+            strip.clip = "off",
+            # the phase panel keeps a right-hand column for its group names, so
+            # the same width is held back here and the two bodies stand over
+            # each other
+            plot.margin = margin(t = 7, r = 4, b = 5, l = 10)))
 dev.off()
 cat("Saving:", file.path(outdir, "Fig2C_circadian_membership.pdf"), "\n")
 

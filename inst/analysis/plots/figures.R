@@ -1,6 +1,15 @@
 # Load package
 ########################################
-COMBINED <- readRDS("/Users/thienpham/Library/CloudStorage/OneDrive-UniversityofPittsburgh/Projects/Collaborative/Paper/Congruence/PNAS_aging/data/combined_data.rds")
+# Paths come from config.R; override any of them with the matching env var.
+bayrc.needs.summary <- FALSE
+this.file <- sub("^--file=", "", grep("^--file=", commandArgs(), value = TRUE)[1])
+analysis.dir <- if (is.na(this.file)) getwd() else dirname(normalizePath(this.file))
+while (!file.exists(file.path(analysis.dir, "config.R")) &&
+       dirname(analysis.dir) != analysis.dir) analysis.dir <- dirname(analysis.dir)
+source(file.path(analysis.dir, "config.R"))
+current_aging <- BAYRC_AGING_DIR
+
+COMBINED <- readRDS(file.path(current_aging, "data/combined_data.rds"))
 
 prepare_combined_data <- function(combined_data) {
   cat("Debugging combined data preparation...\n")
@@ -141,7 +150,7 @@ COMBINED_data <- prepare_combined_data(COMBINED)
 #######################
 library(readxl)
 library(VennDiagram)
-file_path <- "/Users/thienpham/Library/CloudStorage/OneDrive-UniversityofPittsburgh/Projects/Collaborative/Paper/Congruence/PNAS_aging/results/brain_regions/all_genes_merged.xlsx"
+file_path <- file.path(current_aging, "results/brain_regions/all_genes_merged.xlsx")
 df <- read_excel(file_path, sheet = 1)
 library(readxl)
 library(VennDiagram)
@@ -151,9 +160,9 @@ library(readxl)
 library(VennDiagram)
 library(gridExtra)
 library(grid)
-source("/Users/thienpham/Library/CloudStorage/OneDrive-UniversityofPittsburgh/Projects/Pipeline/one_cosinor_OLS_new.R")
+source(bayrc_file(BAYRC_PIPELINE_DIR, "one_cosinor_OLS_new.R"))
 # Load
-file_path <- "/Users/thienpham/Library/CloudStorage/OneDrive-UniversityofPittsburgh/Projects/Collaborative/Paper/Congruence/PNAS_aging/results/brain_regions/all_genes_merged.xlsx"
+file_path <- file.path(current_aging, "results/brain_regions/all_genes_merged.xlsx")
 df <- read_excel(file_path, sheet = 1)
 
 genes <- df$Gene

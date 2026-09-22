@@ -1,8 +1,15 @@
 #── Paths ─────────────────────────────────────────────────────────────────────────
-current_gtex <- "/home/qtp1/Projects/Collaborative"
-current_wd   <- "/home/qtp1/Projects/Circadian"
-current_aging <- "/home/qtp1/Projects/Collaborative/Paper/Congruence/PNAS_aging"
-output = "/home/qtp1/Projects/Collaborative/Paper/Congruence/PNAS_aging/output"
+# Paths come from config.R; override any of them with the matching env var.
+bayrc.needs.summary <- FALSE
+this.file <- sub("^--file=", "", grep("^--file=", commandArgs(), value = TRUE)[1])
+analysis.dir <- if (is.na(this.file)) getwd() else dirname(normalizePath(this.file))
+while (!file.exists(file.path(analysis.dir, "config.R")) &&
+       dirname(analysis.dir) != analysis.dir) analysis.dir <- dirname(analysis.dir)
+source(file.path(analysis.dir, "config.R"))
+current_gtex <- BAYRC_DATA_DIR
+current_wd   <- BAYRC_WD_DIR
+current_aging <- BAYRC_AGING_DIR
+output = file.path(current_aging, "output")
 base_result_dir <- file.path(current_aging, "results", "brain_regions")
 options(width = Sys.getenv("COLUMNS"))
 #── Packages ─────────────────────────────────────────────────────────────────────
@@ -36,7 +43,7 @@ load(file.path(BAYRC_PATHWAY_DIR, "human.pathway.list.RData"))
 load(file.path(BAYRC_PATHWAY_DIR, "go.pathway.list_hsa.RData"))
 
 #── Benchmarking with cosinor results ────────────────────────────────────────────────────────────────
-source("/home/qtp1/Projects/Pipeline/one_cosinor_OLS_new.R")
+source(bayrc_file(BAYRC_PIPELINE_DIR, "one_cosinor_OLS_new.R"))
 
 #── Source R scripts ─────────────────────────────────────────────────────────────
 WD <- dirname(BAYRC_PACKAGE_DIR)
@@ -47,11 +54,10 @@ sapply(scripts, source)
 
 
 #── Real Data ─────────────────────────────────────────────────────────────
-source("/home/qtp1/Projects/Circadian/Kyle/Circadian-analysis-main/R/src/Thien/Permutation_Sim.R")
-source("/Users/thienpham/Library/CloudStorage/OneDrive-UniversityofPittsburgh/Projects/Circadian/Kyle/Circadian-analysis-main/R/src/Thien/Permutation_Sim.R")
-mcmc_age = readRDS("/home/qtp1/Projects/Collaborative/Paper/Congruence/PNAS_aging/data/mcmc_young_old.rds")
+source(file.path(current_wd, "Kyle/Circadian-analysis-main/R/src/Thien/Permutation_Sim.R"))
+mcmc_age = readRDS(file.path(current_aging, "data/mcmc_young_old.rds"))
 
-output.dir <- "/home/qtp1/Projects/Circadian/Kyle/Circadian-analysis-main/R/src/Thien"
+output.dir <- file.path(current_wd, "Kyle/Circadian-analysis-main/R/src/Thien")
 
 if (!dir.exists(output.dir)) {
   dir.create(output.dir, recursive = TRUE, showWarnings = FALSE)
@@ -69,13 +75,13 @@ result_bootstrap <- multi_conservation_pathway_bootstrap(
 require(openxlsx)
 
 # File paths
-file1 <- "/home/qtp1/Projects/Circadian/Kyle/Circadian-analysis-main/R/src/Thien/bootstrap_results/Conservation_Bootstrap_younger_vs_older.xlsx"
-file2 <- "/home/qtp1/Projects/Collaborative/Paper/Congruence/PNAS_aging/results/brain_regions/Conservation_Pathway_Test_1e6/Conservation_Results_2_datasets.xlsx"
+file1 <- file.path(current_wd, "Kyle/Circadian-analysis-main/R/src/Thien/bootstrap_results/Conservation_Bootstrap_younger_vs_older.xlsx")
+file2 <- file.path(current_aging, "results/brain_regions/Conservation_Pathway_Test_1e6/Conservation_Results_2_datasets.xlsx")
 require(openxlsx)
 
 # File paths
-file1 <- "/home/qtp1/Projects/Circadian/Kyle/Circadian-analysis-main/R/src/Thien/bootstrap_results/Conservation_Bootstrap_younger_vs_older.xlsx"
-file2 <- "/home/qtp1/Projects/Circadian/Kyle/Circadian-analysis-main/R/src/Thien/permutation/Conservation_Results_Permutation_100000_datasets.xlsx"
+file1 <- file.path(current_wd, "Kyle/Circadian-analysis-main/R/src/Thien/bootstrap_results/Conservation_Bootstrap_younger_vs_older.xlsx")
+file2 <- file.path(current_wd, "Kyle/Circadian-analysis-main/R/src/Thien/permutation/Conservation_Results_Permutation_100000_datasets.xlsx")
 
 # Read data
 bootstrap_cong <- read.xlsx(file1, sheet = "congruence_index")
@@ -166,7 +172,7 @@ cat("Root mean square error:", round(rmse, 6), "\n\n")
 # VISUALIZATION
 ################################################################################
 
-pdf("/home/qtp1/Projects/Circadian/Kyle/Circadian-analysis-main/R/src/Thien/bootstrap_results/bootstrap_vs_permutation_comparison.pdf", 
+pdf(file.path(current_wd, "Kyle/Circadian-analysis-main/R/src/Thien/bootstrap_results/bootstrap_vs_permutation_comparison.pdf"), 
     width = 12, height = 10)
 
 par(mfrow = c(2, 2), mar = c(4, 4, 3, 1))

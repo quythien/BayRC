@@ -3,15 +3,22 @@
 
 rm(list = ls())
 
-current_gtex   <- "/home/qtp1/Projects/Collaborative"
-current_wd     <- "/home/qtp1/Projects/Circadian"
-current_aging  <- "/home/qtp1/Projects/Collaborative/Paper/Congruence/PNAS_aging"
+# Paths come from config.R; override any of them with the matching env var.
+bayrc.needs.summary <- FALSE
+this.file <- sub("^--file=", "", grep("^--file=", commandArgs(), value = TRUE)[1])
+analysis.dir <- if (is.na(this.file)) getwd() else dirname(normalizePath(this.file))
+while (!file.exists(file.path(analysis.dir, "config.R")) &&
+       dirname(analysis.dir) != analysis.dir) analysis.dir <- dirname(analysis.dir)
+source(file.path(analysis.dir, "config.R"))
+current_gtex   <- BAYRC_DATA_DIR
+current_wd     <- BAYRC_WD_DIR
+current_aging  <- BAYRC_AGING_DIR
 
-outdir <- "/home/qtp1/Projects/Collaborative/Paper/Congruence/PNAS_aging/all_plots"
+outdir <- file.path(current_aging, "all_plots")
 # 
-# load(file = "/home/qtp1/Projects/Collaborative/GTEXdata/result/summary/hb/mcmc_rho_BF3.RData")
+# load(file = file.path(current_gtex, "GTEXdata/result/summary/hb/mcmc_rho_BF3.RData"))
 # load(file.path(current_gtex, "GTEXdata/result/summary/hb/phi/mcmc_phi_BF3.RData"))
-load("/home/qtp1/Projects/Collaborative/GTEXdata/data/CAMO_PRC_hmb.RData") # gtex, baboon_withTOD, mice
+load(file.path(current_gtex, "GTEXdata/data/CAMO_PRC_hmb.RData")) # gtex, baboon_withTOD, mice
 
 # Objects from these:
 # gtex , mice,  baboon_withTOD
@@ -54,7 +61,7 @@ load(file.path(BAYRC_PATHWAY_DIR, "human.pathway.list.RData"))
 load(file.path(BAYRC_PATHWAY_DIR, "go.pathway.list_hsa.RData"))
 
 kegg.pathway.list_hsa <- readRDS(
-  "/home/qtp1/Projects/Circadian/Kyle/Circadian-analysis-main/R/pathway_data/kegg_pathway_list_hsa.rds"
+  file.path(BAYRC_PATHWAY_DIR, "kegg_pathway_list_hsa.rds")
 )
 
 #── Source R scripts ─────────────────────────────────────────────────────────────
@@ -73,10 +80,10 @@ to_zt <- function(t_cos) ifelse(t_cos >= 18, t_cos - 24, t_cos)
 # BRAIN/PRC OBJECTS # gtex , mice,  baboon_withTOD
 
 #---------------------------------------------------------------------------------
-human_mcmc1  <- readRDS("/home/qtp1/Projects/Collaborative/GTEXdata/result/PRC/human/PRC1/gtex_PRC1_bay_1.RDS")
-human_mcmc2  <- readRDS("/home/qtp1/Projects/Collaborative/GTEXdata/result/PRC/human/PRC2/gtex_PRC2_bay_1.RDS")
-baboon_mcmc <- readRDS("/home/qtp1/Projects/Collaborative/GTEXdata/result/PRC/baboon/PRC/baboon_PRC_bay_1.RDS")
-mouse_mcmc  <- readRDS("/home/qtp1/Projects/Collaborative/GTEXdata/result/PRC/mice/PRC/mice_PRC_bay_1.RDS")
+human_mcmc1  <- readRDS(file.path(current_gtex, "GTEXdata/result/PRC/human/PRC1/gtex_PRC1_bay_1.RDS"))
+human_mcmc2  <- readRDS(file.path(current_gtex, "GTEXdata/result/PRC/human/PRC2/gtex_PRC2_bay_1.RDS"))
+baboon_mcmc <- readRDS(file.path(current_gtex, "GTEXdata/result/PRC/baboon/PRC/baboon_PRC_bay_1.RDS"))
+mouse_mcmc  <- readRDS(file.path(current_gtex, "GTEXdata/result/PRC/mice/PRC/mice_PRC_bay_1.RDS"))
 
 ensemble <- try_any_mirror(dataset = "hsapiens_gene_ensembl")
 
@@ -111,7 +118,7 @@ mouse_PRC <- list(
 #---------------------------------------------------------------------------------
 # Global concordance score 
 #---------------------------------------------------------------------------------
-output.dir <- "/home/qtp1/Projects/Collaborative/Paper/Congruence/PNAS_aging/results/hmb/output_final/hb"
+output.dir <- file.path(current_aging, "results/hmb/output_final/hb")
 if (!dir.exists(output.dir)) {
   dir.create(output.dir, recursive = TRUE, showWarnings = FALSE)
 }
@@ -428,7 +435,7 @@ pathway_size_min <- 10
 pathway_size_max <- 300
 
 # Set output directory
-output.dir <- "/home/qtp1/Projects/Collaborative/Paper/Congruence/PNAS_aging/results/baboon/output_final"
+output.dir <- file.path(current_aging, "results/baboon/output_final")
 dir.create(output.dir, recursive = TRUE, showWarnings = FALSE)
 
 ################################################################################
@@ -684,7 +691,7 @@ trans_outer <- transition_classify(pA, pB, bfdr_alpha = 0.20)
 # )
 
 pathways_to_plot = relevant_pathways
-source("/home/qtp1/Projects/Collaborative/Paper/Congruence/PNAS_aging/code/heatmap.R")
+source(file.path(current_aging, "code/heatmap.R"))
 
 cat("\n=== PLOTTING PATHWAYS FOR BABOON vs HUMAN PRC ===\n")
 if (!dir.exists(tempdir())) {
