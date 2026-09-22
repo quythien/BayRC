@@ -422,8 +422,11 @@ for (nm in names(figures)) {
   legend <- if (length(legend) && file.exists(legend)) legend else NA_character_
   title <- if (is.null(figure.titles[[nm]])) NA_character_ else figure.titles[[nm]]
   caps <- panel.captions[[nm]]
+  # the letter keeps the left margin and takes no width, so the caption beside
+  # it centres over the panel rather than starting where the letter ends
   lab <- if (is.null(caps)) LETTERS[seq_along(have)] else
-    mapply(function(l, c) sprintf("%s\\hspace{0.8em}%s", l, c),
+    mapply(function(l, c)
+             sprintf("\\makebox[0pt][l]{%s}\\makebox[\\linewidth]{%s}", l, c),
            LETTERS[seq_along(have)], caps[seq_along(have)], USE.NAMES = FALSE)
   merge_panels <- if (down)
     function(...) stacked(..., labels = lab, below = legend, title = title) else

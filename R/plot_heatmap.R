@@ -742,12 +742,28 @@ plot_heatmap <- function(data1, data2, data3 = NULL,
   # inside the block at any scale
   draw_axis <- function(ticks, labels, at) {
     grid.segments(x0 = unit(ticks, "npc"), x1 = unit(ticks, "npc"),
-                  y0 = unit(0, "npc"), y1 = unit(0, "npc") - unit(1, "mm"))
+                  y0 = unit(0, "npc"), y1 = unit(0, "npc") - unit(1.6, "mm"))
     grid.text(labels, x = unit(at, "npc"), y = axis_y, hjust = at, vjust = 1,
               gp = gpar(fontsize = axis_fs))
   }
   phase_at  <- function(h) (h - phase_from) / (phase_to - phase_from)
   offset_at <- function(h) (h + axis_limit) / (2 * axis_limit)
+
+  # A tick every 6 h, labelled where the numerals leave a clear gap between
+  # them and otherwise only at the two ends and the midpoint. Wide blocks
+  # therefore carry the full hour scale and narrow ones stay legible.
+  labelled_hours <- function(hours, width_cm) {
+    pdf(NULL)
+    ink <- sum(vapply(as.character(hours), function(s)
+      convertWidth(max_text_width(s, gp = gpar(fontsize = axis_fs)),
+                   "bigpts", valueOnly = TRUE), numeric(1)))
+    dev.off()
+    span <- width_cm / 2.54 * 72
+    if ((span - ink) / (length(hours) - 1) >= 0.7 * axis_fs) hours
+    else hours[c(1, (length(hours) + 1) / 2, length(hours))]
+  }
+  phase_hours  <- labelled_hours(seq(phase_from, phase_to, by = 6), block_width)
+  offset_hours <- labelled_hours(seq(-axis_limit, axis_limit, by = 6), delta_width)
 
   decorate_all <- function() {
     if (show_title) {
@@ -759,14 +775,14 @@ plot_heatmap <- function(data1, data2, data3 = NULL,
     for (i in seq_len(if (is.null(data3)) 2 else 3))
       decorate_heatmap_body(paste0("Phase_", group_names[i]), {
         draw_axis(phase_at(seq(phase_from, phase_to, by = 6)),
-                  c(phase_from, 6, phase_to), phase_at(c(phase_from, 6, phase_to)))
+                  phase_hours, phase_at(phase_hours))
         grid.text(group_names[i], x = unit(0.5, "npc"), y = name_y, vjust = 1,
                   gp = name_gp)
       })
     for (j in seq_along(offset_names))
       decorate_annotation(c("Delta Peak (hours)", "Delta Peak 2 (hours)")[j], {
         draw_axis(offset_at(seq(-axis_limit, axis_limit, by = 6)),
-                  c(-axis_limit, 0, axis_limit), offset_at(c(-axis_limit, 0, axis_limit)))
+                  offset_hours, offset_at(offset_hours))
         grid.text(offset_names[j], x = unit(0.5, "npc"), y = name_y, vjust = 1,
                   gp = name_gp)
       })
