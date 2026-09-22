@@ -46,9 +46,24 @@
 #'   the shared legend so it wraps onto further rows. Use it when the strip sits
 #'   under one panel rather than the whole row, where scaling to fit would
 #'   shrink the type instead.
-#' @param canvas_width Numeric inches or \code{NULL}; the page the heatmap is
-#'   drawn on. The default narrows the page for a pathway with few genes, so the
-#'   fixed-width blocks fill it rather than sitting in margin.
+#' @param canvas_width Numeric inches, \code{NULL} or \code{"fit"}; the page
+#'   the heatmap is drawn on. The default narrows the page for a pathway with
+#'   few genes, so the fixed-width blocks fill it rather than sitting in
+#'   margin, and \code{"fit"} sizes the page to the drawn content.
+#' @param data3 Named list or \code{NULL}; a second condition to compare
+#'   against \code{data2}. When given, the posterior block gains a column, the
+#'   peak-time blocks gain one for it and a second offset block is drawn.
+#' @param phase_results3 Output from \code{phase_infer} for \code{data3}
+#'   against \code{data2}; required when \code{data3} is given.
+#' @param transition_results3 Output from \code{transition_classify} for
+#'   \code{data3} against \code{data2}.
+#' @param col_phase3 Colour mapping for the third phase panel.
+#' @param block_width Numeric centimetres; width of each peak-time block.
+#' @param delta_width Numeric centimetres; width of each offset block.
+#' @param title_size Numeric; type size of the pathway title.
+#' @param row_order Character vector or \code{NULL}; the genes to draw and the
+#'   order to draw them in, replacing the ranking the function would otherwise
+#'   apply. Genes absent from the data are dropped.
 #' @param font_scale Numeric multiplier on the type drawn inside the heatmap:
 #'   gene names, tick labels and the title. A figure that places the heatmap
 #'   beside a scatter scales the two panels differently, so raise this until the
@@ -70,11 +85,13 @@
 #' @return Called for side effects; invisibly returns the heatmap object.
 #'
 #' @export
-plot_heatmap <- function(data1, data2,
+plot_heatmap <- function(data1, data2, data3 = NULL,
                           pathway_genes,
                           pathway_name,
                           phase_results,
+                          phase_results3 = NULL,
                           transition_results = NULL,
+                          transition_results3 = NULL,
                           group_names = c("Group1", "Group2"),
                           save_path = NULL,
                           n_bins = 24,
@@ -82,11 +99,16 @@ plot_heatmap <- function(data1, data2,
                                                 c("#fff5f0", "#fee0d2", "#fcae91", "#fb6a4a", "#ef3b2c")),
                           col_phase1 = circlize::colorRamp2(c(0, 0.5, 1), c("white", "#6baed6", "#08519c")),
                           col_phase2 = circlize::colorRamp2(c(0, 0.5, 1), c("white", "#fc9272", "#a50f15")),
+                          col_phase3 = circlize::colorRamp2(c(0, 0.5, 1), c("white", "#a1d99b", "#006d2c")),
                           legend_names = group_names,
                           legend_path = NULL,
                           extra_legends = list(),
                           legend_max_width = NULL,
                           canvas_width = NULL,
+                          title_size = 22,
+                          block_width = 4,
+                          delta_width = 5,
+                          row_order = NULL,
                           font_scale = 1,
                           show_title = TRUE,
                           show_legend = TRUE,
@@ -119,7 +141,9 @@ plot_heatmap <- function(data1, data2,
   # ==========================================================================
   
   all_genes <- rownames(data1$rho)
-  overlap_genes <- intersect(all_genes, pathway_genes)
+  if (!is.null(data3)) all_genes <- intersect(all_genes, rownames(data3$rho))
+  overlap_genes <- if (is.null(row_order))
+    intersect(all_genes, pathway_genes) else row_order[row_order %in% all_genes]
   n_genes <- length(overlap_genes)
   
   cat("\nPathway:", pathway_name, "\n")
@@ -127,6 +151,8 @@ plot_heatmap <- function(data1, data2,
   
   rho_1 <- rowMeans(data1$rho[overlap_genes, ], na.rm = TRUE)
   rho_2 <- rowMeans(data2$rho[overlap_genes, ], na.rm = TRUE)
+  rho_3 <- if (is.null(data3)) NULL
+           else rowMeans(data3$rho[overlap_genes, ], na.rm = TRUE)
   
   # Use transition_classify results if provided
   if (!is.null(transition_results)) {
@@ -140,8 +166,11 @@ plot_heatmap <- function(data1, data2,
     # Map to concordance categories
     concordance <- rep(NA_character_, n_genes)
     concordance[status_vec == "Maintained"] <- "Conserved"
-    concordance[status_vec == "Gain"] <- paste0("Gain in ", legend_names[2])  # NOT in Group1, IS in Group2
-    concordance[status_vec == "Loss"] <- paste0("Loss in ", legend_names[2])  # IS in Group1, NOT in Group2
+    # gain and loss are the comparator's, against the reference in data1
+    concordance[status_vec == "Gain"] <-
+      if (is.null(data3)) paste0("Gain in ", legend_names[2]) else "Gain"
+    concordance[status_vec == "Loss"] <-
+      if (is.null(data3)) paste0("Loss in ", legend_names[2]) else "Loss"
     
   } else {
     stop("transition_results is required. Please provide output from transition_classify()")
@@ -178,6 +207,7 @@ plot_heatmap <- function(data1, data2,
   orig_n_genes <- n_genes
   orig_rho_1 <- rho_1
   orig_rho_2 <- rho_2
+  orig_rho_3 <- rho_3
   orig_concordance <- concordance
   orig_phase_status <- phase_status
   orig_match_idx_phase <- match_idx_phase
@@ -196,6 +226,7 @@ plot_heatmap <- function(data1, data2,
       n_genes <- length(overlap_genes)
       rho_1 <- orig_rho_1[rhythmic_idx]
       rho_2 <- orig_rho_2[rhythmic_idx]
+      rho_3 <- if (is.null(orig_rho_3)) NULL else orig_rho_3[rhythmic_idx]
       concordance <- orig_concordance[rhythmic_idx]
       phase_status <- orig_phase_status[rhythmic_idx]
       match_idx_phase <- orig_match_idx_phase[rhythmic_idx]
@@ -206,6 +237,7 @@ plot_heatmap <- function(data1, data2,
       n_genes <- orig_n_genes
       rho_1 <- orig_rho_1
       rho_2 <- orig_rho_2
+      rho_3 <- orig_rho_3
       concordance <- orig_concordance
       phase_status <- orig_phase_status
       match_idx_phase <- orig_match_idx_phase
@@ -241,15 +273,19 @@ plot_heatmap <- function(data1, data2,
   priority[is.na(concordance)] <- 1
 
   # Sort by priority (descending), then by peak2 (ascending) to show time trend
-  order_idx <- order(priority, peak2_for_sort, decreasing = c(TRUE, FALSE))
+  # a caller that supplied row_order has already fixed the order
+  order_idx <- if (is.null(row_order))
+    order(priority, peak2_for_sort, decreasing = c(TRUE, FALSE)) else
+    seq_along(overlap_genes)
   genes_ord <- overlap_genes[order_idx]
   rho_1_ord <- rho_1[order_idx]
   rho_2_ord <- rho_2[order_idx]
+  rho_3_ord <- if (is.null(rho_3)) NULL else rho_3[order_idx]
   phase_status_ord <- phase_status[order_idx]
   concordance_ord  <- concordance[order_idx]
   
-  loss_label <- paste0("Loss in ", legend_names[2])
-  gain_label <- paste0("Gain in ", legend_names[2])
+  loss_label <- if (is.null(data3)) paste0("Loss in ", legend_names[2]) else "Loss"
+  gain_label <- if (is.null(data3)) paste0("Gain in ", legend_names[2]) else "Gain"
 
   # Force all categories to appear in legend (Gain before Loss)
   concordance_ord <- factor(
@@ -300,15 +336,65 @@ plot_heatmap <- function(data1, data2,
   )
   
   # Define colors for all concordance states (dynamically named)
-  loss_label <- paste0("Loss in ", legend_names[2])
-  gain_label <- paste0("Gain in ", legend_names[2])
+  loss_label <- if (is.null(data3)) paste0("Loss in ", legend_names[2]) else "Loss"
+  gain_label <- if (is.null(data3)) paste0("Gain in ", legend_names[2]) else "Gain"
 
   conc_colors <- c("#FFA500", "#4169E1", "#9370DB")
   names(conc_colors) <- c("Conserved", loss_label, gain_label)
   
   phase_colors <- c("Shifted" = "#E63946", "Conserved" = "#06A77D")
   
-  left_ha <- rowAnnotation(
+  phase_status_factor3 <- if (is.null(phase_results3)) NULL else {
+    i3 <- match(genes_ord, names(phase_results3$peak1))
+    v <- rep(NA_character_, n_genes)
+    v[phase_results3$flag_cons[i3]  %in% TRUE] <- "Conserved"
+    v[phase_results3$flag_shift[i3] %in% TRUE] <- "Shifted"
+    factor(v, levels = c("Shifted", "Conserved"))
+  }
+  conc_ord3 <- if (is.null(transition_results3)) NULL else {
+    j3 <- match(genes_ord, names(transition_results3$gain_loss_status))
+    v <- transition_results3$gain_loss_status[j3]
+    out <- rep(NA_character_, n_genes)
+    out[v == "Maintained"] <- "Conserved"
+    out[v == "Gain"] <- gain_label
+    out[v == "Loss"] <- loss_label
+    factor(out, levels = c("Conserved", gain_label, loss_label))
+  }
+  # the strip names carry the comparator, so they are spliced in as a named list
+  left_ha <- if (!is.null(phase_status_factor3)) {
+    strip_names <- c(paste0("Rhythm: ", legend_names[2]),
+                     paste0("Phase: ", legend_names[2]),
+                     paste0("Rhythm: ", legend_names[3]),
+                     paste0("Phase: ", legend_names[3]))
+    strips <- setNames(list(
+      concordance_ord,
+      phase_status_factor,
+      if (is.null(conc_ord3)) concordance_ord else conc_ord3,
+      phase_status_factor3), strip_names)
+    strip_cols <- setNames(list(conc_colors, phase_colors, conc_colors, phase_colors),
+                           strip_names)
+    strip_legends <- setNames(list(
+      list(title = "Rhythmicity status",
+           title_gp = gpar(fontsize = 18, fontface = "bold"),
+           labels_gp = gpar(fontsize = 16)),
+      list(title = "Phase status",
+           title_gp = gpar(fontsize = 18, fontface = "bold"),
+           labels_gp = gpar(fontsize = 16))), strip_names[1:2])
+    # both comparators share one key, so only the first pair of strips shows it
+    do.call(rowAnnotation, c(strips, list(
+      col = strip_cols,
+      annotation_legend_param = strip_legends,
+      show_legend = c(TRUE, TRUE, FALSE, FALSE),
+      # the two pairs repeat one colour key, so each strip names its comparison
+      show_annotation_name = TRUE,
+      annotation_name_side = "bottom",
+      annotation_name_rot = 90,
+      annotation_name_gp = gpar(fontsize = fs(14), fontface = "bold"),
+      # a rotated name is as wide as its type is tall, so the strips carry it
+      simple_anno_size = unit(5, "mm"),
+      gap = unit(3.5, "mm"),
+      na_col = "white")))
+  } else rowAnnotation(
     `Rhythmicity Status`  = concordance_ord,
     `Phase Status` = phase_status_factor,
     col = list(`Rhythmicity Status` = conc_colors,
@@ -328,8 +414,9 @@ plot_heatmap <- function(data1, data2,
   # 4. MAIN HEATMAP (rho values)
   # ==========================================================================
   
-  heatmap_mat <- cbind(rho_1_ord, rho_2_ord)
-  colnames(heatmap_mat) <- group_names
+  heatmap_mat <- if (is.null(rho_3_ord)) cbind(rho_1_ord, rho_2_ord)
+                 else cbind(rho_1_ord, rho_2_ord, rho_3_ord)
+  colnames(heatmap_mat) <- group_names[seq_len(ncol(heatmap_mat))]
   rownames(heatmap_mat) <- genes_ord
   
   ht_main <- Heatmap(
@@ -340,7 +427,8 @@ plot_heatmap <- function(data1, data2,
     cluster_rows = FALSE,
     cluster_columns = FALSE,
     show_row_names = FALSE,
-    show_column_names = FALSE,
+    show_column_names = !is.null(data3),
+    column_names_rot = 90,
     
     column_names_side = "bottom",
     column_names_centered = TRUE,
@@ -350,7 +438,7 @@ plot_heatmap <- function(data1, data2,
     column_title_gp = gpar(fontsize = 12, fontface = "bold"),
     
     left_annotation = left_ha,
-    width = unit(3, "cm"),
+    width = unit(1.5 * ncol(heatmap_mat), "cm"),
     border = TRUE,
     
     top_annotation = HeatmapAnnotation(
@@ -369,8 +457,12 @@ plot_heatmap <- function(data1, data2,
   # 5. PHASE HISTOGRAM MATRICES (with context-aware intensity)
   # ==========================================================================
   
+  # every peak-time block spans this window, and its axis is drawn against it
+  phase_from <- -6
+  phase_to   <- 18
+
   # Create histogram matrix for visualization with condition-specific weighting
-  make_histogram_matrix <- function(phi_mat, from = -6, to = 18, n_bins, 
+  make_histogram_matrix <- function(phi_mat, from = phase_from, to = phase_to, n_bins,
                                     is_group1, concordance_status, group_num) {
     breaks <- seq(from, to, length.out = n_bins + 1)
     hist_mat <- matrix(0, nrow = nrow(phi_mat), ncol = n_bins)
@@ -418,20 +510,6 @@ plot_heatmap <- function(data1, data2,
       }
     }
     
-    # Calculate bin centers
-    bin_centers <- round(breaks[-1] - diff(breaks)/2, 1)
-    col_names <- rep("", n_bins)
-    
-    # Identify the bins closest to target labels
-    target_labels <- c(0, 6, 12)
-    for(label in target_labels) {
-      closest_idx <- which.min(abs(bin_centers - label))
-      if (length(closest_idx) > 0) {
-        col_names[closest_idx] <- as.character(label)
-      }
-    }
-    
-    colnames(hist_mat) <- col_names
     rownames(hist_mat) <- rownames(phi_mat)
     return(hist_mat)
   }
@@ -442,6 +520,14 @@ plot_heatmap <- function(data1, data2,
   hist_mat_2 <- make_histogram_matrix(phi_2, n_bins = n_bins, 
                                       concordance_status = concordance_ord, 
                                       group_num = 2)
+  if (!is.null(data3)) {
+    phi_3 <- data3$phi[genes_ord, , drop = FALSE]
+    if (colnames(phi_3)[1] == "phi.store") phi_3 <- phi_3[, -1]
+    hist_mat_3 <- make_histogram_matrix(phi_3, n_bins = n_bins,
+                                        concordance_status = if (is.null(conc_ord3))
+                                          concordance_ord else conc_ord3,
+                                        group_num = 2)
+  }
   
   ht_phase1 <- Heatmap(
     hist_mat_1,
@@ -450,14 +536,11 @@ plot_heatmap <- function(data1, data2,
     cluster_rows = FALSE,
     cluster_columns = FALSE,
     show_row_names = FALSE,
-    show_column_names = TRUE,
-    column_names_side = "bottom",
-    column_names_gp = gpar(fontsize = fs(15)),
-    column_names_centered = TRUE,
-    column_title_side = "bottom",
+    # the peak-hour axis is drawn under the body once the layout is fixed
+    show_column_names = FALSE,
     column_title = NULL,
     show_heatmap_legend = FALSE,
-    width = unit(4, "cm"),
+    width = unit(block_width, "cm"),
     border = TRUE,
     rect_gp = gpar(col = "white", lwd = 0.5)
   )
@@ -469,18 +552,31 @@ plot_heatmap <- function(data1, data2,
     cluster_rows = FALSE,
     cluster_columns = FALSE,
     show_row_names = FALSE,
-    show_column_names = TRUE,
-    column_names_side = "bottom",
-    column_names_gp = gpar(fontsize = fs(15)),
-    column_names_centered = TRUE,
-    column_title_side = "bottom",
+    # the peak-hour axis is drawn under the body once the layout is fixed
+    show_column_names = FALSE,
     column_title = NULL,
     show_heatmap_legend = FALSE,
-    width = unit(4, "cm"),
+    width = unit(block_width, "cm"),
     border = TRUE,
     rect_gp = gpar(col = "white", lwd = 0.5)
   )
   
+  ht_phase3 <- if (is.null(data3)) NULL else Heatmap(
+    hist_mat_3,
+    name = paste0("Phase_", group_names[3]),
+    col = col_phase3,
+    cluster_rows = FALSE,
+    cluster_columns = FALSE,
+    show_row_names = FALSE,
+    # the peak-hour axis is drawn under the body once the layout is fixed
+    show_column_names = FALSE,
+    column_title = NULL,
+    show_heatmap_legend = FALSE,
+    width = unit(block_width, "cm"),
+    border = TRUE,
+    rect_gp = gpar(col = "white", lwd = 0.5)
+  )
+
   # ==========================================================================
   # 6. DELTA PHI BARPLOT (symmetric around 0, calculated for ALL genes)
   # ==========================================================================
@@ -504,10 +600,49 @@ plot_heatmap <- function(data1, data2,
   max_abs_delta <- max(abs(deltaPhi_display), na.rm = TRUE)
   axis_limit <- max(12, ceiling(max_abs_delta))
 
+  if (!is.null(phase_results3)) {
+    m3 <- match(genes_ord, names(phase_results3$peak1))
+    delta3_ord <- phase_results3$deltaPhi.Est[m3]
+
+    # the offset comes from the peaks themselves where the comparison left none,
+    # as it does for the first comparator
+    peak1_3 <- phase_results3$peak1[m3]
+    peak2_3 <- phase_results3$peak2[m3]
+    for (i in 1:n_genes) {
+      if (is.na(delta3_ord[i]) && !is.na(peak1_3[i]) && !is.na(peak2_3[i])) {
+        delta <- peak1_3[i] - peak2_3[i]
+        if (delta > 12) {
+          delta <- delta - 24
+        } else if (delta < -12) {
+          delta <- delta + 24
+        }
+        delta3_ord[i] <- delta
+      }
+    }
+    delta3_ord[is.na(delta3_ord)] <- 0
+    status3 <- rep(NA_character_, n_genes)
+    status3[phase_results3$flag_cons[m3]  %in% TRUE] <- "Conserved"
+    status3[phase_results3$flag_shift[m3] %in% TRUE] <- "Shifted"
+    delta3_colors <- rep("#E0E0E0", n_genes)
+    delta3_colors[!is.na(status3) & status3 == "Shifted" &
+                  !is.na(delta3_ord) & delta3_ord < 0]  <- "#E63946"
+    delta3_colors[!is.na(status3) & status3 == "Shifted" &
+                  (is.na(delta3_ord) | delta3_ord >= 0)] <- "#4361EE"
+    delta3_colors[!is.na(status3) & status3 == "Conserved"] <- "#06A77D"
+    delta3_display <- -delta3_ord
+    axis_limit <- max(axis_limit, ceiling(max(abs(delta3_display), na.rm = TRUE)))
+  }
+
+  # one key serves both offset blocks, so with two comparators it names the reference
+  delta_labels <- if (is.null(data3))
+    c(paste0(legend_names[2], " later"), paste0(legend_names[2], " earlier"))
+  else c(paste0("Later than ", legend_names[1]), paste0("Earlier than ", legend_names[1]))
+  delta_labels <- c(delta_labels, "Within the window", "Not classified")
+
   # Create legend for Delta Peak colors
   delta_peak_legend <- Legend(
     title = "Delta Peak",
-    labels = c(paste0(legend_names[2], " later"), paste0(legend_names[2], " earlier"), "Within the window", "Not classified"),
+    labels = delta_labels,
     legend_gp = gpar(fill = c("#E63946", "#4361EE", "#06A77D", "#E0E0E0")),
     title_gp = gpar(fontsize = 18, fontface = "bold"),
     labels_gp = gpar(fontsize = 16)
@@ -519,20 +654,27 @@ plot_heatmap <- function(data1, data2,
       baseline = 0,
       bar_width = 1,
       gp = gpar(fill = delta_colors, col = NA),
-      axis_param = list(
-        # every 6 h; at 3 h the nine labels do not fit the block and
-        # ComplexHeatmap rotates them, which reads worse than a sparser axis
-        at = seq(-axis_limit, axis_limit, by = 6),
-        labels = as.character(seq(-axis_limit, axis_limit, by = 6)),
-        side = "bottom",
-        gp = gpar(fontsize = fs(14))
-      ),
+      # the offset axis is drawn under the body along with the peak-hour axes
+      axis = FALSE,
       ylim = c(-axis_limit, axis_limit),
-      width = unit(5, "cm")
+      width = unit(delta_width, "cm")
     ),
     show_annotation_name = FALSE
   )
   
+  right_ha3 <- if (is.null(phase_results3)) NULL else rowAnnotation(
+    `Delta Peak 2 (hours)` = anno_barplot(
+      delta3_display,
+      baseline = 0,
+      bar_width = 1,
+      gp = gpar(fill = delta3_colors, col = NA),
+      axis = FALSE,
+      ylim = c(-axis_limit, axis_limit),
+      width = unit(delta_width, "cm")
+    ),
+    show_annotation_name = FALSE
+  )
+
   # ==========================================================================
   # 7. GENE NAMES
   # ==========================================================================
@@ -551,7 +693,84 @@ plot_heatmap <- function(data1, data2,
   # 8. COMBINE + DRAW
   # ==========================================================================
   
-  ht_list <- ht_main + ht_phase1 + ht_phase2 + right_ha + gene_ha
+  ht_list <- ht_main + ht_phase1 + ht_phase2
+  if (!is.null(ht_phase3)) ht_list <- ht_list + ht_phase3
+  ht_list <- ht_list + right_ha
+  if (!is.null(right_ha3)) ht_list <- ht_list + right_ha3
+  ht_list <- ht_list + gene_ha
+
+  # ==========================================================================
+  # 9. TYPE AROUND THE BODY: axes, block names, title and the room they take
+  # ==========================================================================
+
+  pt_mm <- 25.4 / 72
+  axis_fs <- fs(15)
+  name_gp <- gpar(fontsize = fs_block(15), fontface = "bold")
+  # the axis numerals hang just under the body and the block names hang a line
+  # under them, so a two-line name grows downward and never meets the numerals
+  axis_y <- unit(0, "npc") - unit(1.5, "mm")
+  name_y <- axis_y - unit(axis_fs * 1.2, "bigpts") - unit(2.5, "mm")
+
+  offset_names <- if (is.null(data3)) "Delta peak (h)" else
+    sprintf("%s - %s (h)", legend_names[2], legend_names[1])
+  if (!is.null(phase_results3))
+    offset_names <- c(offset_names, sprintf("%s - %s (h)", legend_names[3], legend_names[1]))
+
+  pdf(NULL)
+  mm_wide <- function(x, gp) convertWidth(max_text_width(x, gp = gp), "mm", valueOnly = TRUE)
+  # a block name wider than its block spills into the gaps either side of it
+  spill <- max(mm_wide(group_names, name_gp) - block_width * 10,
+               mm_wide(offset_names, name_gp) - delta_width * 10)
+  # a three-condition panel names its columns under the body in rotated type,
+  # and that room already holds the axes and block names
+  reserved <- if (is.null(data3)) 0 else
+    mm_wide(group_names, gpar(fontsize = fs(15), fontface = "bold"))
+  dev.off()
+  block_gap <- max(4, spill + 3)
+  ht_gaps <- if (is.null(data3)) unit(c(1.2, block_gap, block_gap, 1.2), "mm") else
+    unit(c(4, block_gap, block_gap, block_gap, if (!is.null(right_ha3)) block_gap, 4), "mm")
+
+  n_name_lines <- max(lengths(strsplit(c(group_names, offset_names), "\n", fixed = TRUE)))
+  hang_mm <- 7 + (axis_fs + n_name_lines * fs_block(15)) * 1.2 * pt_mm
+  below_mm <- max(4, hang_mm - reserved)
+  # the title is centred 1.6 lines below the page edge and the body begins 2.4
+  # lines down, so the title keeps its headroom when the page is scaled
+  title_mm <- if (show_title) fs_block(title_size) * 2.4 * pt_mm else 2
+
+  # every peak-time block spans phase_from to phase_to, so its labels sit at
+  # fixed fractions of the block; each end label is justified inward and stays
+  # inside the block at any scale
+  draw_axis <- function(ticks, labels, at) {
+    grid.segments(x0 = unit(ticks, "npc"), x1 = unit(ticks, "npc"),
+                  y0 = unit(0, "npc"), y1 = unit(0, "npc") - unit(1, "mm"))
+    grid.text(labels, x = unit(at, "npc"), y = axis_y, hjust = at, vjust = 1,
+              gp = gpar(fontsize = axis_fs))
+  }
+  phase_at  <- function(h) (h - phase_from) / (phase_to - phase_from)
+  offset_at <- function(h) (h + axis_limit) / (2 * axis_limit)
+
+  decorate_all <- function() {
+    if (show_title) {
+      upViewport(0)
+      grid.text(pathway_name, x = unit(0.5, "npc"),
+                y = unit(1, "npc") - unit(fs_block(title_size) * 1.6, "bigpts"),
+                gp = gpar(fontsize = fs_block(title_size), fontface = "bold"))
+    }
+    for (i in seq_len(if (is.null(data3)) 2 else 3))
+      decorate_heatmap_body(paste0("Phase_", group_names[i]), {
+        draw_axis(phase_at(seq(phase_from, phase_to, by = 6)),
+                  c(phase_from, 6, phase_to), phase_at(c(phase_from, 6, phase_to)))
+        grid.text(group_names[i], x = unit(0.5, "npc"), y = name_y, vjust = 1,
+                  gp = name_gp)
+      })
+    for (j in seq_along(offset_names))
+      decorate_annotation(c("Delta Peak (hours)", "Delta Peak 2 (hours)")[j], {
+        draw_axis(offset_at(seq(-axis_limit, axis_limit, by = 6)),
+                  c(-axis_limit, 0, axis_limit), offset_at(c(-axis_limit, 0, axis_limit)))
+        grid.text(offset_names[j], x = unit(0.5, "npc"), y = name_y, vjust = 1,
+                  gp = name_gp)
+      })
+  }
 
   # A figure whose panels share one legend draws them with show_legend = FALSE
   # and places this file beneath the pair. The strip is placed at its own width
@@ -570,9 +789,7 @@ plot_heatmap <- function(data1, data2,
              title_gp = gpar(fontsize = 10, fontface = "bold"),
              labels_gp = gpar(fontsize = 8), direction = "horizontal"),
       Legend(title = "Delta Peak",
-             labels = c(paste0(legend_names[2], " later"),
-                        paste0(legend_names[2], " earlier"),
-                        "Within the window", "Not classified"),
+             labels = delta_labels,
              legend_gp = gpar(fill = c("#E63946", "#4361EE", "#06A77D", "#E0E0E0")),
              title_gp = gpar(fontsize = 10, fontface = "bold"),
              labels_gp = gpar(fontsize = 8)))
@@ -593,6 +810,19 @@ plot_heatmap <- function(data1, data2,
     cat("Saving:", paste0(legend_path, ".pdf"), "\n")
   }
 
+  draw_list <- function() draw(
+         ht_list,
+         heatmap_legend_side = legend_side,
+         annotation_legend_side = legend_side,
+         annotation_legend_list = list(delta_peak_legend),
+         show_heatmap_legend = show_legend,
+         show_annotation_legend = show_legend,
+         merge_legend = TRUE,
+         ht_gap = ht_gaps,
+         # the type under the body hangs into the bottom margin and the title
+         # sits in the top one
+         padding = unit(c(below_mm, 2, title_mm, 2), "mm"))
+
   if(!is.null(save_path)) {
     if(!dir.exists(save_path)) dir.create(save_path, recursive = TRUE)
     # Add version suffix to filename
@@ -602,121 +832,32 @@ plot_heatmap <- function(data1, data2,
     fig_height <- max(6, min(fig_height, 26))
     # legends laid out in a row below the heatmap need their own band
     if (show_legend && legend_side == "bottom") fig_height <- fig_height + 1.2
-    # the block labels sit 15 mm under the body and need that room on the page
-    fig_height <- fig_height + 0.4
+    # the margins that hold the title and the type under the body are added to
+    # the page, so the body keeps its height
+    fig_height <- fig_height + (below_mm + title_mm) / 25.4
     cat("Saving:", filename, "\n")
     # the blocks are a fixed 16 cm, so a short heatmap on a 10 in canvas is
     # mostly margin and renders small beside a taller panel. Narrowing the
     # canvas for a few-gene pathway lets the blocks fill it and brings the
     # panel's aspect closer to square.
-    fig_width <- if (is.null(canvas_width))
+    fig_width <- if (identical(canvas_width, "fit")) {
+      # every component has an absolute width, so a draw on a null device
+      # measures the page that holds them with no margin to spare
+      pdf(NULL, width = 30, height = fig_height)
+      drawn <- draw_list()
+      w <- convertWidth(drawn@ht_list_param$width, "in", valueOnly = TRUE)
+      dev.off()
+      w + 0.1
+    } else if (is.null(canvas_width))
       max(7.5, min(10, 4.5 + fig_height * 0.45)) else canvas_width
     pdf(filename, width = fig_width, height = fig_height)
-
-    # Draw heatmap
-    draw(ht_list,
-         heatmap_legend_side = legend_side,
-         annotation_legend_side = legend_side,
-         annotation_legend_list = list(delta_peak_legend),
-         show_heatmap_legend = show_legend,
-         show_annotation_legend = show_legend,
-         merge_legend = TRUE,
-         ht_gap = unit(1.2, "mm"),
-         # the region names below the peak-time blocks sit 15 mm down, so the
-         # bottom margin has to clear them or they are cropped off the canvas
-         padding = unit(c(22, 2, 2, 2), "mm"))
-
-    if (show_title)
-      grid.text(
-        pathway_name,
-        x = unit(0.5, "npc"),
-        y = unit(1, "npc") - unit(3, "mm"),
-        gp = gpar(fontsize = fs_block(22), fontface = "bold")
-      )
-    
-    # Add peak time titles
-    decorate_heatmap_body(paste0("Phase_", group_names[1]), {
-      grid.text(
-        group_names[1],
-        x = unit(0.5, "npc"),
-        y = unit(0, "npc") - unit(15, "mm"),
-        gp = gpar(fontsize = fs_block(15), fontface = "bold")
-      )
-    })
-    
-    decorate_heatmap_body(paste0("Phase_", group_names[2]), {
-      grid.text(
-        group_names[2],
-        x = unit(0.5, "npc"),
-        y = unit(0, "npc") - unit(15, "mm"),
-        gp = gpar(fontsize = fs_block(15), fontface = "bold")
-      )
-    })
-
-    # the barplot's own annotation name would sit on its numerals, so the title
-    # is drawn level with the region names instead
-    decorate_annotation("Delta Peak (hours)", {
-      grid.text(
-        "Delta peak (h)",
-        x = unit(0.5, "npc"),
-        y = unit(0, "npc") - unit(15, "mm"),
-        gp = gpar(fontsize = fs_block(15), fontface = "bold")
-      )
-    })
-
+    draw_list()
+    decorate_all()
     dev.off()
     cat("Saved\n")
   } else {
-    draw(ht_list,
-         heatmap_legend_side = legend_side,
-         annotation_legend_side = legend_side,
-         annotation_legend_list = list(delta_peak_legend),
-         show_heatmap_legend = show_legend,
-         show_annotation_legend = show_legend,
-         merge_legend = TRUE,
-         ht_gap = unit(1.2, "mm"),
-         # the region names below the peak-time blocks sit 15 mm down, so the
-         # bottom margin has to clear them or they are cropped off the canvas
-         padding = unit(c(22, 2, 2, 2), "mm"))
-
-    # Add centered main title at the top
-    if (show_title)
-      grid.text(
-        pathway_name,
-        x = unit(0.5, "npc"),
-        y = unit(1, "npc") - unit(3, "mm"),
-        gp = gpar(fontsize = fs_block(22), fontface = "bold")
-      )
-    
-    # Add peak time titles
-    decorate_heatmap_body(paste0("Phase_", group_names[1]), {
-      grid.text(
-        group_names[1],
-        x = unit(0.5, "npc"),
-        y = unit(0, "npc") - unit(15, "mm"),
-        gp = gpar(fontsize = fs_block(15), fontface = "bold")
-      )
-    })
-    
-    decorate_heatmap_body(paste0("Phase_", group_names[2]), {
-      grid.text(
-        group_names[2],
-        x = unit(0.5, "npc"),
-        y = unit(0, "npc") - unit(15, "mm"),
-        gp = gpar(fontsize = fs_block(15), fontface = "bold")
-      )
-    })
-
-    # the barplot's own annotation name would sit on its numerals, so the title
-    # is drawn level with the region names instead
-    decorate_annotation("Delta Peak (hours)", {
-      grid.text(
-        "Delta peak (h)",
-        x = unit(0.5, "npc"),
-        y = unit(0, "npc") - unit(15, "mm"),
-        gp = gpar(fontsize = fs_block(15), fontface = "bold")
-      )
-    })
+    draw_list()
+    decorate_all()
   }
 
   n_shifted <- sum(!is.na(phase_status_ord) & phase_status_ord == "Shifted")

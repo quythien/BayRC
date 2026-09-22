@@ -7,10 +7,13 @@
 plot_heatmap(
   data1,
   data2,
+  data3 = NULL,
   pathway_genes,
   pathway_name,
   phase_results,
+  phase_results3 = NULL,
   transition_results = NULL,
+  transition_results3 = NULL,
   group_names = c("Group1", "Group2"),
   save_path = NULL,
   n_bins = 24,
@@ -18,8 +21,17 @@ plot_heatmap(
     "#fcae91", "#fb6a4a", "#ef3b2c")),
   col_phase1 = circlize::colorRamp2(c(0, 0.5, 1), c("white", "#6baed6", "#08519c")),
   col_phase2 = circlize::colorRamp2(c(0, 0.5, 1), c("white", "#fc9272", "#a50f15")),
+  col_phase3 = circlize::colorRamp2(c(0, 0.5, 1), c("white", "#a1d99b", "#006d2c")),
   legend_names = group_names,
   legend_path = NULL,
+  extra_legends = list(),
+  legend_max_width = NULL,
+  canvas_width = NULL,
+  title_size = 22,
+  block_width = 4,
+  delta_width = 5,
+  row_order = NULL,
+  font_scale = 1,
   show_title = TRUE,
   show_legend = TRUE,
   legend_side = "left",
@@ -32,6 +44,10 @@ and \code{phi} matrices.}
 
 \item{data2}{Named list; MCMC output for condition 2.}
 
+\item{data3}{Named list or \code{NULL}; a second condition to compare
+against \code{data2}. When given, the posterior block gains a column, the
+peak-time blocks gain one for it and a second offset block is drawn.}
+
 \item{pathway_genes}{Character vector; gene names in the pathway.}
 
 \item{pathway_name}{Character; pathway label used in the plot title.}
@@ -39,9 +55,15 @@ and \code{phi} matrices.}
 \item{phase_results}{Output from \code{phase_infer} or a similar list
 with per-gene phase metrics.}
 
+\item{phase_results3}{Output from \code{phase_infer} for \code{data3}
+against \code{data2}; required when \code{data3} is given.}
+
 \item{transition_results}{Output from \code{transition_classify} or
 \code{NULL} (default \code{NULL}); used to colour genes by
 gain/loss/maintained status.}
+
+\item{transition_results3}{Output from \code{transition_classify} for
+\code{data3} against \code{data2}.}
 
 \item{group_names}{Character vector of length 2; condition labels
 (default \code{c("Group1", "Group2")}).}
@@ -62,6 +84,8 @@ three-stop white-to-blue ramp over \[0, 1\].}
 \item{col_phase2}{Colour mapping for the second phase panel; defaults to a
 three-stop white-to-red ramp over \[0, 1\].}
 
+\item{col_phase3}{Colour mapping for the third phase panel.}
+
 \item{legend_names}{Character vector of length 2; the condition names used
 in the legend text, which defaults to \code{group_names}. One legend
 shared by two panels needs wording that fits both, while the column and
@@ -70,6 +94,35 @@ peak-time annotations keep the names in \code{group_names}.}
 \item{legend_path}{Character or \code{NULL}; when given, the legends are
 also packed horizontally and written on their own to
 \code{<legend_path>.pdf}, for a figure whose panels share one legend.}
+
+\item{extra_legends}{List of \code{ComplexHeatmap::Legend} objects packed
+into the shared legend file alongside the heatmap's own, so a figure whose
+panels are not all heatmaps still has one legend region.}
+
+\item{legend_max_width}{Numeric centimetres or \code{NULL}; caps the width of
+the shared legend so it wraps onto further rows. Use it when the strip sits
+under one panel rather than the whole row, where scaling to fit would
+shrink the type instead.}
+
+\item{canvas_width}{Numeric inches, \code{NULL} or \code{"fit"}; the page
+the heatmap is drawn on. The default narrows the page for a pathway with
+few genes, so the fixed-width blocks fill it rather than sitting in
+margin, and \code{"fit"} sizes the page to the drawn content.}
+
+\item{title_size}{Numeric; type size of the pathway title.}
+
+\item{block_width}{Numeric centimetres; width of each peak-time block.}
+
+\item{delta_width}{Numeric centimetres; width of each offset block.}
+
+\item{row_order}{Character vector or \code{NULL}; the genes to draw and the
+order to draw them in, replacing the ranking the function would otherwise
+apply. Genes absent from the data are dropped.}
+
+\item{font_scale}{Numeric multiplier on the type drawn inside the heatmap:
+gene names, tick labels and the title. A figure that places the heatmap
+beside a scatter scales the two panels differently, so raise this until the
+rendered type matches its neighbour.}
 
 \item{show_title}{Logical; draw \code{pathway_name} above the heatmap
 (default \code{TRUE}). Set \code{FALSE} for a panel whose figure carries
