@@ -156,6 +156,43 @@ for (tissue in TISSUES) {
   tissue_tod[[tissue]]  <- tod
 }
 
+# ── Genome-wide residual diagnostics, one table per tissue ────────────────────
+# The figures show six genes; these tables carry the same two tests for every
+# gene, so the claim that the cosinor residuals are approximately normal and
+# homoscedastic can be read off the whole transcriptome rather than the panel.
+# shapiro.pval tests normality of the residuals; hetero.lm.pval regresses the
+# squared residuals on the fitted values, so a small value means the spread
+# grows with the level.
+for (tissue in TISSUES) {
+  fits <- tissue_fits[[tissue]]
+  fits <- fits[!sapply(fits, is.null)]
+
+  diag_df <- data.frame(
+    symbol         = names(fits),
+    R2             = sapply(fits, function(x) x$R2),
+    pvalue         = sapply(fits, function(x) x$pval),
+    shapiro.pval   = sapply(fits, function(x)
+                       tryCatch(shapiro.test(x$resid)$p.value,
+                                error = function(e) NA_real_)),
+    hetero.lm.pval = sapply(fits, function(x)
+                       tryCatch(summary(lm(x$resid^2 ~ x$fitted))$coefficients[2, 4],
+                                error = function(e) NA_real_)),
+    mean.resid     = sapply(fits, function(x) mean(x$resid)),
+    sd.resid       = sapply(fits, function(x) sd(x$resid)),
+    stringsAsFactors = FALSE, row.names = NULL
+  )
+  diag_df$qvalue <- p.adjust(diag_df$pvalue, "BH")
+  diag_df <- diag_df[order(diag_df$pvalue), ]
+
+  f <- file.path(outdir, paste0("Cosinor_residual_diagnostics_", tissue, ".csv"))
+  write.csv(diag_df, f, row.names = FALSE)
+  cat(sprintf("%s: %d genes, normal at 0.05 %.1f%%, homoscedastic at 0.05 %.1f%%\n",
+              tissue, nrow(diag_df),
+              100 * mean(diag_df$shapiro.pval > 0.05, na.rm = TRUE),
+              100 * mean(diag_df$hetero.lm.pval > 0.05, na.rm = TRUE)))
+  cat("  wrote", f, "\n")
+}
+
 # ── Build master column order: N_TOP columns, overlap genes aligned first ─────
 # Overlap = appears in top N of >=2 tissues → placed in same column across rows.
 # Remaining N_TOP - K columns filled per-row with tissue-specific genes.
