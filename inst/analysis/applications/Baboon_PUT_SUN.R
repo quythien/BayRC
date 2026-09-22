@@ -211,6 +211,9 @@ if (!replot) {
 for (pw in panel_pathways) {
   if (!pw %in% names(kegg)) stop("pathway not in the gene set list: ", pw)
   plot_heatmap(data1 = put, data2 = sun, pathway_genes = kegg[[pw]],
+               # the assembler sets this panel beside another, so the title is
+               # raised to print at the size a heading needs
+               title_size = 30,
                pathway_name = pw, phase_results = phase,
                transition_results = trans,
                group_names = c("Putamen", "Substantia nigra"),

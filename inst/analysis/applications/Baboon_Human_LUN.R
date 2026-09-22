@@ -17,6 +17,11 @@ source(file.path(analysis.dir, "pipeline", "plot_cache.R"))
 # --replot redraws every figure from the tables a full run left behind
 replot <- "--replot" %in% commandArgs(trailingOnly = TRUE)
 
+# the pair and tissue the run covers. The defaults are the ones the paper
+# reports, so a plain run is the published lung comparison.
+species  <- Sys.getenv("BAYRC_SPECIES", unset = "baboon")
+tissue   <- Sys.getenv("BAYRC_TISSUE",  unset = "LUN")
+
 # frozen analysis parameters
 bfdr_alpha     <- 0.25
 shift          <- 2
@@ -26,7 +31,10 @@ nperm          <- 10000
 min_measured   <- 15
 panel_pathways <- "KEGG Circadian rhythm"
 
-fig.dir <- file.path(BAYRC_FIGURE_DIR, "baboon_human_LUN")
+fig.dir <- file.path(BAYRC_FIGURE_DIR,
+                     if (species == "baboon" && tissue == "LUN")
+                       "baboon_human_LUN"
+                     else sprintf("%s_human_%s", species, tissue))
 dir.create(fig.dir, recursive = TRUE, showWarnings = FALSE)
 
 # --replot reads the plot cache instead of the draws; a full run writes it
@@ -42,9 +50,11 @@ if (replot) {
   load(file.path(BAYRC_SUMMARY_DIR, "mcmc_rho_BF3.RData"))
   load(file.path(BAYRC_SUMMARY_DIR, "phi", "mcmc_phi_BF3.RData"))
 
-  # direction is baboon to human
-  bab <- list(rho = mcmc_data_baboon$LUN, phi = mcmc_phi_baboon$LUN)
-  hum <- list(rho = mcmc_data_human$LUN,  phi = mcmc_phi_human$LUN)
+  # direction is the comparison species to human
+  rho_other <- get(paste0("mcmc_data_", species))
+  phi_other <- get(paste0("mcmc_phi_", species))
+  bab <- list(rho = rho_other[[tissue]], phi = phi_other[[tissue]])
+  hum <- list(rho = mcmc_data_human[[tissue]], phi = mcmc_phi_human[[tissue]])
   measured <- rownames(bab$rho)
 
   pA <- rowMeans(bab$rho)
@@ -184,8 +194,8 @@ shifted <- names(phase$flag_shift)[phase$flag_shift]
 conserved <- names(phase$flag_cons)[phase$flag_cons]
 within <- circ_diff(phase$peak1[maintained], phase$peak2[maintained]) <= shift
 
-cat("\n== baboon vs human lung, the numbers the paper quotes ==\n")
-cat(sprintf("rhythmic in baboon: %d (%.1f%%)  rhythmic in human: %d (%.1f%%)\n",
+cat(sprintf("\n== %s vs human %s ==\n", species, tissue))
+cat(sprintf("rhythmic in %s: %d (%.1f%%)  rhythmic in human: %d (%.1f%%)\n", species,
             sum(pA >= trans$tau_rhythmic_A), 100 * mean(pA >= trans$tau_rhythmic_A),
             sum(pB >= trans$tau_rhythmic_B), 100 * mean(pB >= trans$tau_rhythmic_B)))
 cat("gain:", sum(status == "Gain"), " loss:", sum(status == "Loss"),

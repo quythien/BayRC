@@ -1,12 +1,21 @@
-"""Assemble the Figure 3 demo and reflow legends from vector PDF sources.
+"""Assemble the Figure 3 demo and reflow the Figure 5 legend from vector PDF
+sources.
 
 Every crop is read off the page rather than written down, so a panel that moves
 or a legend that gains a row still lands correctly.
+
+Usage: python3 layout_figures.py [paper_dir]
+
+paper_dir holds figures/ with the assembler's output and demos/figure3/ with
+summary_panels.pdf. Requires PyMuPDF (pip install pymupdf).
 """
 from pathlib import Path
 import shutil
 import sys
-import fitz
+try:
+    import fitz
+except ImportError:
+    raise SystemExit("PyMuPDF is required: pip install pymupdf")
 
 # the assembled figures live beside the analysis output, not in the package
 paper = Path(sys.argv[1]) if len(sys.argv) > 1 else \
@@ -113,30 +122,5 @@ place(page, src, strip, 27, a_bottom - 2, scale)
 out.save(figures / "Figure_5_row.pdf", garbage=4, deflate=True)
 page.get_pixmap(matrix=fitz.Matrix(1.5, 1.5)).save(paper / "demos/Figure_5_row_preview.png")
 
-# Figure 6 spreads the keys across one bottom strip and drops the figure title.
-src = original("Figure_6.pdf")
-page0 = src[0]
-groups = legend_groups(page0)
-bottom = content_bottom(page0, groups)
-title = page0.search_for("Cross-species lung")
-if title:
-    # cut above whatever the figure keeps rather than a fixed drop below the
-    # title, so the panel letters sitting just under it keep their headroom
-    keep = [fitz.Rect(b[:4]) for b in page0.get_text("blocks")
-            if not title[0].intersects(fitz.Rect(b[:4]))]
-    top = max(title[0].y1 + 2, min(r.y0 for r in keep) - 6)
-else:
-    top = 0
-scale, gap = .82, 20
-width = sum(g.width for g in groups) * scale + gap * (len(groups) - 1)
-out = fitz.open()
-page = out.new_page(width=page0.rect.width,
-                    height=bottom - top + 14 + max(g.height for g in groups) * scale)
-place(page, src, (0, top, page0.rect.width, bottom), 0, 0)
-x, y = (page0.rect.width - width) / 2, bottom - top + 8
-for g in groups:
-    place(page, src, g, x, y, scale)
-    x += g.width * scale + gap
-out.save(figures / "Figure_6.pdf", garbage=4, deflate=True)
-page.get_pixmap(matrix=fitz.Matrix(1.5, 1.5)).save(paper / "demos/Figure_6_preview.png")
-print("Wrote Figure 3 demo and compact Figure 5/6 layouts.")
+# Figure 6 is laid out by plots/figure6/assemble_figure6.py and is not touched.
+print("Wrote Figure 3 demo and compact Figure 5 layout.")

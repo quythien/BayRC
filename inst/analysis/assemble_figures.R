@@ -3,9 +3,10 @@
 #
 # The analysis scripts each drop their panels somewhere under BAYRC_OUTPUT_DIR,
 # under names that describe the comparison rather than the figure. This script
-# takes the step from those panels to Figure_2 ... Figure_6: it copies every
+# takes the step from those panels to Figure_3 and Figure_5: it copies every
 # panel to paper/subfigures/ under a stable name, then letters and merges them
-# into the numbered figure.
+# into the numbered figure. Figures 2 and 6 are laid out by their own scripts,
+# named in external.figures, and only have their panels collected here.
 #
 # Usage:
 #   Rscript assemble_figures.R [paper.dir]
@@ -151,6 +152,11 @@ figures <- list(
                "F6B_baboon_human_LUN_circadian_heatmap.pdf")
 )
 
+# A figure laid out by its own script from panels built on one native width is
+# never written here, so a stale merge cannot replace it.
+external.figures <- c(Figure_2 = "plots/figure2/assemble_figure2_nature.py",
+                      Figure_6 = "plots/figure6/assemble_figure6.py")
+
 # Figure 5's two heatmaps are each as wide as the text block, so they stack.
 # Figure_5_row holds the same two panels along a row for comparison; every
 # other multi-panel figure runs its panels along a row.
@@ -169,6 +175,14 @@ legend.after.row <- list(Figure_2 = 1L, Figure_3 = 1L)
 # to be right, which for Figure 4 is what q_limits and size_limits fix.
 # A figure whose panels share one subject carries its title once, above the
 # pair, and the panels are drawn with show_title = FALSE.
+# a panel whose subject is not obvious from the shared title names it here,
+# beside the letter
+panel.captions <- list(
+  Figure_5     = c("Putamen versus substantia nigra",
+                   "Putamen versus visual cortex"),
+  Figure_5_row = c("Putamen versus substantia nigra",
+                   "Putamen versus visual cortex"))
+
 figure.titles <- list(Figure_5 = "KEGG Parkinson disease",
                       Figure_5_row = "KEGG Parkinson disease",
                       Figure_6 = "Cross-species lung")
@@ -184,7 +198,8 @@ shared.legends <- list(Figure_2 = "F2L_concordance_legend.pdf",
 if (dry.run) {
   cat("resolved panels\n\n")
   for (nm in names(figures)) {
-    cat(nm, "\n")
+    cat(nm, if (nm %in% names(external.figures))
+      paste0("  (panels only; laid out by ", external.figures[[nm]], ")"), "\n")
     for (want in c(figures[[nm]], shared.legends[[nm]])) {
       p <- Filter(function(x) x$to == want, panels)[[1]]
       cat("  ", want, "\n      ",
@@ -221,6 +236,12 @@ page_size <- function(pdf) {
   as.numeric(strsplit(sub(" pts.*", "", d), " x ")[[1]])
 }
 
+# A figure is scaled to the text width when it is placed, so a label set in
+# points prints at a size that depends on the page. This returns the point size
+# that prints at label.pt once the page has been scaled.
+label_size <- function(paper.w, label.pt = 8.3, textwidth = 488.5)
+  label.pt * paper.w / textwidth
+
 side_by_side <- function(inputs, output, labels = LETTERS[seq_along(inputs)],
                          panel.width = 324, gutter = 9, margin = 9,
                          label.space = 28, below = NA_character_,
@@ -247,7 +268,11 @@ side_by_side <- function(inputs, output, labels = LETTERS[seq_along(inputs)],
   head <- ""
   if (!is.na(title)) {
     paper.h <- paper.h + 24
-    head <- sprintf("\\centerline{\\sffamily\\bfseries\\large %s}\\vspace{8bp}\n\n\\noindent ", title)
+    head <- sprintf(paste0("\\centerline{\\sffamily\\bfseries",
+                             sprintf("\\fontsize{%.1f}{%.1f}\\selectfont",
+                                     label_size(paper.w, 10.5),
+                                     label_size(paper.w, 10.5) * 1.2),
+                             " %s}\\vspace{8bp}\n\n\\noindent "), title)
   }
 
   # a legend the panels share sits centred under the row at its own width, or
@@ -286,8 +311,11 @@ side_by_side <- function(inputs, output, labels = LETTERS[seq_along(inputs)],
     below.after <- length(unique(row.of))
   }
 
+  lab.pt <- label_size(paper.w)
   panel <- function(i) sprintf(
-    "\\begin{minipage}[t]{%.1fbp}\\raggedright\\textbf{\\sffamily\\LARGE %s}\\\\[2bp]\n\\includegraphics[width=%.1fbp]{%s}\\end{minipage}",
+    paste0("\\begin{minipage}[t]{%.1fbp}\\raggedright\\textbf{\\sffamily",
+           sprintf("\\fontsize{%.1f}{%.1f}\\selectfont", lab.pt, lab.pt * 1.2),
+           " %s}\\\\[2bp]\n\\includegraphics[width=%.1fbp]{%s}\\end{minipage}"),
     width.of[i], labels[i], width.of[i], inputs[i])
 
   tex <- c("\\documentclass[11pt]{article}",
@@ -333,7 +361,11 @@ stacked <- function(inputs, output, labels = LETTERS[seq_along(inputs)],
   head <- ""
   if (!is.na(title)) {
     paper.h <- paper.h + 24
-    head <- sprintf("\\centerline{\\sffamily\\bfseries\\large %s}\\vspace{8bp}\n\n\\noindent ", title)
+    head <- sprintf(paste0("\\centerline{\\sffamily\\bfseries",
+                             sprintf("\\fontsize{%.1f}{%.1f}\\selectfont",
+                                     label_size(paper.w, 10.5),
+                                     label_size(paper.w, 10.5) * 1.2),
+                             " %s}\\vspace{8bp}\n\n\\noindent "), title)
   }
 
   # a legend the panels share sits centred under the stack, at its own width
@@ -346,8 +378,11 @@ stacked <- function(inputs, output, labels = LETTERS[seq_along(inputs)],
                      gap, strip.w, below)
   }
 
+  lab.pt <- label_size(paper.w)
   panel <- function(i) sprintf(
-    "\\textbf{\\sffamily\\LARGE %s}\\\\[2bp]\n\\includegraphics[width=%.1fbp]{%s}",
+    paste0("\\textbf{\\sffamily",
+           sprintf("\\fontsize{%.1f}{%.1f}\\selectfont", lab.pt, lab.pt * 1.2),
+           " %s}\\\\[2bp]\n\\includegraphics[width=%.1fbp]{%s}"),
     labels[i], panel.width, inputs[i])
 
   tex <- c("\\documentclass[11pt]{article}",
@@ -374,6 +409,10 @@ stacked <- function(inputs, output, labels = LETTERS[seq_along(inputs)],
 
 unassembled <- character(0)
 for (nm in names(figures)) {
+  if (nm %in% names(external.figures)) {
+    cat(nm, "is laid out by", external.figures[[nm]], "\n")
+    next
+  }
   want <- file.path(sub.dir, figures[[nm]])
   have <- want[file.exists(want)]
   if (!length(have)) next
@@ -382,9 +421,13 @@ for (nm in names(figures)) {
   legend <- file.path(sub.dir, shared.legends[[nm]])
   legend <- if (length(legend) && file.exists(legend)) legend else NA_character_
   title <- if (is.null(figure.titles[[nm]])) NA_character_ else figure.titles[[nm]]
+  caps <- panel.captions[[nm]]
+  lab <- if (is.null(caps)) LETTERS[seq_along(have)] else
+    mapply(function(l, c) sprintf("%s\\hspace{0.8em}%s", l, c),
+           LETTERS[seq_along(have)], caps[seq_along(have)], USE.NAMES = FALSE)
   merge_panels <- if (down)
-    function(...) stacked(..., below = legend, title = title) else
-    function(...) side_by_side(..., below = legend, title = title,
+    function(...) stacked(..., labels = lab, below = legend, title = title) else
+    function(...) side_by_side(..., labels = lab, below = legend, title = title,
                               ncol = figure.columns[[nm]],
                               below.under = legend.under[[nm]],
                               below.after = legend.after.row[[nm]])

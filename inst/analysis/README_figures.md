@@ -1,33 +1,46 @@
 # BayRC Paper Figures
 
 Every paper figure maps to one script here, with the inputs it reads and the
-files it writes. Start from the table; the sections below give the detail.
+files it writes. Start from the table; the sections below give the detail and
+the order to run things in.
 
-| Figure | Script | Writes under |
+Figure 1 is a hand-drawn flowchart. No script produces it.
+
+| Figure | Script | Writes |
 |---|---|---|
 | 1 | none, hand-drawn flowchart | — |
-| 2A | `plots/heatmap_baboon.R`, drawn by `plots/replot_figure2.R` | `BAYRC_FIGURE_DIR/figure2/` |
-| 2B | `plots/heatmap_circadian_pairs.R within_baboon`, drawn by `plots/replot_figure2.R` | `BAYRC_FIGURE_DIR/figure2/` |
-| 2C | `plots/figure2_panelC.R` | `BAYRC_FIGURE_DIR/figure2/` |
-| 3A, 3D clock panel | `applications/Baboon_SCN_HIP.R` | `BAYRC_FIGURE_DIR/baboon_SCN_HIP/` |
-| 3B, 5A | `applications/Baboon_PUT_SUN.R` | `BAYRC_FIGURE_DIR/baboon_PUT_SUN/` |
-| 3C, 5B | `applications/Baboon_PUT_VIC.R` | `BAYRC_FIGURE_DIR/baboon_PUT_VIC/` |
-| 3D, 3E | `plots/summary_panels.R` | `<paper>/demos/figure3/` |
-| 4 | `plots/pathway_transition_panels.R` | `<paper>/figures/` |
-| 6 | `applications/Baboon_Human_LUN.R` | `BAYRC_FIGURE_DIR/baboon_human_LUN/` |
+| 2A | `plots/heatmap_baboon.R`, drawn by `plots/replot_figure2.R` | `figure2/Fig2A_genomewide_nature.pdf` |
+| 2B | `plots/heatmap_circadian_pairs.R within_baboon`, drawn by `plots/replot_figure2.R` | `figure2/Fig2B_circadian_nature.pdf`, `figure2/Fig2_concordance_legend.pdf` |
+| 2C | `plots/figure2_panelC.R` | `figure2/Fig2C_circadian_membership_nature.pdf`, `figure2/Fig2C_circadian_membership.csv` |
+| 2D | `plots/figure2/export_pathway.R`, then `plots/figure2/explore_phase_groups.R` | `figure2/option8_balanced_global_nature.pdf` |
+| 2 | `plots/figure2/assemble_figure2_nature.py` | `figure2/Figure_2.pdf` |
+| 3A, 3D clock panel | `applications/Baboon_SCN_HIP.R` | `baboon_SCN_HIP/` |
+| 3B, 5A | `applications/Baboon_PUT_SUN.R` | `baboon_PUT_SUN/` |
+| 3C, 5B | `applications/Baboon_PUT_VIC.R` | `baboon_PUT_VIC/` |
+| 3D, 3E | `plots/summary_panels.R` | `<paper>/demos/figure3/summary_panels.pdf` |
+| 3, 5 | `assemble_figures.R`, then `plots/layout_figures.py` | `<paper>/figures/Figure_3.pdf`, `Figure_5.pdf`, `Figure_5_row.pdf` |
+| 4 | `plots/pathway_transition_panels.R` | `<paper>/figures/Figure_4.pdf` |
+| 6A, 6B, 6C | `plots/figure6/make_figure6.R` | `figure6/Fig6A_human_baboon.pdf`, `Fig6B_human_mouse.pdf`, `Fig6C_heatmap.pdf` |
+| 6 | `plots/figure6/assemble_figure6.py` | `figure6/Figure_6_column.pdf` |
 | S4 | `plots/Cosinor_residual_diagnostics_LUN*.R` | `BAYRC_FIGURE_DIR` |
 | S5 | `plots/S5_Bayes_Cosinor_Agreement_LUN.R` | `BAYRC_FIGURE_DIR` |
+
+Relative paths in the third column are under `BAYRC_FIGURE_DIR`. `<paper>` is
+`$BAYRC_RESULT_DIR/paper` with the settings below.
 
 ## Layout
 
 ```
-config.R             paths, all overridable by environment variable
-applications/        the three paper case studies, each end to end
-pipeline/            shared upstream steps and the parameter searches
-plots/               shared drawing code: theme, palettes, heatmaps, scatters
-exploratory/         other tissue pairs, not used by any paper figure
-assemble_figures.R   collects the panels into Figure_N.pdf
-plots/layout_figures.py  reflows the assembled figures, see below
+config.R                 paths, all overridable by environment variable
+applications/            the four paper case studies, each end to end
+pipeline/                shared upstream steps and the parameter searches
+plots/                   shared drawing code: theme, palettes, heatmaps, scatters
+plots/figure2/           Figure 2 panel D and the Figure 2 layout
+plots/figure6/           the three-species Figure 6 panels and layout
+plots/layout_figures.py  reflows the assembled Figures 3 and 5
+mouse/                   the mouse chains and the human/mouse summaries
+exploratory/             other tissue pairs, not used by any paper figure
+assemble_figures.R       collects the panels and merges Figures 3 and 5
 ```
 
 Each application script runs standalone from a cold session and writes a
@@ -35,65 +48,118 @@ Each application script runs standalone from a cold session and writes a
 `mcmc_rho_BF3.RData` was written, the parameters and the run date. That file,
 not this one, answers which run produced a given figure.
 
+## Requirements
+
+- R with the package installed (`R CMD INSTALL .` from the checkout), plus
+  `ComplexHeatmap`, `circlize`, `cluster` and `ggplot2`.
+- `pdflatex` and `pdfinfo` on the PATH, for `assemble_figures.R`.
+- Python 3 with PyMuPDF, for every `.py` script: `pip install pymupdf`. A
+  script stops with that instruction when the module is missing.
+
 ## Paths
 
-`config.R` reads every directory from an environment variable and falls back to
-the original locations. It prints the summary directory and the date its rho
-file was written, and stops if that file is missing, so the run behind a figure
-is visible in the log.
+`config.R` reads every directory from an environment variable and derives the
+fallback from where the checkout sits. It prints the summary directory and the
+date its rho file was written, and stops if that file is missing, so the run
+behind a figure is visible in the log. Set these before anything else:
 
 ```
-export BAYRC_DATA_DIR=/path/to/Collaborative
-export BAYRC_WD_DIR=/path/to/Circadian
-export BAYRC_RESULT_DIR=/path/to/GTEXdata/result_fixed
-export BAYRC_SUMMARY_DIR=$BAYRC_RESULT_DIR/summary/hb
-export BAYRC_OUTPUT_DIR=/path/to/analysis/output
-export BAYRC_FIGURE_DIR=/path/to/figure/output
-export BAYRC_PATHWAY_DIR=/path/to/R/pathway_data
-export BAYRC_PIPELINE_DIR=/path/to/Pipeline   # holds one_cosinor_OLS_new.R
+export BAYRC_RESULT_DIR=/path/to/GTEXdata/result_fixed   # the MCMC output
+export BAYRC_OUTPUT_DIR=$BAYRC_RESULT_DIR/analysis        # tables and caches
+export BAYRC_FIGURE_DIR=$BAYRC_RESULT_DIR/analysis/figures
+export BAYRC_GTEX_DIR=/path/to/GTEXdata                   # holds data/CAMO.bab.hum.RData
 ```
 
-Every script under `applications/` and `plots/` takes its paths from here and
-runs from a cold session. The run order below was last checked end to end on
-2026-09-21, each step in a fresh R session.
+Optional:
 
-The default `BAYRC_RESULT_DIR` is the 2025 `result/` tree; point it at
-`result_fixed/` for the corrected sampler.
+```
+export BAYRC_SUMMARY_DIR=$BAYRC_RESULT_DIR/summary/hb   # the default
+export BAYRC_PATHWAY_DIR=/path/to/pathway_data          # default: R/pathway_data beside the checkout, else inst/extdata
+export BAYRC_PIPELINE_DIR=/path/to/Pipeline             # holds one_cosinor_OLS_new.R, cosinor scripts only
+export BAYRC_DATA_DIR, BAYRC_WD_DIR, BAYRC_AGING_DIR    # the aging pipeline scripts only
+```
+
+The Python scripts read `BAYRC_FIGURE_DIR` for their panel directory and take it
+as their first argument otherwise.
+
+## Summaries
+
+The MCMC output and the summary objects are not in the repository. Two summary
+directories sit under `BAYRC_RESULT_DIR/summary`:
+
+- `hb` holds the human and baboon summaries, `mcmc_rho_BF3.RData` and
+  `phi/mcmc_phi_BF3.RData`, built by `pipeline/summarize_rho_phi.R`. Every
+  within-species figure and the baboon side of Figure 6 read from here; this is
+  `BAYRC_SUMMARY_DIR`.
+- `hm` holds the human and mouse summaries under the same two names, built by
+  `mouse/build_mouse_summaries.R` from the six mouse tissue chains. Only
+  `plots/figure6/make_figure6.R` and `mouse/mouse_diagnostics.R` read from here,
+  and `make_figure6.R` stops when it is absent.
+
+The per-tissue chains come from the fixed-arm runner kept with the data,
+`run_fixed.R` for human and baboon and `mouse/run_mouse.R` for mouse. The mouse
+runner reads `CAMO.mouse.hum.RData` from `BAYRC_GTEX_DIR/data`.
 
 ## Order of operations
 
-The MCMC output and the two `.RData` summaries are not in the repository.
+Everything below runs from `inst/analysis` with the variables above exported.
+Each step is a fresh R process. Steps 3 to 7 read the tables and caches the
+earlier steps wrote, so none of them needs the chains after step 1.
 
 ```
-1. CAMO_h_b.R                        per-tissue MCMC, 26 human + 26 baboon
-2. pipeline/summarize_rho_phi.R      -> mcmc_rho_BF3.RData, phi/mcmc_phi_BF3.RData
-3. plots/heatmap_baboon.R            concordance matrices for Figure 2
-   plots/heatmap_circadian_pairs.R within_baboon
-4. applications/Baboon_SCN_HIP.R     the four case studies, each end to end
-   applications/Baboon_PUT_SUN.R     add --replot to redraw from their tables
-   applications/Baboon_PUT_VIC.R
-   applications/Baboon_Human_LUN.R
-5. plots/replot_figure2.R            Figure 2 panels A and B and the colour bar
-   plots/figure2_panelC.R            Figure 2 panel C
-   plots/summary_panels.R            Figure 3 panels D and E
-6. assemble_figures.R                panels -> Figure_2 ... Figure_6
-7. plots/pathway_transition_panels.R Figure 4, written straight to the figures
-8. plots/layout_figures.py <paper>   reflows Figures 3, 5 and 6
+# 1. summaries
+Rscript pipeline/summarize_rho_phi.R                       # -> summary/hb
+Rscript mouse/build_mouse_summaries.R $BAYRC_RESULT_DIR $BAYRC_RESULT_DIR/summary/hb \
+        $BAYRC_RESULT_DIR/summary/hm ../extdata/ensembl_symbol_map.csv       # -> summary/hm
+
+# 2. concordance matrices behind Figure 2
+Rscript plots/heatmap_baboon.R
+Rscript plots/heatmap_circadian_pairs.R within_baboon
+
+# 3. the four case studies; add --replot to redraw from their tables
+Rscript applications/Baboon_SCN_HIP.R
+Rscript applications/Baboon_PUT_SUN.R
+Rscript applications/Baboon_PUT_VIC.R
+Rscript applications/Baboon_Human_LUN.R
+
+# 4. Figure 2
+Rscript plots/replot_figure2.R                             # panels A, B and the colour bar
+Rscript plots/figure2_panelC.R                             # panel C and its membership table
+Rscript plots/figure2/export_pathway.R                     # phase table for panel D
+FIG2_CAIRO=1 Rscript plots/figure2/explore_phase_groups.R  # panel D
+python3 plots/figure2/assemble_figure2_nature.py           # -> figure2/Figure_2.pdf
+
+# 5. Figures 3 and 5
+Rscript plots/summary_panels.R                             # Figure 3 panels D and E
+Rscript assemble_figures.R                                 # panels -> <paper>/figures/Figure_3, Figure_5
+python3 plots/layout_figures.py $BAYRC_RESULT_DIR/paper    # reflows Figures 3 and 5
+
+# 6. Figure 4
+Rscript plots/pathway_transition_panels.R                  # -> <paper>/figures/Figure_4.pdf
+
+# 7. Figure 6
+Rscript plots/figure6/make_figure6.R                       # panels A, B, C
+python3 plots/figure6/assemble_figure6.py                  # -> figure6/Figure_6_column.pdf
+python3 plots/figure6/check_heatmap.py $BAYRC_FIGURE_DIR/figure6/Fig6C_heatmap.pdf
 ```
 
-Steps 3 to 8 run from `inst/analysis`. Step 7 comes after step 6 because it
-writes `Figure_4.pdf` itself rather than handing panels to the assembler, and
-step 8 comes last because it works on the assembled files. Steps 5 and 7 read
-the tables and caches the earlier steps wrote, so neither needs the MCMC output.
+The manuscript's `Figure_2.pdf` is `figure2/Figure_2.pdf` from step 4 and its
+`Figure_6.pdf` is `figure6/Figure_6_column.pdf` from step 7; copy both into
+`<paper>/figures/`. `assemble_figures.R` collects the Figure 2 and 6 panels for
+the record but never writes either figure, and `layout_figures.py` leaves
+`Figure_6.pdf` alone, so a rerun of step 5 cannot replace them.
 
-Before re-running step 8 on a fresh build, empty
+`exploratory/run_figure2_chain.R` runs step 2 in one process per script, and
+`assemble_figures.R --dry-run` lists which panel each figure is still missing.
+
+Before re-running `layout_figures.py` on a fresh build, empty
 `<paper>/archive/before_legend_layout/`. That directory holds the assembler's
 output as the reflow found it, which is what makes the reflow repeatable; the
 script reads the copy there in preference to the live file.
 
 ## Analysis parameters
 
-The three application scripts state these as plain assignments near the top.
+The application scripts state these as plain assignments near the top.
 
 ```
 bfdr_alpha     0.25     BFDR level, in transition_classify and phase_infer
@@ -115,21 +181,32 @@ defined it.
 
 ## Figures
 
-**Figure 2** — genome-wide concordance across 26 baboon tissues and
-KEGG-circadian concordance across the 25 excluding SCN. `plots/heatmap_baboon.R`
-and `plots/heatmap_circadian_pairs.R` compute the concordance matrices;
-`plots/replot_figure2.R` draws both panels from those matrices as
-`Fig2A_genomewide.pdf` and `Fig2B_circadian.pdf`, with the cap and ramp from
-`plots/palette_concordance.R`, and writes the run record.
+**Figure 2** — genome-wide concordance across 26 baboon tissues, KEGG-circadian
+concordance across the 25 excluding SCN, the membership of the circadian
+pathway in those tissues, and the peak timing of its genes.
+`plots/heatmap_baboon.R` and `plots/heatmap_circadian_pairs.R` compute the
+concordance matrices; `plots/replot_figure2.R` draws panels A and B from those
+matrices, with the cap and ramp from `plots/palette_concordance.R`, and writes
+the run record. `plots/figure2_panelC.R` draws panel C and writes the
+tissue-by-gene membership table. `plots/figure2/export_pathway.R` summarises
+the posterior phase of every called cell of that table from
+`phi/mcmc_phi_BF3.RData`, and `plots/figure2/explore_phase_groups.R` draws
+panel D from it, grouping the genes by phase on both tissue groups weighted
+equally; `FIG2_CAIRO=1` draws it with `cairo_pdf`, which embeds the fonts.
+Panels that have to carry type at one printed size are built on one native
+width, the `_nature` files, and `assemble_figure2_nature.py` only places them.
+`assemble_figure2_column.py` is an alternative layout from the same panels.
 `plots/heatmap_circadian_pairs.R` also takes `within_baboon_with_scn`,
-`within_human` and `cross_species`. 325 within-species pairs, and 625 cross-species,
-which excludes SCN from both species. `pipeline/pairwise_concordance_all.R`
-keeps SCN and so runs 676.
+`within_human` and `cross_species`: 325 within-species pairs, and 625
+cross-species, which excludes SCN from both species.
+`pipeline/pairwise_concordance_all.R` keeps SCN and so runs 676.
 
 **Figure 3** — within-species peak-phase concordance scatters: panel A from the
 SCN-HIP script, panels B and C from the two putamen circuits. All three draw
 `<pair>_Peak_Concordance.pdf` through `plots/peak_concordance.R`, with
-condition A on the x axis and the same ±2 h band.
+condition A on the x axis and the same ±2 h band. `plots/summary_panels.R`
+draws the transition counts and posterior phase-class proportions from each
+pair's `plot_data.rds`, and `layout_figures.py` seats them under the scatters.
 
 **Figure 4** — pathway transition enrichment in the two putamen circuits.
 `plots/pathway_transition_panels.R` reads the `stage2_significant.csv` each
@@ -144,11 +221,19 @@ the script writes `Figure_4.pdf` directly.
 `plot_heatmap()` writes one file per pathway, plus a `_rhythmic_only` version
 that drops the genes rhythmic in neither tissue. Panel A is drawn with
 `show_legend = FALSE`; panel B carries the legend for the pair along its
-bottom edge.
+bottom edge. `Figure_5_row.pdf` holds the same two panels along a row.
 
-**Figure 6** — cross-species lung: the concordance scatter and the KEGG
-Circadian rhythm heatmap. The phase-class key sits inside the scatter, so the
-strip along the bottom carries only the heatmap's own keys.
+**Figure 6** — the circadian pathway in lung across three species, with human
+as the reference. `plots/figure6/make_figure6.R` reads the `hb` and `hm`
+summaries, classifies human against baboon and human against mouse on the
+frozen parameters, draws the two concordance scatters with human on the x axis
+in both, and draws the three-condition heatmap through `plot_heatmap()` with
+`data3`. `assemble_figure6.py` writes the stacked and the column arrangement
+and reports the smallest type each reaches at text width; the paper carries the
+column. `check_heatmap.py` reads the drawn heatmap back and fails if the two
+offset blocks were built from different rules or any labels collide.
+`demo_three_regions.R` runs the same three-condition heatmap on SCN,
+hippocampus and putamen as a check on that code path.
 
 ## Sizing figures for print
 
@@ -171,3 +256,6 @@ Check a figure at the size it will print rather than on screen.
 - The gene sets rename `ARNTL` to `BMAL1`, the symbol the atlas uses.
 - `exploratory/` holds the other tissue pairs. Several of them read objects
   from the workspace a previous script left behind and do not run on their own.
+- `pipeline/CAMO_Aging_*.R`, `pipeline/Pipleline.R` and `plots/figures.R`
+  belong to the aging analysis and read from `BAYRC_AGING_DIR`; they are not
+  behind any figure in this paper.
