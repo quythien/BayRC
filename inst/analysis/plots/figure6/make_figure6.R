@@ -97,8 +97,8 @@ scatter <- function(res, cmp_name, file, show_key) {
     peak_x = res$phase$peak1[keep], peak_y = res$phase$peak2[keep],
     phase_class = cls, label_genes = clock,
     title = sprintf("Human versus %s lung", tolower(cmp_name)),
-    xlab = "Peak hour - human lung (ZT)",
-    ylab = sprintf("Peak hour - %s lung (ZT)", tolower(cmp_name)),
+    xlab = "Peak Hour - Human lung (ZT)",
+    ylab = sprintf("Peak Hour - %s lung (ZT)", cmp_name),
     window = shift)
   # the pair shares one key, carried by the first panel
   p <- p + if (show_key) {
