@@ -26,9 +26,16 @@ dir.create(file.path(outdir, "phi"), recursive = TRUE, showWarnings = FALSE)
 
 gene.map <- utils::read.csv(mapfile, stringsAsFactors = FALSE)
 
+this.file <- sub("^--file=", "", grep("^--file=", commandArgs(), value = TRUE)[1])
+analysis.dir <- if (is.na(this.file)) getwd() else dirname(normalizePath(this.file))
+while (!file.exists(file.path(analysis.dir, "config.R")) &&
+       dirname(analysis.dir) != analysis.dir) analysis.dir <- dirname(analysis.dir)
+bayrc.needs.summary <- FALSE
+source(file.path(analysis.dir, "config.R"))
+
 # CAMO.mouse.hum.RData sits under BAYRC_GTEX_DIR/data, beside CAMO.bab.hum.RData
-datafile <- file.path(Sys.getenv("BAYRC_GTEX_DIR"), "data", "CAMO.mouse.hum.RData")
-if (!nzchar(Sys.getenv("BAYRC_GTEX_DIR")) || !file.exists(datafile))
+datafile <- file.path(BAYRC_GTEX_DIR, "data", "CAMO.mouse.hum.RData")
+if (!file.exists(datafile))
   stop("set BAYRC_GTEX_DIR to the directory holding data/CAMO.mouse.hum.RData")
 load(datafile)
 tissues <- sort(names(mice$count_clean))

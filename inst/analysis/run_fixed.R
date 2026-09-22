@@ -26,9 +26,16 @@ if (!species %in% c("human", "baboon"))
 .libPaths(c(libp, .libPaths()))
 suppressPackageStartupMessages(library(BayRC))
 
+this.file <- sub("^--file=", "", grep("^--file=", commandArgs(), value = TRUE)[1])
+analysis.dir <- if (is.na(this.file)) getwd() else dirname(normalizePath(this.file))
+while (!file.exists(file.path(analysis.dir, "config.R")) &&
+       dirname(analysis.dir) != analysis.dir) analysis.dir <- dirname(analysis.dir)
+bayrc.needs.summary <- FALSE
+source(file.path(analysis.dir, "config.R"))
+
 # CAMO.bab.hum.RData sits under BAYRC_GTEX_DIR/data
-datafile <- file.path(Sys.getenv("BAYRC_GTEX_DIR"), "data", "CAMO.bab.hum.RData")
-if (!nzchar(Sys.getenv("BAYRC_GTEX_DIR")) || !file.exists(datafile))
+datafile <- file.path(BAYRC_GTEX_DIR, "data", "CAMO.bab.hum.RData")
+if (!file.exists(datafile))
   stop("set BAYRC_GTEX_DIR to the directory holding data/CAMO.bab.hum.RData")
 load(datafile)
 
