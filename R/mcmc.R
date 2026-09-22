@@ -1159,9 +1159,7 @@ get_logZ1_single = function(Y, t.c, t.s, M, sigma, A_prior,
     Yc   = Y[id, , drop = FALSE] - M[id]
     Umat = Yc %*% tC                                       # |id| x NP
     Tmat = matrix(Tvec, nrow = length(id), ncol = NP, byrow = TRUE)
-    ## A.max may be per-gene; it MUST be subset with the chunk or it recycles
-    ## column-major against a smaller matrix and silently gives the wrong
-    ## prior span for all but the first phi column.
+    ## A.max may be per-gene, so it is subset with the chunk to match Umat's rows.
     amx  = if(length(A.max) == 1L) A.max else A.max[id]
     lh   = log_h_core(Tmat, Umat, sigma[id], A_prior,
                       mu_A, sigma_A, A.min, amx, P)
@@ -1232,13 +1230,11 @@ RJMCMC_single_slice = function(Y, t.c, t.s, N,
                                mu_A, sigma_A, A.min, A.max, # this applies to A~truncated normal(mu_A, sigma_A)I(A>A_min)
                                omega, G, P,
                                NP = 64){   # phi-quadrature nodes for Z1
-  ## Positional-call guard: omega/G/P are formals 27-29 and BayCT.R supplies
-  ## them positionally, so a caller with the wrong arity fails here with a
-  ## message naming the problem rather than three frames deep in get_post_A.
+  ## omega, G and P are formals 27-29, so a positional caller with the wrong
+  ## arity is named here rather than three frames deep in get_post_A.
   if(missing(omega) || missing(G) || missing(P))
     stop("RJMCMC_single_slice: omega/G/P are missing. The caller supplied ",
-         nargs(), " positional arguments; 29 are required before NP. ",
-         "Check the call site in BayCT.R.")
+         nargs(), " positional arguments; 29 are required before NP.")
                       # c.t=c.t.phi; s.t=s.t.phi; cs.t= cs.t.phi;
                       # y.t.c.sum.num=y.t.c.sum; y.t.s.sum.num=y.t.s.sum;
                       # p.vec = p_rhythmic
@@ -1280,12 +1276,9 @@ RJMCMC_single_slice = function(Y, t.c, t.s, N,
   }
   
   if(propose.phi){
-    ## MARGINAL posterior of phi, log J(phi) = log h(phi) - log Z1.
-    ## Previously this slot held get_log_phi_post_full_single, the CONDITIONAL
-    ## p(phi | A). Pairing a conditional in A with a conditional in phi does
-    ## not give a joint density in (A, phi): the product integrates to roughly
-    ## 1.2-1.4, not 1. A valid factorization needs one MARGINAL and one
-    ## conditional, J(A, phi) = J(phi) J(A | phi), which is what this is.
+    ## Marginal posterior of phi, log J(phi) = log h(phi) - log Z1. The
+    ## reversible-jump ratio factorises as J(A, phi) = J(phi) J(A | phi), so
+    ## this slot carries the marginal in phi and get_post_A the conditional.
     logZ1 = get_logZ1_single(Y, t.c, t.s, M, sigma, A_prior,
                              mu_A, sigma_A, A.min, A.max,
                              omega, P, G, NP)
@@ -1335,9 +1328,8 @@ RJMCMC_single_slice = function(Y, t.c, t.s, N,
 #' error, the current \code{out} object is serialised to \code{save.file}
 #' and the error is re-thrown, preserving progress on disk.
 #'
-#' The single-tissue sampler no longer uses this -- it stops at the iteration
-#' that goes wrong instead of saving a partial chain -- but the time-course
-#' sampler in \code{mcmc_time.R} still does.
+#' Used by the time-course sampler in \code{mcmc_time.R}. The single-tissue
+#' sampler stops at the failing iteration instead of saving a partial chain.
 #'
 #' @param expr Expression to evaluate.
 #' @param out Object to save on failure.
