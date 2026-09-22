@@ -47,6 +47,7 @@ cat("\n== inclusion and core-clock amplitude, by arm ==\n")
 sym <- setNames(rownames(hm$mcmc_data_mouse[[1]]),
                 attr(hm$mcmc_data_mouse[[1]], "ensembl_gene_ids"))
 e <- new.env(); load(file.path(BAYRC_GTEX_DIR, "data", "CAMO.mouse.hum.RData"), envir = e)
+arm_share <- list()
 for (t in tissues) {
   for (arm in names(arms)) {
     f <- list.files(file.path(arms[[arm]], t), pattern = "\\.RDS$", full.names = TRUE)
@@ -55,13 +56,18 @@ for (t in tissues) {
     ids <- unname(sym[rownames(e$mice$count_clean[[t]])])
     i <- match(clock, ids); i <- i[!is.na(i)]
     rho <- rowMeans(x$rho)
+    share <- 100 * mean(bfdr_from_posterior(rho, alpha = alpha)$rhythmic_genes)
+    arm_share[[arm]] <- c(arm_share[[arm]], share)
     cat(sprintf("  %s %-7s rhythmic %4d (%.1f%%)  clock A %.3f  clock rho %.3f\n",
                 t, arm, sum(bfdr_from_posterior(rho, alpha = alpha)$rhythmic_genes),
-                100 * mean(bfdr_from_posterior(rho, alpha = alpha)$rhythmic_genes),
-                mean(rowMeans(x$A)[i]), mean(rho[i])))
+                share, mean(rowMeans(x$A)[i]), mean(rho[i])))
     rm(x); gc(verbose = FALSE)
   }
 }
+# the range each arm spans across the six tissues, as Supplementary S9 quotes it
+for (arm in names(arm_share))
+  cat(sprintf("  %-7s range across tissues %.0f to %.0f%%\n", arm,
+              min(arm_share[[arm]]), max(arm_share[[arm]])))
 
 ## 3. peak time of each species, and the offsets the figure draws -----------
 cat("\n== peak time and offset against the reference, lung ==\n")
@@ -103,3 +109,23 @@ cat("\n== gene universes ==\n")
 cat(sprintf("  human and baboon      %5d\n", nrow(hbr$mcmc_data_human[[1]])))
 cat(sprintf("  human, baboon, mouse  %5d   what a three-species panel can draw\n",
             nrow(hm$mcmc_data_human[[1]])))
+
+## 6. mouse minus human offset in every tissue ------------------------------
+# Taken over the clock genes rhythm-conserved against mouse in that tissue, as
+# a circular mean. In these per-tissue objects peak1 is the mouse peak, so the
+# mouse minus human offset is peak1 - peak2.
+cat("\n== mouse minus human peak offset, rhythm-conserved clock genes ==\n")
+fig <- file.path(BAYRC_RESULT_DIR, "analysis", "figures")
+all_d <- c()
+for (t in tissues) {
+  x  <- readRDS(file.path(fig, paste0("mouse_human_", t, "_genome"), "plot_data.rds"))
+  g  <- rownames(x$phase)
+  if (is.null(g)) g <- names(x$pA)
+  d  <- wrap(x$phase$peak1 - x$phase$peak2)
+  ok <- g %in% clock & as.character(x$trans$gain_loss_status) == "Maintained" & !is.na(d)
+  all_d <- c(all_d, setNames(d[ok], paste(t, g[ok])))
+  cat(sprintf("  %s  %d genes  circular mean %+5.2f h   range %+5.2f to %+5.2f\n",
+              t, sum(ok), circ_mean(d[ok]), min(d[ok]), max(d[ok])))
+}
+cat(sprintf("  across all six: %+.2f h (%s) to %+.2f h (%s)\n",
+            min(all_d), names(which.min(all_d)), max(all_d), names(which.max(all_d))))
