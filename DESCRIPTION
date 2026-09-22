@@ -32,7 +32,6 @@ Imports:
     HDInterval,
     invgamma,
     KEGGREST,
-    MASS,
     mvtnorm,
     parallel,
     purrr,
@@ -55,4 +54,4 @@ Suggests:
     Rmpfr,
     testthat (>= 3.0.0)
 VignetteBuilder: knitr
-RoxygenNote: 7.3.2
+RoxygenNote: 7.3.3

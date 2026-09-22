@@ -18,3 +18,4 @@
 ^\.RData$
 ^Rplots\.pdf$
 ^vignettes/figure$
+^CITATION\.cff$
