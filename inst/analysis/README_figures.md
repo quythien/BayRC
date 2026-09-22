@@ -24,6 +24,8 @@ Figure 1 is a hand-drawn flowchart. No script produces it.
 | 6 | `plots/figure6/assemble_figure6.py` | `figure6/Figure_6_column.pdf` |
 | S4 | `plots/Cosinor_residual_diagnostics_LUN*.R` | `BAYRC_FIGURE_DIR` |
 | S5 | `plots/S5_Bayes_Cosinor_Agreement_LUN.R` | `BAYRC_FIGURE_DIR` |
+| Table S8 | `pipeline/bfdr_calibration.R <seed>` for seeds 1 to 10, then `--summary` | `calibration/bfdr_calibration_summary.csv` |
+| S8 | `pipeline/bfdr_calibration.R <seed> 2000 - <n> <A> 1` over n in 12, 24, 48, A in 0.5, 1, 1.5, 2, 3 and seeds 1 to 10, then `plots/figure_S_operating.R` | `Figure_S_operating.pdf`, `calibration/bfdr_operating_characteristics.csv`, `calibration/bayrc_cosinor_auc.csv` |
 | Table 1 | `applications/Baboon_PUT_SUN.R`, `applications/Baboon_PUT_VIC.R` | `<pair>/stage2_significant.csv`, `<pair>/pathway_metrics.csv` |
 
 Relative paths in the third column are under `BAYRC_FIGURE_DIR`. `<paper>` is
