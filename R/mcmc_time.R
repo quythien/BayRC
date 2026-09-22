@@ -2,6 +2,8 @@
 #'
 #' @title CBt MCMC single chain with time-error model
 #'
+#' @noRd
+#'
 #' @description
 #' Extends \code{CB_MCMC_single_rj_slice} to jointly infer the gene
 #' expression parameters and the latent Zeitgeber-time measurement error
@@ -41,7 +43,7 @@
 #' @param mu_M,sigma_M Numeric; MESOR prior mean and variance.
 #' @param sigma_prior_v,sigma_prior_s Numeric; inverse-gamma prior on
 #'   residual variance.
-#' @param save.file,save.file2 Character; paths for intermediate saves.
+#' @param save.file,save.file2,save.file3 Character; paths for intermediate saves.
 #'
 #' @return Same structure as \code{CB_MCMC_single_rj_slice} plus a
 #'   \code{t_p} matrix (N x K) of posterior samples of time-error.
@@ -199,7 +201,7 @@ CBt_MCMC_single = function(Data.list, Init.value, P = 24,
                                              mu_A, sigma_A, A.min, A.max,
                                              A_wb_beta2,
                                              A_gm_shape, A_gm_rate,
-                                             omega, G, P, save.file3), # added save.file2 here
+                                             omega, G, P, save.file3),
                          save, save.file)
       # rho.res = RJMCMC_single_slice(Y, t_t_p.c, t_t_p.s, N,
       #                               t_t_p.c.sum, t_t_p.s.sum,
@@ -694,7 +696,7 @@ update_t_p_mass0_spike = function(Y, t, t_p, t_t_p.c, t_t_p.s, zeta,
   
   pt = rbeta(1, alpha_t1 + sum(zeta), alpha_t2 + sum(1 - zeta))
   p_zeta1= sapply(1:N, function(i){
-    intee = integrate_t_p_i(i, Y, N, t_p, M, sigma,
+    intee = integrate_t_p_i(i, Y, t_p, M, sigma,
                           AcosPhi, AsinPhi, t.c, t.s, rho, 
                           theta_t_p, kappa_t_p, omega, P)
     intee.scale = intee$scale
