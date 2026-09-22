@@ -277,7 +277,7 @@ run_single_round <- function(dat1, dat2, pathway_indices_A, pathway_indices_B,
           fixed_indices_A <- pathway_indices_A[[k]]
           
           # PERMUTED indices for dataset B
-          permuted_indices_B <- sample(pathway_indices_B[[k]], pathway_sizes[k], replace = FALSE)
+          permuted_indices_B <- pathway_indices_B[[k]][sample.int(length(pathway_indices_B[[k]]), pathway_sizes[k])]
           
           # Only rho needed for congruence calculation
           matrix1 <- list(
@@ -329,7 +329,7 @@ run_single_round <- function(dat1, dat2, pathway_indices_A, pathway_indices_B,
           fixed_indices_A <- pathway_indices_A[[k]]
           
           # PERMUTED indices for dataset B
-          permuted_indices_B <- sample(pathway_indices_B[[k]], pathway_sizes[k], replace = FALSE)
+          permuted_indices_B <- pathway_indices_B[[k]][sample.int(length(pathway_indices_B[[k]]), pathway_sizes[k])]
           
           # Only rho needed for congruence calculation
           matrix1 <- list(
