@@ -17,8 +17,7 @@ source(file.path(analysis.dir, "pipeline", "plot_cache.R"))
 # --replot redraws every figure from the tables a full run left behind
 replot <- "--replot" %in% commandArgs(trailingOnly = TRUE)
 
-# the pair and tissue the run covers. The defaults are the ones the paper
-# reports, so a plain run is the published lung comparison.
+# species and tissue; the defaults give the published lung comparison
 species  <- Sys.getenv("BAYRC_SPECIES", unset = "baboon")
 tissue   <- Sys.getenv("BAYRC_TISSUE",  unset = "LUN")
 
@@ -57,6 +56,28 @@ if (replot) {
   hum <- list(rho = mcmc_data_human[[tissue]], phi = mcmc_phi_human[[tissue]])
   measured <- rownames(bab$rho)
 
+  # the three-species panel of Figure 6 is drawn on the genes mouse also
+  # measures, so this comparison is cut to the same set when that summary is
+  # present; plots/figure6/make_figure6.R takes the intersection the same way
+  hm.file <- file.path(dirname(BAYRC_SUMMARY_DIR), "hm", "mcmc_rho_BF3.RData")
+  if (file.exists(hm.file)) {
+    hm.env <- new.env()
+    load(hm.file, envir = hm.env)
+    measured <- intersect(measured, rownames(hm.env$mcmc_data_mouse[[tissue]]))
+    # pathSelect reads the gene names from attributes, so they travel with the rows
+    take <- function(m) {
+      i <- match(measured, rownames(m))
+      out <- m[i, , drop = FALSE]
+      for (a in c("symbols", "RHYindex", "ensembl_gene_ids"))
+        if (!is.null(attr(m, a))) attr(out, a) <- attr(m, a)[i]
+      out
+    }
+    bab <- lapply(bab, take)
+    hum <- lapply(hum, take)
+    rm(hm.env)
+  }
+  cat("genes carried into the comparison:", length(measured), "\n")
+
   pA <- rowMeans(bab$rho)
   pB <- rowMeans(hum$rho)
   trans <- transition_classify(pA, pB, bfdr_alpha = bfdr_alpha)
@@ -85,12 +106,7 @@ p <- peak_concordance_plot(
   title = "Baboon versus human lung",
   xlab = "Peak Hour - Baboon lung (ZT)",
   ylab = "Peak Hour - Human lung (ZT)", window = shift)
-# the points lie along the diagonal, so the key goes in the empty upper-left
-# and the strip beneath the pair carries only the heatmap's own keys. the
-# aspect matches the heatmap beside it so the two panels finish at the same
-# height
-# the axis type is set a little below the shared theme so it matches the
-# heatmap beside it once the assembler has scaled the two panels to one width
+# key in the empty upper-left; aspect and axis type match the heatmap beside it
 bayrc_save(p + theme(legend.position = c(0.02, 0.98),
                      legend.justification = c(0, 1),
                      legend.direction = "vertical",
@@ -131,8 +147,7 @@ if (replot) {
   union_res$q <- p.adjust(union_res$pval, "BH")
   active <- union_res$pathway[union_res$q < stage1_q]
 
-  # pathSelect names its effect column after the ranking method, so the three
-  # runs are cut to the shared columns before they are stacked
+  # columns the three ranking methods share, so the runs can be stacked
   stage2_cols <- c("pathway", "size", "pval", "Expected_N_Gain",
                    "Expected_N_Loss", "Expected_N_Conserved")
   stage2 <- do.call(rbind, lapply(c("gain", "loss", "conserved"), function(m) {
