@@ -5,7 +5,12 @@
 ## the sampler is called with the priors and bounds CAMO_h_b.R uses, so the
 ## posteriors carry the same granularity as the real run (2000 kept draws).
 ##
-## Usage: Rscript bfdr_calibration.R <seed> [G] [outfile]
+## Usage: Rscript bfdr_calibration.R <seed> [G] [outfile] [N] [A] [sigma]
+##
+## With no optional arguments this is the atlas design: the observed lung times,
+## amplitudes drawn on [0.3, 1.2] and residual SD 0.5. N replaces the times with N
+## samples evenly spaced over one period; A gives every rhythmic gene that one
+## amplitude, and sigma sets the residual SD, so A / sigma can be swept.
 
 suppressPackageStartupMessages(library(BayRC))
 
@@ -48,10 +53,16 @@ if ("--summary" %in% args) {
 
 seed <- if (length(args) >= 1) as.integer(args[1]) else 1L
 G    <- if (length(args) >= 2) as.integer(args[2]) else 2000L
+N_arg <- if (length(args) >= 4 && args[4] != "-") as.integer(args[4]) else NA_integer_
+A_arg <- if (length(args) >= 5 && args[5] != "-") as.numeric(args[5]) else NA_real_
+S_arg <- if (length(args) >= 6 && args[6] != "-") as.numeric(args[6]) else NA_real_
 out.dir <- file.path(BAYRC_OUTPUT_DIR, "calibration")
 dir.create(out.dir, recursive = TRUE, showWarnings = FALSE)
-outfile <- if (length(args) >= 3) args[3] else
-  file.path(out.dir, sprintf("bfdr_calibration_seed%d.rds", seed))
+outfile <- if (length(args) >= 3 && nzchar(args[3]) && args[3] != "-") args[3] else
+  file.path(out.dir, if (is.na(N_arg) && is.na(A_arg)) sprintf("bfdr_calibration_seed%d.rds", seed)
+                     else sprintf("bfdr_calibration_A%g_s%g_n%d_seed%d.rds",
+                                  A_arg, if (is.na(S_arg)) 0.5 else S_arg,
+                                  if (is.na(N_arg)) 12L else N_arg, seed))
 
 P <- 24; omega <- 2 * pi / P
 
@@ -63,15 +74,18 @@ tod <- tryCatch({
   cc <- grep("LUN[.]ZT", colnames(m))
   as.numeric(sub("LUN[.]ZT", "", colnames(m)[cc]))
 }, error = function(e) seq(0, P, length.out = 13)[-13])
+if (!is.na(N_arg)) tod <- seq(0, P, length.out = N_arg + 1)[-(N_arg + 1)]
 N <- length(tod)
 
 ## truth at the rate the sampler is told to expect
 set.seed(1000 + seed)
 truth <- rbinom(G, 1, 0.2)
 Amp   <- ifelse(truth == 1, runif(G, 0.3, 1.2), 0)
+if (!is.na(A_arg)) Amp <- ifelse(truth == 1, A_arg, 0)
 phase <- runif(G, 0, P)
 M     <- rnorm(G, 5, 1)
-sigma <- 0.5
+if (!is.na(A_arg)) M <- rep(5, G)   # the swept design fixes the mesor, as V7 does
+sigma <- if (is.na(S_arg)) 0.5 else S_arg
 Y <- M + Amp * cos(omega * (matrix(tod, G, N, byrow = TRUE) - phase)) +
      matrix(rnorm(G * N, 0, sigma), G, N)
 rownames(Y) <- paste0("G", seq_len(G))
