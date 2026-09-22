@@ -1,7 +1,4 @@
-^\.claude$
-^\.git$
-^\.gitignore$
-^CLAUDE\.md$
+^\.[^/]+$
 ^Thien$
 ^paper$
 ^REVIEW_.*\.md$
