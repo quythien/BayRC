@@ -96,9 +96,10 @@ directories sit under `BAYRC_RESULT_DIR/summary`:
   `plots/figure6/make_figure6.R` and `mouse/mouse_diagnostics.R` read from here,
   and `make_figure6.R` stops when it is absent.
 
-The per-tissue chains come from the fixed-arm runner kept with the data,
-`run_fixed.R` for human and baboon and `mouse/run_mouse.R` for mouse. The mouse
-runner reads `CAMO.mouse.hum.RData` from `BAYRC_GTEX_DIR/data`.
+The per-tissue chains come from `run_fixed.R` for human and baboon and
+`mouse/run_mouse.R` for mouse. Both take one tissue per process, so a driver can
+fan the runs out across cores, and both read their atlas from
+`BAYRC_GTEX_DIR/data`.
 
 ## Order of operations
 

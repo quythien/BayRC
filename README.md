@@ -152,7 +152,7 @@ mcmc_OMF <- CB_MCMC_single_rj_slice(
 mcmc_OMF <- match_symbols(mcmc_OMF, BF = 3, p_rhythmic = 0.2)
 ```
 
-This code is also provided in `inst/analysis/quickstart_baboon_OMF_THR.R` and runs end to end on the
+This code is also provided in `inst/analysis/exploratory/quickstart_baboon_OMF_THR.R` and runs end to end on the
 bundled data, with no external files required. `mcmc_THR` is obtained by
 applying the same workflow to `data_list_THR`. With 2,500 iterations and
 a 500-iteration burn-in, the run retains 2,001 posterior samples per
