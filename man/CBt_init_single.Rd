@@ -43,7 +43,8 @@ estimates; if \code{FALSE} draw from priors.}
 A named list with elements \code{rho}, \code{M}, \code{A},
   \code{phi}, \code{sigma} (same as \code{CB_init_single}), plus
   \code{t_p} (length-N vector of initial time-error values, set to 0).
-  Suitable for passing to \code{CBt_MCMC_single} as \code{Init.value}.
+  Suitable for passing to \code{CB_MCMC_single_rj_slice} as
+  \code{Init.value}.
 }
 \description{
 Produces starting values for the CBt MCMC sampler, which models

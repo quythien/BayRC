@@ -14,8 +14,8 @@ CB_getAllEst(
 )
 }
 \arguments{
-\item{res}{Named list; MCMC output from \code{CB_MCMC_single_rj_slice}
-(or \code{CBt_MCMC_single}).  Must contain matrices \code{rho},
+\item{res}{Named list; MCMC output from \code{CB_MCMC_single_rj_slice}.
+Must contain matrices \code{rho},
 \code{A}, \code{phi}, \code{M}, \code{sigma} with
 \code{attr(rho, "symbols")} and \code{attr(rho, "RHYindex")} set by
 \code{match_symbols}.}

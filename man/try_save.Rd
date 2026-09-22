@@ -21,8 +21,7 @@ Wraps an expression in a \code{try()} call.  If the expression throws an
 error, the current \code{out} object is serialised to \code{save.file}
 and the error is re-thrown, preserving progress on disk.
 
-The single-tissue sampler no longer uses this -- it stops at the iteration
-that goes wrong instead of saving a partial chain -- but the time-course
-sampler in \code{mcmc_time.R} still does.
+Used by the time-course sampler in \code{mcmc_time.R}. The single-tissue
+sampler stops at the failing iteration instead of saving a partial chain.
 }
 \keyword{internal}
