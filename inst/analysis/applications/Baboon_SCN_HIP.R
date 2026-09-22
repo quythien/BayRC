@@ -111,8 +111,7 @@ if (replot) {
   union_res$q <- p.adjust(union_res$pval, "BH")
   active <- union_res$pathway[union_res$q < stage1_q]
 
-  # pathSelect names its effect column after the ranking method, so the three
-  # runs are cut to the shared columns before they are stacked
+  # columns the three ranking methods share, so the runs can be stacked
   stage2_cols <- c("pathway", "size", "pval", "Expected_N_Gain",
                    "Expected_N_Loss", "Expected_N_Conserved")
   stage2 <- do.call(rbind, lapply(c("gain", "loss", "conserved"), function(m) {
@@ -195,18 +194,16 @@ if (nrow(sig))
         row.names = FALSE)
 cat("\nfigures:", fig.dir, "\n")
 
-# Figure 3D: how the four clock genes rhythmic in SCN hold their SCN phase
-# across the rest of the atlas. Drawn from the table scn_clock_reference.R
-# writes, so this script does not repeat that scan.
+# Figure 3D: SCN phase of the clock genes across the atlas, read from the table
+# pipeline/scn_clock_reference.R writes
 clock_ref <- file.path(BAYRC_OUTPUT_DIR, "scn_clock_reference.csv")
 if (!file.exists(clock_ref)) {
   message("no scn_clock_reference.csv under ", BAYRC_OUTPUT_DIR,
           "; skipping the clock reference panel")
 } else {
   ref <- read.csv(clock_ref, stringsAsFactors = FALSE)
-  # the canonical clock, in loop order. NPAS2 and RORC are absent from the
-  # atlas. Genes that are not rhythmic in SCN draw an empty column, which is
-  # itself the reading.
+  # canonical clock in loop order (NPAS2 and RORC are not in the atlas); a gene
+  # not rhythmic in SCN draws an empty column
   clock_order <- c("CLOCK", "BMAL1", "PER1", "PER2", "CRY1", "CRY2",
                    "NR1D1", "NR1D2", "DBP")
   ref <- ref[ref$gene %in% clock_order, ]
@@ -217,8 +214,7 @@ if (!file.exists(clock_ref)) {
   ref$tissue <- factor(ref$tissue, levels = names(sort(held)))
   ref$gene <- factor(ref$gene, levels = clock_order)
 
-  # the differences run -6.4 to +3.9 h, so capping at 6 spends the whole ramp
-  # on the range the data occupy and keeps one hour visibly distinct
+  # colour limit in hours; the differences run -6.4 to +3.9 h
   lim <- 6
   fig3d <- ggplot(ref, aes(x = gene, y = tissue, fill = dphi)) +
     geom_tile(colour = "white", linewidth = 0.4) +

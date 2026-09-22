@@ -28,8 +28,7 @@ stage2_q       <- 0.05
 nperm          <- 10000
 min_measured   <- 15
 panel_pathways <- "KEGG Parkinson disease"
-# Figure 4A and 4B sit side by side, so both panels fix the same colour and size
-# scales; Baboon_PUT_SUN.R repeats these two values.
+# colour and size scales shared with Figure 4A in Baboon_PUT_SUN.R
 q_limits       <- c(0.05, 0.0005)
 size_limits    <- c(0, 120)
 
@@ -118,8 +117,7 @@ if (replot) {
   union_res$q <- p.adjust(union_res$pval, "BH")
   active <- union_res$pathway[union_res$q < stage1_q]
 
-  # pathSelect names its effect column after the ranking method, so the three
-  # runs are cut to the shared columns before they are stacked
+  # columns the three ranking methods share, so the runs can be stacked
   stage2_cols <- c("pathway", "size", "pval", "Expected_N_Gain",
                    "Expected_N_Loss", "Expected_N_Conserved")
   stage2_full <- lapply(c("gain", "loss", "conserved"), function(m) {
@@ -148,8 +146,7 @@ wrap_label <- function(x, width = 26)
          USE.NAMES = FALSE)
 
 if (nrow(sig)) {
-# a pathway that cleared stage 1 but has no enriched transition would draw an
-# empty row, so the panel keeps only the pathways with a dot
+# only pathways with at least one enriched transition get a row
 plot4 <- stage2[stage2$pathway %in% sig$pathway, ]
 plot4$n_expected <- with(plot4,
   ifelse(direction == "gain", Expected_N_Gain,
@@ -219,9 +216,7 @@ for (pw in panel_pathways) {
                pathway_name = pw, phase_results = phase,
                transition_results = trans,
                group_names = c("Putamen", "Visual cortex"),
-               # the blocks are a fixed 16 cm, so the default canvas leaves
-               # margin that the assembler then scales the type down with.
-               # 8 in is the 16 cm of blocks plus room for the longest gene name
+               # 8 in holds the fixed 16 cm of blocks plus the longest gene name
                canvas_width = 8,
                legend_names = c("Putamen", "the compared region"),
                versions = "both", save_path = fig.dir,
@@ -271,8 +266,7 @@ print(union_res[union_res$q < stage1_q, c("pathway", "size", "pval", "q")],
       row.names = FALSE)
 print(sig[order(sig$direction, sig$pval), c("pathway", "direction", "pval", "q")],
       row.names = FALSE)
-# the gain and loss NES say how the active pathways sit against background on
-# the two transitions that carry no enrichment
+# gain and loss NES for the active pathways, where neither transition is enriched
 for (m in if (is.null(stage2_full)) character() else c("gain", "loss")) {
   r <- stage2_full[[m]]
   if (is.null(r)) next

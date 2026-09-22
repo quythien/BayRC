@@ -28,8 +28,7 @@ stage2_q       <- 0.05
 nperm          <- 10000
 min_measured   <- 15
 panel_pathways <- "KEGG Parkinson disease"
-# Figure 4A and 4B sit side by side, so both panels fix the same colour and size
-# scales; Baboon_PUT_VIC.R repeats these two values.
+# colour and size scales shared with Figure 4B in Baboon_PUT_VIC.R
 q_limits       <- c(0.05, 0.0005)
 size_limits    <- c(0, 120)
 
@@ -117,8 +116,7 @@ if (replot) {
   union_res$q <- p.adjust(union_res$pval, "BH")
   active <- union_res$pathway[union_res$q < stage1_q]
 
-  # pathSelect names its effect column after the ranking method, so the three
-  # runs are cut to the shared columns before they are stacked
+  # columns the three ranking methods share, so the runs can be stacked
   stage2_cols <- c("pathway", "size", "pval", "Expected_N_Gain",
                    "Expected_N_Loss", "Expected_N_Conserved")
   stage2 <- do.call(rbind, lapply(c("gain", "loss", "conserved"), function(m) {
@@ -144,8 +142,7 @@ wrap_label <- function(x, width = 26)
          USE.NAMES = FALSE)
 
 if (nrow(sig)) {
-# a pathway that cleared stage 1 but has no enriched transition would draw an
-# empty row, so the panel keeps only the pathways with a dot
+# only pathways with at least one enriched transition get a row
 plot4 <- stage2[stage2$pathway %in% sig$pathway, ]
 plot4$n_expected <- with(plot4,
   ifelse(direction == "gain", Expected_N_Gain,
@@ -211,15 +208,12 @@ if (!replot) {
 for (pw in panel_pathways) {
   if (!pw %in% names(kegg)) stop("pathway not in the gene set list: ", pw)
   plot_heatmap(data1 = put, data2 = sun, pathway_genes = kegg[[pw]],
-               # the assembler sets this panel beside another, so the title is
-               # raised to print at the size a heading needs
+               # heading size once the assembler scales the panel down
                title_size = 30,
                pathway_name = pw, phase_results = phase,
                transition_results = trans,
                group_names = c("Putamen", "Substantia nigra"),
-               # the blocks are a fixed 16 cm, so the default canvas leaves
-               # margin that the assembler then scales the type down with.
-               # 8 in is the 16 cm of blocks plus room for the longest gene name
+               # 8 in holds the fixed 16 cm of blocks plus the longest gene name
                canvas_width = 8,
                versions = "both", save_path = fig.dir,
                show_title = FALSE, show_legend = FALSE, legend_side = "bottom")
