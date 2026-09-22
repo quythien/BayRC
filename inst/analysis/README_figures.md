@@ -264,7 +264,9 @@ Check a figure at the size it will print rather than on screen.
   `Column_Definitions`, so `read.xlsx` calls need `sheet = "Results"`.
 - The gene sets rename `ARNTL` to `BMAL1`, the symbol the atlas uses.
 - `exploratory/` holds the other tissue pairs. Several of them read objects
-  from the workspace a previous script left behind and do not run on their own.
+  from the workspace a previous script left behind and do not run on their own,
+  and some carry object and label names from the pair they were copied from, so
+  read the names against the tissues at the top of the file.
 - `pipeline/CAMO_Aging_*.R`, `pipeline/Pipleline.R` and `plots/figures.R`
   belong to the aging analysis and read from `BAYRC_AGING_DIR`; they are not
   behind any figure in this paper.
