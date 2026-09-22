@@ -1,14 +1,17 @@
-## Supplementary figure: false discovery rate, power and type I error of BFDR
-## across signal strength and sample size.
+## Supplementary figure: ranking accuracy, power, type I error and false
+## discovery rate of BayRC across signal strength and sample size.
 ##
 ## Reads the swept calibration runs that pipeline/bfdr_calibration.R writes as
-## bfdr_calibration_A<A>_s1_n<n>_seed<s>.rds, scores each against its known
-## truth, and draws three panels:
-##   A  realised against nominal FDR, one line per A/sigma, faceted by n
-##   B  power against A/sigma at each nominal level, one line per n
-##   C  type I error against A/sigma, one line per n
-## Realised FDR pools false calls over calls across replicates; power and type I
-## error are replicate means. Also writes the pooled table beside the figure.
+## bfdr_calibration_A<A>_s1_n<n>_seed<s>.rds, regenerates each simulated data set
+## from its seed to fit an ordinary least-squares cosinor alongside, and draws
+## four panels:
+##   A  AUC of the BayRC posterior and the cosinor F-test p-value, by A/sigma and n
+##   B  BFDR power against A/sigma at each nominal level, one line per n
+##   C  BFDR type I error against A/sigma, one line per n
+##   D  realised against nominal FDR at the largest n, one line per A/sigma
+## Realised FDR is the replicate mean of false calls over max(calls, 1), as FDR
+## is defined; AUC, power and type I error are replicate means too. Also writes
+## the pooled table beside the figure.
 
 this.file <- sub("^--file=", "", grep("^--file=", commandArgs(), value = TRUE)[1])
 analysis.dir <- if (is.na(this.file)) getwd() else dirname(normalizePath(this.file))
@@ -24,15 +27,53 @@ fs <- list.files(cal.dir, "^bfdr_calibration_A[0-9.]+_s1_n[0-9]+_seed[0-9]+[.]rd
                  full.names = TRUE)
 if (!length(fs)) stop("no swept calibration runs under ", cal.dir)
 alphas <- c(0.05, 0.10, 0.25)
+P <- 24; omega <- 2 * pi / P
 
 key <- regmatches(basename(fs), regexec("A([0-9.]+)_s1_n([0-9]+)_seed([0-9]+)", basename(fs)))
 runs <- data.frame(file = fs,
-                   A = as.numeric(sapply(key, `[`, 2)),
-                   n = as.integer(sapply(key, `[`, 3)))
+                   A    = as.numeric(sapply(key, `[`, 2)),
+                   n    = as.integer(sapply(key, `[`, 3)),
+                   seed = as.integer(sapply(key, `[`, 4)))
 
-rows <- list()
+## the swept generator of bfdr_calibration.R, in the same draw order
+simulate <- function(G, n, A, seed) {
+  tod <- seq(0, P, length.out = n + 1)[-(n + 1)]
+  set.seed(1000 + seed)
+  truth <- rbinom(G, 1, 0.2)
+  runif(G, 0.3, 1.2)
+  phase <- runif(G, 0, P)
+  rnorm(G, 5, 1)
+  Amp <- ifelse(truth == 1, A, 0)
+  Y <- 5 + Amp * cos(omega * (matrix(tod, G, n, byrow = TRUE) - phase)) +
+       matrix(rnorm(G * n, 0, 1), G, n)
+  list(Y = Y, tod = tod, truth = truth)
+}
+
+## cosinor F-test p-value for every row of Y
+cosinor_p <- function(Y, tod) {
+  X    <- cbind(1, cos(omega * tod), sin(omega * tod))
+  hat  <- X %*% solve(crossprod(X), t(X))
+  rss1 <- rowSums((Y - Y %*% t(hat))^2)
+  rss0 <- rowSums((Y - rowMeans(Y))^2)
+  N    <- length(tod)
+  pf(((rss0 - rss1) / 2) / (rss1 / (N - 3)), 2, N - 3, lower.tail = FALSE)
+}
+
+## area under the ROC curve from ranks, ties shared
+auc <- function(score, truth) {
+  r <- rank(score); n1 <- sum(truth == 1); n0 <- sum(truth == 0)
+  (sum(r[truth == 1]) - n1 * (n1 + 1) / 2) / (n1 * n0)
+}
+
+rows <- list(); aucs <- list()
 for (i in seq_len(nrow(runs))) {
   x <- readRDS(runs$file[i]); tr <- x$truth
+  s <- simulate(length(tr), runs$n[i], runs$A[i], runs$seed[i])
+  if (!identical(as.integer(s$truth), as.integer(tr)))
+    stop(basename(runs$file[i]), ": regenerated truth does not match the stored truth")
+  aucs[[i]] <- data.frame(A = runs$A[i], n = runs$n[i],
+                          BayRC = auc(x$post, tr),
+                          Cosinor = auc(-cosinor_p(s$Y, s$tod), tr))
   for (a in alphas) {
     call <- bfdr_from_posterior(x$post, alpha = a)$rhythmic_genes
     rows[[length(rows) + 1]] <- data.frame(
@@ -45,14 +86,22 @@ d <- do.call(rbind, rows)
 pooled <- do.call(rbind, lapply(split(d, list(d$A, d$n, d$alpha), drop = TRUE),
   function(x) data.frame(A = x$A[1], n = x$n[1], alpha = x$alpha[1],
                          replicates = nrow(x),
-                         fdr = sum(x$false) / max(1, sum(x$calls)),
+                         fdr = mean(x$false / pmax(x$calls, 1)),
                          power = mean(x$power), type1 = mean(x$type1))))
 pooled <- pooled[order(pooled$n, pooled$A, pooled$alpha), ]
 write.csv(pooled, file.path(cal.dir, "bfdr_operating_characteristics.csv"), row.names = FALSE)
 
+a <- do.call(rbind, aucs)
+auc_pooled <- aggregate(cbind(BayRC, Cosinor) ~ A + n, data = a, FUN = mean)
+auc_pooled <- auc_pooled[order(auc_pooled$n, auc_pooled$A), ]
+write.csv(auc_pooled, file.path(cal.dir, "bayrc_cosinor_auc.csv"), row.names = FALSE)
+auc_long <- rbind(data.frame(auc_pooled[, c("A", "n")], method = "BayRC",   auc = auc_pooled$BayRC),
+                  data.frame(auc_pooled[, c("A", "n")], method = "Cosinor", auc = auc_pooled$Cosinor))
+
 pooled$snr  <- factor(sprintf("A/σ = %g", pooled$A), levels = sprintf("A/σ = %g", sort(unique(pooled$A))))
 pooled$nlab <- factor(sprintf("n = %d", pooled$n), levels = sprintf("n = %d", sort(unique(pooled$n))))
 pooled$alab <- factor(sprintf("α = %g", pooled$alpha), levels = sprintf("α = %g", alphas))
+auc_long$nlab <- factor(sprintf("n = %d", auc_long$n), levels = levels(pooled$nlab))
 
 ## panel letters sit at the top left of each panel, as in Figures 2-6; signal
 ## strength is ordered so it takes the sequential ramp, sample size the levels
@@ -60,14 +109,17 @@ letter <- theme(plot.title = element_text(hjust = 0, face = "bold"),
                 plot.title.position = "plot")
 snr_cols <- setNames(bayrc_seq(length(levels(pooled$snr)) + 2)[-(1:2)], levels(pooled$snr))
 n_cols   <- setNames(bayrc_levels[seq_along(levels(pooled$nlab))], levels(pooled$nlab))
+method_cols <- c(BayRC = bayrc_levels[1], Cosinor = bayrc_ink3)
 
-pA <- ggplot(pooled, aes(alpha, fdr, colour = snr)) +
-  geom_abline(slope = 1, intercept = 0, linetype = "dashed", colour = bayrc_ink) +
-  geom_line() + geom_point(size = 1.6) +
+## the two curves nearly coincide, so cosinor is drawn dashed with open points
+pA <- ggplot(auc_long, aes(A, auc, colour = method, linetype = method, shape = method)) +
+  geom_line() + geom_point(size = 1.8, stroke = 0.7) +
   facet_wrap(~ nlab, nrow = 1) +
-  scale_x_continuous(breaks = alphas) +
-  scale_colour_manual(values = snr_cols) +
-  labs(x = "Nominal FDR", y = "Realised FDR", colour = NULL, title = "A") +
+  scale_y_continuous(limits = c(0.5, 1)) +
+  scale_colour_manual(values = method_cols) +
+  scale_linetype_manual(values = c(BayRC = "solid", Cosinor = "22")) +
+  scale_shape_manual(values = c(BayRC = 16, Cosinor = 1)) +
+  labs(x = "A/σ", y = "AUC", colour = NULL, linetype = NULL, shape = NULL, title = "A") +
   theme_bayrc() + letter
 
 pB <- ggplot(pooled, aes(A, power, colour = nlab)) +
@@ -86,9 +138,23 @@ pC <- ggplot(pooled, aes(A, type1, colour = nlab)) +
   labs(x = "A/σ", y = "Type I error", colour = NULL, title = "C") +
   theme_bayrc() + letter
 
+## FDR is shown at the largest sample size; the smaller ones are in the table
+n_fdr <- max(pooled$n)
+pD <- ggplot(pooled[pooled$n == n_fdr, ], aes(alpha, fdr, colour = snr)) +
+  geom_abline(slope = 1, intercept = 0, linetype = "dashed", colour = bayrc_ink) +
+  geom_line() + geom_point(size = 1.6) +
+  scale_x_continuous(breaks = alphas) +
+  scale_y_continuous(limits = c(0, 0.4)) +
+  scale_colour_manual(values = snr_cols) +
+  labs(x = "Nominal FDR", y = "Realised FDR", colour = NULL,
+       title = "D", subtitle = sprintf("n = %d", n_fdr)) +
+  theme_bayrc() + letter
+
 out <- file.path(BAYRC_FIGURE_DIR, "Figure_S_operating.pdf")
-cairo_pdf(out, width = 9.5, height = 9, family = bayrc_family)
-gridExtra::grid.arrange(pA, pB, pC, ncol = 1)
+cairo_pdf(out, width = 9.5, height = 12, family = bayrc_family)
+gridExtra::grid.arrange(
+  pA, pB, pC, gridExtra::arrangeGrob(pD, grid::nullGrob(), widths = c(1.1, 1)), ncol = 1)
 invisible(dev.off())
-cat("wrote", out, "from", nrow(runs), "runs\n")
+cat("wrote", out, "from", nrow(runs), "runs; regenerated truth matched in every one\n")
+print(format(auc_pooled, digits = 3), row.names = FALSE)
 print(format(pooled[, c("n", "A", "alpha", "fdr", "power", "type1")], digits = 3), row.names = FALSE)
