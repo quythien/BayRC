@@ -63,7 +63,7 @@
 #'   \item \code{\link{merge_mcmc}}
 #' }
 #' @importFrom Rcpp evalCpp
-#' @import stats
+#' @rawNamespace import(stats, except = filter)
 #' @import graphics
 #' @import grDevices
 #' @import utils
