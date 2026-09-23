@@ -674,7 +674,7 @@ analyses.
 
 ### Manuscript figure scripts
 
-Scripts used to generate the manuscript figures are provided in `inst/analysis/`; see `inst/analysis/README_figures.md` for details.
+Scripts used to generate the manuscript figures are provided in `inst/analysis/`, grouped as `applications/` for the case studies, `pipeline/` for the shared upstream steps, `plots/` for the drawing code and `mouse/` for the cross-species chains. Each application script writes a `run_record.txt` beside its figures naming the summary directory, the parameters and the run date.
 
 ---
 

@@ -1,8 +1,6 @@
 ## Numbers the paper quotes that no other analysis script prints, recomputed
 ## from the stored summaries, the case-study caches and the tables the other
 ## scripts wrote, and printed in the order of the paper's sections.
-## README_numbers.md maps every quoted number to the line here, or to the
-## script that prints it instead.
 ##
 ## Reads summary/hb and summary/hm, the caches under BAYRC_OUTPUT_DIR/figures,
 ## the tables under BAYRC_OUTPUT_DIR and BAYRC_FIGURE_DIR, the two atlas objects
