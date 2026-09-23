@@ -270,6 +270,14 @@ Check a figure at the size it will print rather than on screen.
 - `pipeline/CAMO_Aging_*.R`, `pipeline/Pipleline.R` and `plots/figures.R`
   belong to the aging analysis and read from `BAYRC_AGING_DIR`; they are not
   behind any figure in this paper.
+- The cross-species tables under `figures/baboon_human_*` were written on
+  2026-09-22 by `applications/Baboon_Human_LUN.R` over the 4,893 genes the three
+  species share, one run per tissue with `BAYRC_TISSUE` set, so every
+  cross-species comparison and the Figure 6 panels rest on one gene set. Stage 1
+  tests 225 pathways there and retains KEGG circadian rhythm and KEGG circadian
+  entrainment for baboon against human lung. The tables from the earlier
+  5,066-gene runs sit beside them as `*_5066_backup`. The mouse comparisons
+  under `figures/mouse_human_*` were already on the 4,893 genes.
 
 ## Table 1
 
