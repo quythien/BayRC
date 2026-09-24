@@ -26,6 +26,7 @@ library(dplyr)
 library(ggplot2)
 library(ggrepel)
 library(gridExtra)
+library(cowplot)
 
 # ── Load Bayesian output (already run) ────────────────────────────────────────
 load(file.path(BAYRC_SUMMARY_DIR, "mcmc_rho_BF3.RData"))
@@ -325,11 +326,16 @@ cat(sprintf("Pearson r (phase, n = %d) = %.4f\n", nrow(both_rhy), corr3))
 # ── Save combined PDF ─────────────────────────────────────────────────────────
 out_file <- file.path(outdir, "S5_Bayes_Cosinor_Agreement_LUN.pdf")
 # 9 in wide keeps gene labels at 4 pt or more on a 6.5 in text block
+# the caption names the two lines, so panel A carries no legend and the three
+# plotting areas are aligned to the same height
+row <- plot_grid(p1 + theme(legend.position = "none"), p2, p3,
+                 nrow = 1, align = "h", axis = "tb")
+title <- ggdraw() + draw_label(
+  "Agreement between Bayesian Posteriors and Frequentist Cosinor Output - Baboon Lung",
+  size = 11)
+
 pdf(out_file, width = 9, height = 3.4)
-grid.arrange(
-  p1, p2, p3, nrow = 1,
-  top = "Agreement between Bayesian Posteriors and Frequentist Cosinor Output - Baboon Lung"
-)
+print(plot_grid(title, row, ncol = 1, rel_heights = c(0.10, 1)))
 dev.off()
 cat("\nSaved:", out_file, "\n")
 cat("All done.\n")
