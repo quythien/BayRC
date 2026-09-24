@@ -8,7 +8,8 @@
 ##   A  AUC of the BayRC posterior and the cosinor F-test p-value, by A/sigma and n
 ##   B  BFDR power against A/sigma at each nominal level, one line per n
 ##   C  BFDR type I error against A/sigma, one line per n
-##   D  realised against nominal FDR, faceted by n, one line per A/sigma
+##   D  realised against nominal FDR for BFDR, faceted by n, one line per A/sigma
+##   E  the same for the cosinor F-test with Benjamini-Hochberg
 ## Realised FDR is the replicate mean of false calls over max(calls, 1), as FDR
 ## is defined; AUC, power and type I error are replicate means too. Every point
 ## carries a 95% interval over the ten replicates, the mean plus and minus
@@ -75,12 +76,16 @@ for (i in seq_len(nrow(runs))) {
   aucs[[i]] <- data.frame(A = runs$A[i], n = runs$n[i],
                           BayRC = auc(x$post, tr),
                           Cosinor = auc(-cosinor_p(s$Y, s$tod), tr))
+  q <- p.adjust(cosinor_p(s$Y, s$tod), "BH")
   for (a in alphas) {
     call <- bfdr_from_posterior(x$post, alpha = a)$rhythmic_genes
+    bh   <- q <= a
     rows[[length(rows) + 1]] <- data.frame(
       A = runs$A[i], n = runs$n[i], alpha = a,
       calls = sum(call), false = sum(call & tr == 0),
-      power = mean(call[tr == 1]), type1 = mean(call[tr == 0]))
+      power = mean(call[tr == 1]), type1 = mean(call[tr == 0]),
+      bh_calls = sum(bh), bh_false = sum(bh & tr == 0),
+      bh_power = mean(bh[tr == 1]))
   }
 }
 d <- do.call(rbind, rows)
@@ -91,7 +96,10 @@ pooled <- do.call(rbind, lapply(split(d, list(d$A, d$n, d$alpha), drop = TRUE),
                          fdr = mean(x$false / pmax(x$calls, 1)),
                          fdr_se = se(x$false / pmax(x$calls, 1)),
                          power = mean(x$power), power_se = se(x$power),
-                         type1 = mean(x$type1), type1_se = se(x$type1))))
+                         type1 = mean(x$type1), type1_se = se(x$type1),
+                         bh_fdr = mean(x$bh_false / pmax(x$bh_calls, 1)),
+                         bh_fdr_se = se(x$bh_false / pmax(x$bh_calls, 1)),
+                         bh_power = mean(x$bh_power))))
 pooled <- pooled[order(pooled$n, pooled$A, pooled$alpha), ]
 write.csv(pooled, file.path(cal.dir, "bfdr_operating_characteristics.csv"), row.names = FALSE)
 
@@ -170,12 +178,24 @@ pD <- ggplot(pooled, aes(alpha, fdr, colour = snr)) +
   # the outer tick labels of neighbouring facets would otherwise touch
   theme(panel.spacing.x = grid::unit(5, "mm"))
 
+pE <- ggplot(pooled, aes(alpha, bh_fdr, colour = snr)) +
+  geom_abline(slope = 1, intercept = 0, linetype = "dashed", colour = bayrc_ink) +
+  geom_errorbar(aes(ymin = bh_fdr - 1.96 * bh_fdr_se, ymax = bh_fdr + 1.96 * bh_fdr_se),
+                width = 0.006, position = nudge_d) +
+  geom_line(position = nudge_d) + geom_point(size = 1.6, position = nudge_d) +
+  facet_wrap(~ nlab, nrow = 1) +
+  scale_x_continuous(breaks = alphas[c(TRUE, FALSE)]) +
+  scale_colour_manual(values = snr_cols) +
+  labs(x = "Nominal FDR", y = "Realised FDR", colour = NULL, title = "E") +
+  theme_bayrc() + letter +
+  theme(panel.spacing.x = grid::unit(5, "mm"))
+
 ## the three legends are different widths, so patchwork stacks the panels and
 ## lines their plotting areas up down the page
-stacked <- patchwork::wrap_plots(pA, pB, pC, pD, ncol = 1)
+stacked <- patchwork::wrap_plots(pA, pB, pC, pD, pE, ncol = 1)
 
 out <- file.path(BAYRC_FIGURE_DIR, "Figure_S_operating.pdf")
-cairo_pdf(out, width = 9.5, height = 12, family = bayrc_family)
+cairo_pdf(out, width = 9.5, height = 15, family = bayrc_family)
 print(stacked)
 invisible(dev.off())
 cat("wrote", out, "from", nrow(runs), "runs; regenerated truth matched in every one\n")
