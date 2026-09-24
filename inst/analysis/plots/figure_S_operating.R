@@ -163,10 +163,13 @@ pD <- ggplot(pooled[pooled$n == n_fdr, ], aes(alpha, fdr, colour = snr)) +
        title = "D", subtitle = sprintf("n = %d", n_fdr)) +
   theme_bayrc() + letter
 
+## the three legends are different widths, so patchwork stacks the panels and
+## lines their plotting areas up down the page
+stacked <- patchwork::wrap_plots(pA, pB, pC, pD, ncol = 1)
+
 out <- file.path(BAYRC_FIGURE_DIR, "Figure_S_operating.pdf")
 cairo_pdf(out, width = 9.5, height = 12, family = bayrc_family)
-gridExtra::grid.arrange(
-  pA, pB, pC, gridExtra::arrangeGrob(pD, grid::nullGrob(), widths = c(1.1, 1)), ncol = 1)
+print(stacked)
 invisible(dev.off())
 cat("wrote", out, "from", nrow(runs), "runs; regenerated truth matched in every one\n")
 print(format(auc_pooled, digits = 3), row.names = FALSE)
