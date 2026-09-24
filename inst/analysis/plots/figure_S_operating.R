@@ -120,10 +120,13 @@ snr_cols <- setNames(bayrc_seq(length(levels(pooled$snr)) + 2)[-(1:2)], levels(p
 n_cols   <- setNames(bayrc_levels[seq_along(levels(pooled$nlab))], levels(pooled$nlab))
 method_cols <- c(BayRC = bayrc_levels[1], Cosinor = bayrc_ink3)
 
-## the two curves nearly coincide, so cosinor is drawn dashed with open points
+## the two curves differ by at most 0.007, so they are offset along A/sigma to
+## keep both visible; cosinor is drawn dashed with open points
+nudge <- position_dodge(width = 0.13)
 pA <- ggplot(auc_long, aes(A, auc, colour = method, linetype = method, shape = method)) +
-  geom_errorbar(aes(ymin = auc - 1.96 * se, ymax = auc + 1.96 * se), width = 0.08, linetype = "solid") +
-  geom_line() + geom_point(size = 1.8, stroke = 0.7) +
+  geom_errorbar(aes(ymin = auc - 1.96 * se, ymax = auc + 1.96 * se), width = 0.08,
+                linetype = "solid", position = nudge) +
+  geom_line(position = nudge) + geom_point(size = 1.8, stroke = 0.7, position = nudge) +
   facet_wrap(~ nlab, nrow = 1) +
   scale_y_continuous(limits = c(0.5, 1)) +
   scale_colour_manual(values = method_cols) +
@@ -150,10 +153,14 @@ pC <- ggplot(pooled, aes(A, type1, colour = nlab)) +
   labs(x = "A/σ", y = "Type I error", colour = NULL, title = "C") +
   theme_bayrc() + letter
 
+## the amplitude curves run close together at the larger sample sizes, so they
+## are offset along the nominal level to keep them apart
+nudge_d <- position_dodge(width = 0.014)
 pD <- ggplot(pooled, aes(alpha, fdr, colour = snr)) +
   geom_abline(slope = 1, intercept = 0, linetype = "dashed", colour = bayrc_ink) +
-  geom_errorbar(aes(ymin = fdr - 1.96 * fdr_se, ymax = fdr + 1.96 * fdr_se), width = 0.006) +
-  geom_line() + geom_point(size = 1.6) +
+  geom_errorbar(aes(ymin = fdr - 1.96 * fdr_se, ymax = fdr + 1.96 * fdr_se), width = 0.006,
+                position = nudge_d) +
+  geom_line(position = nudge_d) + geom_point(size = 1.6, position = nudge_d) +
   facet_wrap(~ nlab, nrow = 1) +
   # every alpha is plotted; labelling every other one keeps the facets legible
   scale_x_continuous(breaks = alphas[c(TRUE, FALSE)]) +
