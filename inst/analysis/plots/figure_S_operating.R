@@ -27,7 +27,7 @@ cal.dir <- file.path(BAYRC_OUTPUT_DIR, "calibration")
 fs <- list.files(cal.dir, "^bfdr_calibration_A[0-9.]+_s1_n[0-9]+_seed[0-9]+[.]rds$",
                  full.names = TRUE)
 if (!length(fs)) stop("no swept calibration runs under ", cal.dir)
-alphas <- c(0.05, 0.10, 0.25)
+alphas <- c(0.05, 0.10, 0.15, 0.20, 0.25)
 P <- 24; omega <- 2 * pi / P
 
 key <- regmatches(basename(fs), regexec("A([0-9.]+)_s1_n([0-9]+)_seed([0-9]+)", basename(fs)))
@@ -155,10 +155,13 @@ pD <- ggplot(pooled, aes(alpha, fdr, colour = snr)) +
   geom_errorbar(aes(ymin = fdr - 1.96 * fdr_se, ymax = fdr + 1.96 * fdr_se), width = 0.006) +
   geom_line() + geom_point(size = 1.6) +
   facet_wrap(~ nlab, nrow = 1) +
-  scale_x_continuous(breaks = alphas) +
+  # every alpha is plotted; labelling every other one keeps the facets legible
+  scale_x_continuous(breaks = alphas[c(TRUE, FALSE)]) +
   scale_colour_manual(values = snr_cols) +
   labs(x = "Nominal FDR", y = "Realised FDR", colour = NULL, title = "D") +
-  theme_bayrc() + letter
+  theme_bayrc() + letter +
+  # the outer tick labels of neighbouring facets would otherwise touch
+  theme(panel.spacing.x = grid::unit(5, "mm"))
 
 ## the three legends are different widths, so patchwork stacks the panels and
 ## lines their plotting areas up down the page
