@@ -135,7 +135,7 @@ cat("Overlap at top 5% (k =", top5_k, "/", N_total, "):",
 
 p1 <- ggplot(data.frame(k = seq_len(MAX_K), overlap = overlap_k),
              aes(x = k, y = overlap)) +
-  geom_line(aes(color = "Observed overlap"), linewidth = 0.9) +
+  geom_line(aes(color = "Observed"), linewidth = 0.9) +
   geom_abline(aes(slope = 1, intercept = 0, color = "Perfect agreement"),
               linetype = "dashed", linewidth = 0.8) +
   geom_vline(xintercept = top5_k,
@@ -145,14 +145,14 @@ p1 <- ggplot(data.frame(k = seq_len(MAX_K), overlap = overlap_k),
            color = "dodgerblue", hjust = 0, size = 2.8) +
   scale_color_manual(
     name   = NULL,
-    values = c("Observed overlap" = "steelblue", "Perfect agreement" = "red")
+    values = c("Observed" = "steelblue", "Perfect agreement" = "red")
   ) +
   scale_x_continuous(breaks = c(0, 200, 400, 600, 800, 1000)) +
   scale_y_continuous(breaks = c(0, 200, 400, 600, 800, 1000)) +
   coord_cartesian(xlim = c(0, MAX_K), ylim = c(0, MAX_K)) +
   labs(
     tag      = "A",
-    title    = "Overlap of Top-k Rhythmic Genes",
+    title    = "Overlap of top-k genes",
     subtitle = sprintf("n = %d genes", N_total),
     x        = "Number of top-ranked genes (k)",
     y        = "Number of overlapping genes"
@@ -180,7 +180,7 @@ p2 <- ggplot(merged, aes(x = x_score, y = y_score)) +
   coord_cartesian(xlim = c(0, 3), ylim = c(0, 5)) +
   labs(
     tag      = "B",
-    title    = "Association between Bayesian Posterior and Cosinor p-value",
+    title    = "Posterior against cosinor p-value",
     subtitle = sprintf("n = %d genes", N_total),
     x        = expression(-log[10](1 - "posterior mean")),
     y        = expression(-log[10]("p-value"))
@@ -253,7 +253,7 @@ p3 <- ggplot(both_rhy, aes(x = peak_cosinor_r, y = peak_bayes_r)) +
            hjust = -0.1, vjust = 1.6, size = 3.5, color = "black") +
   labs(
     tag      = "C",
-    title    = "Phase Agreement: Cosinor vs Bayesian",
+    title    = "Phase agreement",
     subtitle = sprintf("Cosinor p < 0.05, BF > 3; n = %d genes", nrow(both_rhy)),
     x        = "Cosinor peak time ZT (h)",
     y        = "Bayesian phase posterior mean ZT (h)"

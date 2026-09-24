@@ -10,8 +10,9 @@
 ##   C  BFDR type I error against A/sigma, one line per n
 ##   D  realised against nominal FDR at the largest n, one line per A/sigma
 ## Realised FDR is the replicate mean of false calls over max(calls, 1), as FDR
-## is defined; AUC, power and type I error are replicate means too. Also writes
-## the pooled table beside the figure.
+## is defined; AUC, power and type I error are replicate means too. Every point
+## carries a 95% interval over the ten replicates, the mean plus and minus
+## 1.96 standard errors. Also writes the pooled table beside the figure.
 
 this.file <- sub("^--file=", "", grep("^--file=", commandArgs(), value = TRUE)[1])
 analysis.dir <- if (is.na(this.file)) getwd() else dirname(normalizePath(this.file))
@@ -83,20 +84,28 @@ for (i in seq_len(nrow(runs))) {
   }
 }
 d <- do.call(rbind, rows)
+se <- function(v) if (length(v) > 1) sd(v) / sqrt(length(v)) else NA_real_
 pooled <- do.call(rbind, lapply(split(d, list(d$A, d$n, d$alpha), drop = TRUE),
   function(x) data.frame(A = x$A[1], n = x$n[1], alpha = x$alpha[1],
                          replicates = nrow(x),
                          fdr = mean(x$false / pmax(x$calls, 1)),
-                         power = mean(x$power), type1 = mean(x$type1))))
+                         fdr_se = se(x$false / pmax(x$calls, 1)),
+                         power = mean(x$power), power_se = se(x$power),
+                         type1 = mean(x$type1), type1_se = se(x$type1))))
 pooled <- pooled[order(pooled$n, pooled$A, pooled$alpha), ]
 write.csv(pooled, file.path(cal.dir, "bfdr_operating_characteristics.csv"), row.names = FALSE)
 
 a <- do.call(rbind, aucs)
 auc_pooled <- aggregate(cbind(BayRC, Cosinor) ~ A + n, data = a, FUN = mean)
+auc_se <- aggregate(cbind(BayRC, Cosinor) ~ A + n, data = a, FUN = se)
+names(auc_se)[3:4] <- c("BayRC_se", "Cosinor_se")
+auc_pooled <- merge(auc_pooled, auc_se, by = c("A", "n"))
 auc_pooled <- auc_pooled[order(auc_pooled$n, auc_pooled$A), ]
 write.csv(auc_pooled, file.path(cal.dir, "bayrc_cosinor_auc.csv"), row.names = FALSE)
-auc_long <- rbind(data.frame(auc_pooled[, c("A", "n")], method = "BayRC",   auc = auc_pooled$BayRC),
-                  data.frame(auc_pooled[, c("A", "n")], method = "Cosinor", auc = auc_pooled$Cosinor))
+auc_long <- rbind(data.frame(auc_pooled[, c("A", "n")], method = "BayRC",
+                             auc = auc_pooled$BayRC, se = auc_pooled$BayRC_se),
+                  data.frame(auc_pooled[, c("A", "n")], method = "Cosinor",
+                             auc = auc_pooled$Cosinor, se = auc_pooled$Cosinor_se))
 
 pooled$snr  <- factor(sprintf("A/σ = %g", pooled$A), levels = sprintf("A/σ = %g", sort(unique(pooled$A))))
 pooled$nlab <- factor(sprintf("n = %d", pooled$n), levels = sprintf("n = %d", sort(unique(pooled$n))))
@@ -113,6 +122,7 @@ method_cols <- c(BayRC = bayrc_levels[1], Cosinor = bayrc_ink3)
 
 ## the two curves nearly coincide, so cosinor is drawn dashed with open points
 pA <- ggplot(auc_long, aes(A, auc, colour = method, linetype = method, shape = method)) +
+  geom_errorbar(aes(ymin = auc - 1.96 * se, ymax = auc + 1.96 * se), width = 0.08, linetype = "solid") +
   geom_line() + geom_point(size = 1.8, stroke = 0.7) +
   facet_wrap(~ nlab, nrow = 1) +
   scale_y_continuous(limits = c(0.5, 1)) +
@@ -123,6 +133,7 @@ pA <- ggplot(auc_long, aes(A, auc, colour = method, linetype = method, shape = m
   theme_bayrc() + letter
 
 pB <- ggplot(pooled, aes(A, power, colour = nlab)) +
+  geom_errorbar(aes(ymin = power - 1.96 * power_se, ymax = power + 1.96 * power_se), width = 0.08) +
   geom_line() + geom_point(size = 1.6) +
   facet_wrap(~ alab, nrow = 1) +
   scale_y_continuous(limits = c(0, 1)) +
@@ -132,6 +143,7 @@ pB <- ggplot(pooled, aes(A, power, colour = nlab)) +
 
 pC <- ggplot(pooled, aes(A, type1, colour = nlab)) +
   geom_hline(aes(yintercept = alpha), linetype = "dashed", colour = bayrc_ink) +
+  geom_errorbar(aes(ymin = type1 - 1.96 * type1_se, ymax = type1 + 1.96 * type1_se), width = 0.08) +
   geom_line() + geom_point(size = 1.6) +
   facet_wrap(~ alab, nrow = 1) +
   scale_colour_manual(values = n_cols) +
@@ -142,6 +154,7 @@ pC <- ggplot(pooled, aes(A, type1, colour = nlab)) +
 n_fdr <- max(pooled$n)
 pD <- ggplot(pooled[pooled$n == n_fdr, ], aes(alpha, fdr, colour = snr)) +
   geom_abline(slope = 1, intercept = 0, linetype = "dashed", colour = bayrc_ink) +
+  geom_errorbar(aes(ymin = fdr - 1.96 * fdr_se, ymax = fdr + 1.96 * fdr_se), width = 0.006) +
   geom_line() + geom_point(size = 1.6) +
   scale_x_continuous(breaks = alphas) +
   scale_y_continuous(limits = c(0, 0.4)) +
