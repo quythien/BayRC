@@ -141,9 +141,10 @@ p1 <- ggplot(data.frame(k = seq_len(MAX_K), overlap = overlap_k),
               linetype = "dashed", linewidth = 0.8) +
   geom_vline(xintercept = top5_k,
              color = "dodgerblue", linetype = "dashed", linewidth = 0.8) +
-  annotate("text", x = top5_k + 15, y = 30,
+  # the label sits above the diagonal, the empty corner of the panel
+  annotate("text", x = top5_k + 25, y = MAX_K * 0.95,
            label = sprintf("Top 5%%\n(%d / %d)", top5_k, N_total),
-           color = "dodgerblue", hjust = 0, size = 2.8) +
+           color = "dodgerblue", hjust = 0, vjust = 1, size = 2.8) +
   scale_color_manual(
     name   = NULL,
     values = c("Observed" = "steelblue", "Perfect agreement" = "red")
