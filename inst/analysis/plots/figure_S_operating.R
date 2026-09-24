@@ -8,7 +8,7 @@
 ##   A  AUC of the BayRC posterior and the cosinor F-test p-value, by A/sigma and n
 ##   B  BFDR power against A/sigma at each nominal level, one line per n
 ##   C  BFDR type I error against A/sigma, one line per n
-##   D  realised against nominal FDR at the largest n, one line per A/sigma
+##   D  realised against nominal FDR, faceted by n, one line per A/sigma
 ## Realised FDR is the replicate mean of false calls over max(calls, 1), as FDR
 ## is defined; AUC, power and type I error are replicate means too. Every point
 ## carries a 95% interval over the ten replicates, the mean plus and minus
@@ -150,17 +150,14 @@ pC <- ggplot(pooled, aes(A, type1, colour = nlab)) +
   labs(x = "A/σ", y = "Type I error", colour = NULL, title = "C") +
   theme_bayrc() + letter
 
-## FDR is shown at the largest sample size; the smaller ones are in the table
-n_fdr <- max(pooled$n)
-pD <- ggplot(pooled[pooled$n == n_fdr, ], aes(alpha, fdr, colour = snr)) +
+pD <- ggplot(pooled, aes(alpha, fdr, colour = snr)) +
   geom_abline(slope = 1, intercept = 0, linetype = "dashed", colour = bayrc_ink) +
   geom_errorbar(aes(ymin = fdr - 1.96 * fdr_se, ymax = fdr + 1.96 * fdr_se), width = 0.006) +
   geom_line() + geom_point(size = 1.6) +
+  facet_wrap(~ nlab, nrow = 1) +
   scale_x_continuous(breaks = alphas) +
-  scale_y_continuous(limits = c(0, 0.4)) +
   scale_colour_manual(values = snr_cols) +
-  labs(x = "Nominal FDR", y = "Realised FDR", colour = NULL,
-       title = "D", subtitle = sprintf("n = %d", n_fdr)) +
+  labs(x = "Nominal FDR", y = "Realised FDR", colour = NULL, title = "D") +
   theme_bayrc() + letter
 
 ## the three legends are different widths, so patchwork stacks the panels and
