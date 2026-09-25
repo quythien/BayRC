@@ -489,3 +489,7 @@ order:
   analysis overestimates the extent of circadian rhythm reprogramming.
   *FEBS Journal*. 2022;289(21):6605-6621.
   [10.1111/febs.16095](https://doi.org/10.1111/febs.16095)
+
+## Multi-tissue pathway profiles
+
+Use `plot_pathway_profiles()` for paired rhythmicity and phase profiles (Figure 6C/D). The [pathway profiles tutorial](pathway_profiles.md) covers posterior summaries, tissue and gene grouping, coverage thresholds, sparse pathways and a runnable example. Use `pathway_phase_hierarchy()` and `plot_pathway_phase_hierarchy()` to inspect the underlying phase trees.

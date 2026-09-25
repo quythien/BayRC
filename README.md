@@ -463,6 +463,19 @@ genome-wide calibrated biomarker set for reporting.
 
 ---
 
+## Paired rhythmicity and phase profiles
+
+`plot_pathway_profiles()` draws a selected pathway across tissues as paired
+rhythmicity and phase panels (Figure 6C/D). It groups tissues by rhythmic
+concordance, then groups genes and orders tissues using posterior phase
+uncertainty. Tissue and gene cut sizes are specified by the user; low-coverage
+genes remain visible without being assigned a phase group.
+
+See the [pathway profiles tutorial](vignettes/pathway_profiles.md) for input
+columns, coverage settings, strict versus sparse clustering and a runnable
+example. `pathway_phase_hierarchy()` exposes the clustering results, and
+`plot_pathway_phase_hierarchy()` draws the gene and tissue trees.
+
 ## The BayRC Pathway Heatmap
 
 One of BayRC's main outputs is an integrated pathway heatmap (Figure 4 in
@@ -650,6 +663,9 @@ real signal rather than uncertainty from weak rhythmicity.
 |---|---|
 | `pathSelect()` | Test pathways for enrichment in a chosen transition direction; `ranking.method` specifies `"gain"`, `"loss"`, `"conserved"`, or `"union"` (combined rhythmic signal in either condition) |
 | `plot_heatmap()` | Generate the six-panel pathway heatmap described above (Figure 4 in the manuscript) |
+| `plot_pathway_profiles()` | Draw paired multi-tissue rhythmicity and phase profiles (Figure 6C/D) |
+| `pathway_phase_hierarchy()` | Cluster gene and tissue phase profiles with posterior uncertainty |
+| `plot_pathway_phase_hierarchy()` | Display the phase profiles with gene and tissue dendrograms |
 | `multi_conservation_pathway()` | Compute a pathway-level concordance score for a chosen gene set |
 | `multi_conservation_pathway_bootstrap()` | Compute pathway-level concordance with bootstrap confidence intervals |
 
