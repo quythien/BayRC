@@ -1,5 +1,5 @@
 # Three baboon brain regions through the three-condition heatmap, written under
-# FIG6_DIR/regions3. SCN is the reference; hippocampus and putamen are the
+# FIG5_DIR/regions3. SCN is the reference; hippocampus and putamen are the
 # comparators.
 
 library(BayRC)
@@ -14,7 +14,7 @@ while (!file.exists(file.path(analysis.dir, "config.R")) &&
        dirname(analysis.dir) != analysis.dir) analysis.dir <- dirname(analysis.dir)
 source(file.path(analysis.dir, "config.R"))
 
-here <- Sys.getenv("FIG6_DIR", unset = file.path(BAYRC_FIGURE_DIR, "figure6"))
+here <- Sys.getenv("FIG5_DIR", unset = file.path(BAYRC_FIGURE_DIR, "figure5"))
 dir.create(here, recursive = TRUE, showWarnings = FALSE)
 res  <- BAYRC_RESULT_DIR
 bfdr_alpha <- 0.25

@@ -1,7 +1,7 @@
-## Figure 2C: which circadian pathway genes are rhythmic in which tissue, with
+## Figure 6C: which circadian pathway genes are rhythmic in which tissue, with
 ## the tissues in the order of panel B's dendrogram.
 ##
-## Usage: Rscript figure2_panelC.R [outdir]
+## Usage: Rscript figure6_panelC.R [outdir]
 
 this.file <- sub("^--file=", "", grep("^--file=", commandArgs(), value = TRUE)[1])
 analysis.dir <- if (is.na(this.file)) getwd() else dirname(normalizePath(this.file))
@@ -13,7 +13,7 @@ source(file.path(analysis.dir, "plots", "palette_concordance.R"))
 suppressPackageStartupMessages({library(BayRC); library(ggplot2)})
 
 args   <- commandArgs(trailingOnly = TRUE)
-outdir <- if (length(args) >= 1) args[1] else file.path(BAYRC_FIGURE_DIR, "figure2")
+outdir <- if (length(args) >= 1) args[1] else file.path(BAYRC_FIGURE_DIR, "figure6")
 dir.create(outdir, recursive = TRUE, showWarnings = FALSE)
 
 bfdr_alpha <- 0.25
@@ -91,7 +91,7 @@ p <- ggplot(cells, aes(tissue, gene, fill = posterior)) +
         legend.text = element_text(size = 14),
         legend.key.height = unit(13, "mm"))
 
-cairo_pdf(file.path(outdir, "Fig2C_circadian_membership.pdf"),
+cairo_pdf(file.path(outdir, "Fig6C_circadian_membership.pdf"),
           width = 8.5, height = 5.4)
 # column layout: this panel is scaled up more than the pair above it, so its
 # type is set down by the same ratio
@@ -111,7 +111,7 @@ dev.off()
 
 # the same panel for the two-by-two layout, on the canvas of the phase heatmap
 # beside it so the two carry type at one size
-cairo_pdf(file.path(outdir, "Fig2C_circadian_membership_nature.pdf"),
+cairo_pdf(file.path(outdir, "Fig6C_circadian_membership_nature.pdf"),
           width = 9.375, height = 8.6)
 print(p +
       labs(subtitle = NULL) +
@@ -150,9 +150,9 @@ print(p +
             # margins match the phase panel so the two bodies align
             plot.margin = margin(t = 7, r = 4, b = 5, l = 10)))
 dev.off()
-cat("Saving:", file.path(outdir, "Fig2C_circadian_membership.pdf"), "\n")
+cat("Saving:", file.path(outdir, "Fig6C_circadian_membership.pdf"), "\n")
 
-write.csv(cells, file.path(outdir, "Fig2C_circadian_membership.csv"),
+write.csv(cells, file.path(outdir, "Fig6C_circadian_membership.csv"),
           row.names = FALSE)
 
 shared <- tapply(cells$called, cells$block, function(x) x)

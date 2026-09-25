@@ -1,5 +1,5 @@
 # Baboon suprachiasmatic nucleus versus hippocampus: rhythmic transitions,
-# phase inference, pathway enrichment and the Figure 3A panel.
+# phase inference, pathway enrichment and the Figure 2E panel.
 
 library(BayRC)
 library(dplyr)
@@ -70,7 +70,7 @@ clock_genes <- c("BHLHE40", "BHLHE41", "BMAL1", "BTRC", "CLOCK", "CREB1",
                  "FBXW11", "NFIL3", "NPAS2", "NR1D1", "NR1D2", "PER1", "PER2",
                  "PER3", "RORA", "RORB", "RORC")
 
-# Figure 3A
+# Figure 2E
 p <- peak_concordance_plot(
   peak_x = phase$peak1[maintained], peak_y = phase$peak2[maintained],
   phase_class = phase_class, label_genes = clock_genes,
@@ -79,7 +79,7 @@ p <- peak_concordance_plot(
   ylab = "Peak Hour - Hippocampus (ZT)", window = shift)
 bayrc_save(p + theme(legend.position = "none"), file.path(fig.dir, "Baboon_SCN_HIP_Peak_Concordance"),
            width = 5, height = 4.4)
-# the legend the three Figure 3 panels share
+# the legend the three Figure 2 panels share
 save_plot_legend(p, file.path(fig.dir, "phase_class_legend"))
 
 # gene sets cut to the measured genes before the enrichment sees them
@@ -194,7 +194,7 @@ if (nrow(sig))
         row.names = FALSE)
 cat("\nfigures:", fig.dir, "\n")
 
-# Figure 3D: SCN phase of the clock genes across the atlas, read from the table
+# Additional SCN phase diagnostic: SCN phase of the clock genes across the atlas, read from the table
 # pipeline/scn_clock_reference.R writes
 clock_ref <- file.path(BAYRC_OUTPUT_DIR, "scn_clock_reference.csv")
 if (!file.exists(clock_ref)) {
@@ -216,7 +216,7 @@ if (!file.exists(clock_ref)) {
 
   # colour limit in hours; the differences run -6.4 to +3.9 h
   lim <- 6
-  fig3d <- ggplot(ref, aes(x = gene, y = tissue, fill = dphi)) +
+  fig2d <- ggplot(ref, aes(x = gene, y = tissue, fill = dphi)) +
     geom_tile(colour = "white", linewidth = 0.4) +
     scale_fill_gradientn(colours = bayrc_div(256), limits = c(-lim, lim),
                          oob = scales::squish,
@@ -226,7 +226,7 @@ if (!file.exists(clock_ref)) {
     theme_bayrc(base_size = 10) +
     theme(axis.text.x = element_text(face = "italic"),
           panel.grid = element_blank())
-  bayrc_save(fig3d, file.path(fig.dir, "SCN_clock_reference"),
+  bayrc_save(fig2d, file.path(fig.dir, "SCN_clock_reference"),
              width = 9, height = 4.2)
 
   cat("\nclock genes rhythmic in SCN, against", nlevels(ref$tissue), "tissues\n")

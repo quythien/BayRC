@@ -1,4 +1,4 @@
-## Figure 3 panels D and E: rhythmicity transitions and phase classification,
+## Figure 2 panels A and B: rhythmicity transitions and phase classification,
 ## read from the plot caches the application scripts write.
 ##
 ## Usage: Rscript summary_panels.R [outdir]
@@ -13,7 +13,7 @@ suppressPackageStartupMessages({library(ggplot2); library(patchwork)})
 
 args   <- commandArgs(trailingOnly = TRUE)
 outdir <- if (length(args) >= 1) args[1] else
-  file.path(dirname(BAYRC_OUTPUT_DIR), "paper", "demos", "figure3")
+  file.path(dirname(BAYRC_OUTPUT_DIR), "paper", "demos", "figure2")
 dir.create(outdir, recursive = TRUE, showWarnings = FALSE)
 
 bfdr_alpha <- 0.25
@@ -21,9 +21,9 @@ shift      <- 2
 
 ## each pair, and the directory its application script writes
 sources <- list(
-  list(label = "SCN → HIP", dir = "baboon_SCN_HIP"),
   list(label = "PUT → SUN", dir = "baboon_PUT_SUN"),
-  list(label = "PUT → VIC", dir = "baboon_PUT_VIC"))
+  list(label = "PUT → VIC", dir = "baboon_PUT_VIC"),
+  list(label = "SCN → HIP", dir = "baboon_SCN_HIP"))
 
 read_pair <- function(s) {
   f <- file.path(BAYRC_FIGURE_DIR, s$dir, "plot_data.rds")
@@ -86,7 +86,7 @@ d <- ggplot(trans, aes(n, pair, fill = status)) +
   scale_x_continuous(expand = expansion(mult = c(0, .13))) +
   labs(title = "Rhythmicity transitions",
        subtitle = sprintf("Genome-wide counts | BFDR = %.2f", bfdr_alpha),
-       x = "Number of genes", tag = "D") + common
+       x = "Number of genes", tag = "A") + common
 
 labels <- vapply(pairs_data, function(p)
   sprintf("%s\nAverage peak time difference:\n%+.2f h", p$label, p$offset),
@@ -110,7 +110,7 @@ e <- ggplot(phase, aes(percent, pair, fill = status)) +
   labs(title = "Timing among conserved genes",
        subtitle = sprintf("Posterior phase classification | ±%g h window, BFDR = %.2f",
                           shift, bfdr_alpha),
-       x = "Percentage of conserved genes", tag = "E") + common +
+       x = "Percentage of conserved genes", tag = "B") + common +
   # key anchored left and set smaller so it stays on the page
   theme(legend.justification = "left", legend.margin = margin(l = 0, r = 0),
         legend.text = element_text(size = 12.5),

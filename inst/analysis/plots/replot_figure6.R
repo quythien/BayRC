@@ -1,11 +1,11 @@
-## Redraw the Figure 2 panels from the stored concordance matrices.
+## Redraw the Figure 6 panels from the stored concordance matrices.
 ##
 ## The matrices are written by plots/heatmap_baboon.R and
 ## plots/heatmap_circadian_pairs.R; this script needs neither the MCMC output
 ## nor the Rcpp concordance routine.
 ##
 ## Usage:
-##   Rscript replot_figure2.R [outdir]
+##   Rscript replot_figure6.R [outdir]
 
 this.file <- sub("^--file=", "", grep("^--file=", commandArgs(), value = TRUE)[1])
 here <- if (is.na(this.file)) getwd() else dirname(normalizePath(this.file))
@@ -21,15 +21,15 @@ suppressPackageStartupMessages({library(pheatmap); library(BayRC)})
 
 args   <- commandArgs(trailingOnly = TRUE)
 outdir <- if (length(args) >= 1) args[1] else
-  file.path(BAYRC_FIGURE_DIR, "figure2")
+  file.path(BAYRC_FIGURE_DIR, "figure6")
 dir.create(outdir, recursive = TRUE, showWarnings = FALSE)
 
 panels <- list(
-  Fig2A_genomewide = list(
+  Fig6A_genomewide = list(
     # heatmap_baboon.R writes this one beside its own figures
     csv   = file.path(BAYRC_FIGURE_DIR, "Baboon_Concordance_Matrix.csv"),
     title = "Genome-wide rhythmicity concordance"),
-  Fig2B_circadian = list(
+  Fig6B_circadian = list(
     csv   = file.path(BAYRC_OUTPUT_DIR, "heatmap_circadian_pairs", "within_baboon",
                       "pairwise_concordance_baboon_circadian_Matrix.csv"),
     title = "Circadian pathway concordance")
@@ -91,7 +91,7 @@ concordance_bar <- ComplexHeatmap::Legend(
   title_gp = gpar(fontsize = 10.7, fontface = "bold"),
   labels_gp = gpar(fontsize = 10.1))
 # the end label is wider than the tick it sits on, so it needs room to its right
-save_legend_grob(concordance_bar@grob, file.path(outdir, "Fig2_concordance_legend"),
+save_legend_grob(concordance_bar@grob, file.path(outdir, "Fig6_concordance_legend"),
                  right = 0.3)
 
 concordance_bar_v <- ComplexHeatmap::Legend(
@@ -103,9 +103,9 @@ concordance_bar_v <- ComplexHeatmap::Legend(
   title_gp = gpar(fontsize = 12, fontface = "bold"),
   labels_gp = gpar(fontsize = 11))
 save_legend_grob(concordance_bar_v@grob,
-                 file.path(outdir, "Fig2_concordance_legend_vertical"))
+                 file.path(outdir, "Fig6_concordance_legend_vertical"))
 
-write_run_record(file.path(outdir, "run_record.txt"), "plots/replot_figure2.R",
+write_run_record(file.path(outdir, "run_record.txt"), "plots/replot_figure6.R",
                  c(list(colour_cap = concordance_max,
                         clustering = "ward.D2 on 1 - concordance"),
                    setNames(lapply(names(panels), function(n)

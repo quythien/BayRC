@@ -1,4 +1,4 @@
-## Count the genes each candidate Figure 5 pathway puts into the integrated
+## Count the genes each candidate Figure 4 pathway puts into the integrated
 ## heatmap, by transition class and by phase call, at a range of bfdr_alpha.
 ##
 ## Usage: Rscript sunput_panel_density.R [shift]

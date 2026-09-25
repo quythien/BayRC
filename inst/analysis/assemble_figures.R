@@ -3,7 +3,7 @@
 #
 # The analysis scripts each drop their panels somewhere under BAYRC_OUTPUT_DIR,
 # under names that describe the comparison rather than the figure. This script
-# takes the step from those panels to Figure_3 and Figure_5: it copies every
+# takes the step from those panels to Figure_2 and Figure_4: it copies every
 # panel to paper/subfigures/ under a stable name, then letters and merges them
 # into the numbered figure. Figures 2 and 6 are laid out by their own scripts,
 # named in external.figures, and only have their panels collected here.
@@ -60,71 +60,73 @@ find_panel <- function(dir, pattern, recursive = FALSE) {
   hits[1]
 }
 
-fig2.dir   <- file.path(BAYRC_FIGURE_DIR, "figure2")
+fig6.dir   <- file.path(BAYRC_FIGURE_DIR, "figure6")
 scnhip.dir <- file.path(BAYRC_FIGURE_DIR, "baboon_SCN_HIP")
 putsun.dir <- file.path(BAYRC_FIGURE_DIR, "baboon_PUT_SUN")
 putvic.dir <- file.path(BAYRC_FIGURE_DIR, "baboon_PUT_VIC")
 lung.dir   <- file.path(BAYRC_FIGURE_DIR, "baboon_human_LUN")
 
 panels <- list(
-  # Figure 2: genome-wide and KEGG-circadian concordance heatmaps
-  list(dir = fig2.dir, pattern = "^Fig2A_genomewide[.]pdf$",
-       to = "F2A_baboon_genomewide_concordance.pdf",
-       script = "plots/heatmap_baboon.R then plots/replot_figure2.R"),
-  list(dir = fig2.dir, pattern = "^Fig2B_circadian[.]pdf$",
-       to = "F2B_baboon_circadian_concordance.pdf",
-       script = "plots/heatmap_circadian_pairs.R within_baboon then plots/replot_figure2.R"),
-  list(dir = fig2.dir, pattern = "^Fig2C_circadian_membership[.]pdf$",
-       to = "F2C_circadian_membership.pdf",
-       script = "plots/figure2_panelC.R"),
-  list(dir = fig2.dir, pattern = "^Fig2_concordance_legend[.]pdf$",
-       to = "F2L_concordance_legend.pdf",
-       script = "plots/replot_figure2.R"),
+  # Figure 6: genome-wide and KEGG-circadian concordance heatmaps
+  list(dir = fig6.dir, pattern = "^Fig6A_genomewide[.]pdf$",
+       to = "F6A_baboon_genomewide_concordance.pdf",
+       script = "plots/heatmap_baboon.R then plots/replot_figure6.R"),
+  list(dir = fig6.dir, pattern = "^Fig6B_circadian[.]pdf$",
+       to = "F6B_baboon_circadian_concordance.pdf",
+       script = "plots/heatmap_circadian_pairs.R within_baboon then plots/replot_figure6.R"),
+  list(dir = fig6.dir, pattern = "^Fig6C_circadian_membership[.]pdf$",
+       to = "F6C_circadian_membership.pdf",
+       script = "plots/figure6_panelC.R"),
+  list(dir = fig6.dir, pattern = "^Fig6_concordance_legend[.]pdf$",
+       to = "F6L_concordance_legend.pdf",
+       script = "plots/replot_figure6.R"),
 
-  # Figure 3: within-species phase concordance scatters
+  # Figure 2: within-species phase concordance scatters
   list(dir = scnhip.dir, pattern = "^Baboon_SCN_HIP_Peak_Concordance[.]pdf$",
-       to = "F3A_baboon_SCN_HIP_phase_concordance.pdf",
+       to = "F2E_baboon_SCN_HIP_phase_concordance.pdf",
        script = "applications/Baboon_SCN_HIP.R"),
   list(dir = scnhip.dir, pattern = "^phase_class_legend[.]pdf$",
-       to = "F3L_phase_class_legend.pdf",
+       to = "F2L_phase_class_legend.pdf",
        script = "applications/Baboon_SCN_HIP.R"),
   list(dir = putsun.dir, pattern = "^Baboon_PUT_SUN_Peak_Concordance[.]pdf$",
-       to = "F3B_baboon_PUT_SUN_phase_concordance.pdf",
+       to = "F2C_baboon_PUT_SUN_phase_concordance.pdf",
        script = "applications/Baboon_PUT_SUN.R"),
   list(dir = putvic.dir, pattern = "^Baboon_PUT_VIC_Peak_Concordance[.]pdf$",
-       to = "F3C_baboon_PUT_VIC_phase_concordance.pdf",
+       to = "F2D_baboon_PUT_VIC_phase_concordance.pdf",
        script = "applications/Baboon_PUT_VIC.R"),
   list(dir = scnhip.dir, pattern = "^SCN_clock_reference[.]pdf$",
-       to = "F3D_baboon_SCN_clock_reference.pdf",
+       to = "SCN_clock_reference.pdf",
        script = "applications/Baboon_SCN_HIP.R"),
 
-  # Figure 4 is one plot covering both circuits, written straight to the paper
+  # Figure 3 is one plot covering both circuits, written straight to the paper
   # figures by plots/pathway_transition_panels.R, so it has no panels here.
 
-  # Figure 5: KEGG Parkinson disease in both circuits, the rhythmic-only version
+  # Figure 4: KEGG Parkinson disease in both circuits, the rhythmic-only version
   list(dir = putsun.dir,
        pattern = "^KEGG_Parkinson_disease_integrated_rhythmic_only[.]pdf$",
-       to = "F5A_PUT_SUN_KEGG_Parkinson_heatmap.pdf",
+       to = "F4A_PUT_SUN_KEGG_Parkinson_heatmap.pdf",
        script = "applications/Baboon_PUT_SUN.R"),
   list(dir = putvic.dir,
        pattern = "^KEGG_Parkinson_disease_integrated_rhythmic_only[.]pdf$",
-       to = "F5B_PUT_VIC_KEGG_Parkinson_heatmap.pdf",
+       to = "F4B_PUT_VIC_KEGG_Parkinson_heatmap.pdf",
        script = "applications/Baboon_PUT_VIC.R"),
   list(dir = putvic.dir, pattern = "^parkinson_heatmap_legend[.]pdf$",
-       to = "F5L_parkinson_heatmap_legend.pdf",
+       to = "F4L_parkinson_heatmap_legend.pdf",
        script = "applications/Baboon_PUT_VIC.R"),
 
-  # Figure 6: cross-species lung
-  list(dir = lung.dir, pattern = "^Baboon_Human_LUN_Peak_Concordance[.]pdf$",
-       to = "F6A_baboon_human_LUN_phase_concordance.pdf",
-       script = "applications/Baboon_Human_LUN.R"),
-  list(dir = lung.dir,
-       pattern = "^KEGG_Circadian_rhythm_integrated_rhythmic_only[.]pdf$",
-       to = "F6B_baboon_human_LUN_circadian_heatmap.pdf",
-       script = "applications/Baboon_Human_LUN.R"),
-  list(dir = lung.dir, pattern = "^circadian_heatmap_legend[.]pdf$",
-       to = "F6L_circadian_heatmap_legend.pdf",
-       script = "applications/Baboon_Human_LUN.R")
+  # Figure 5: cross-species lung, restricted to the common three-species set.
+  list(dir = file.path(BAYRC_FIGURE_DIR, "figure5"),
+       pattern = "^Fig5A_human_baboon[.]pdf$",
+       to = "F5A_human_baboon_phase_concordance.pdf",
+       script = "plots/figure5/make_figure5.R"),
+  list(dir = file.path(BAYRC_FIGURE_DIR, "figure5"),
+       pattern = "^Fig5B_human_mouse[.]pdf$",
+       to = "F5B_human_mouse_phase_concordance.pdf",
+       script = "plots/figure5/make_figure5.R"),
+  list(dir = file.path(BAYRC_FIGURE_DIR, "figure5"),
+       pattern = "^Fig5C_heatmap[.]pdf$",
+       to = "F5C_lung_circadian_heatmap.pdf",
+       script = "plots/figure5/make_figure5.R")
 )
 
 for (i in seq_along(panels))
@@ -134,53 +136,52 @@ for (i in seq_along(panels))
 # Which collected panels make up each numbered figure -------------------------
 
 figures <- list(
-  Figure_2 = c("F2A_baboon_genomewide_concordance.pdf",
-               "F2B_baboon_circadian_concordance.pdf",
-               "F2C_circadian_membership.pdf"),
-  Figure_3 = c("F3A_baboon_SCN_HIP_phase_concordance.pdf",
-               "F3B_baboon_PUT_SUN_phase_concordance.pdf",
-               "F3C_baboon_PUT_VIC_phase_concordance.pdf",
-               "F3D_baboon_SCN_clock_reference.pdf"),
-  Figure_5 = c("F5A_PUT_SUN_KEGG_Parkinson_heatmap.pdf",
-               "F5B_PUT_VIC_KEGG_Parkinson_heatmap.pdf"),
-  Figure_5_row = c("F5A_PUT_SUN_KEGG_Parkinson_heatmap.pdf",
-                   "F5B_PUT_VIC_KEGG_Parkinson_heatmap.pdf"),
-  Figure_6 = c("F6A_baboon_human_LUN_phase_concordance.pdf",
-               "F6B_baboon_human_LUN_circadian_heatmap.pdf")
+  Figure_6 = c("F6A_baboon_genomewide_concordance.pdf",
+               "F6B_baboon_circadian_concordance.pdf",
+               "F6C_circadian_membership.pdf"),
+  Figure_2 = c("F2C_baboon_PUT_SUN_phase_concordance.pdf",
+               "F2D_baboon_PUT_VIC_phase_concordance.pdf",
+               "F2E_baboon_SCN_HIP_phase_concordance.pdf"),
+  Figure_4 = c("F4A_PUT_SUN_KEGG_Parkinson_heatmap.pdf",
+               "F4B_PUT_VIC_KEGG_Parkinson_heatmap.pdf"),
+  Figure_4_row = c("F4A_PUT_SUN_KEGG_Parkinson_heatmap.pdf",
+                   "F4B_PUT_VIC_KEGG_Parkinson_heatmap.pdf"),
+  Figure_5 = c("F5A_human_baboon_phase_concordance.pdf",
+               "F5B_human_mouse_phase_concordance.pdf",
+               "F5C_lung_circadian_heatmap.pdf")
 )
 
 # Figures laid out by their own script; this one only collects their panels.
-external.figures <- c(Figure_2 = "plots/figure2/assemble_figure2_nature.py",
-                      Figure_6 = "plots/figure6/assemble_figure6.py")
+external.figures <- c(Figure_6 = "plots/figure6/assemble_figure6_nature.py",
+                      Figure_5 = "plots/figure5/assemble_figure5.py")
 
-# Figure 5's heatmaps are each as wide as the text block, so they stack;
-# Figure_5_row lays the same two panels along a row.
-stacked.figures <- "Figure_5"
+# Figure 4's heatmaps are each as wide as the text block, so they stack;
+# Figure_4_row lays the same two panels along a row.
+stacked.figures <- "Figure_4"
 
 # A figure listed here wraps its panels into rows of this many.
-figure.columns <- list(Figure_2 = 2, Figure_3 = 3)
+figure.columns <- list(Figure_6 = 2, Figure_2 = 3)
 # a legend that belongs to one panel rather than the row sits under that panel
-legend.under <- list(Figure_6 = 2L, Figure_5_row = 1L)
+legend.under <- list(Figure_5 = 2L, Figure_4_row = 1L)
 # a legend that belongs to the panels in one row sits directly beneath that row
 # the colour bar belongs to the two heatmaps, not to the membership panel below
-legend.after.row <- list(Figure_2 = 1L, Figure_3 = 1L)
+legend.after.row <- list(Figure_6 = 1L, Figure_2 = 1L)
 
 # caption beside each panel letter, under a title the panels share
 panel.captions <- list(
-  Figure_5     = c("Putamen versus substantia nigra",
+  Figure_4     = c("Putamen versus substantia nigra",
                    "Putamen versus visual cortex"),
-  Figure_5_row = c("Putamen versus substantia nigra",
+  Figure_4_row = c("Putamen versus substantia nigra",
                    "Putamen versus visual cortex"))
 
-figure.titles <- list(Figure_5 = "KEGG Parkinson disease",
-                      Figure_5_row = "KEGG Parkinson disease",
-                      Figure_6 = "Cross-species lung")
+figure.titles <- list(Figure_4 = "KEGG Parkinson disease",
+                      Figure_4_row = "KEGG Parkinson disease",
+                      Figure_5 = "Cross-species lung")
 
-shared.legends <- list(Figure_2 = "F2L_concordance_legend.pdf",
-                       Figure_3 = "F3L_phase_class_legend.pdf",
-                       Figure_5 = "F5L_parkinson_heatmap_legend.pdf",
-                       Figure_5_row = "F5L_parkinson_heatmap_legend.pdf",
-                       Figure_6 = "F6L_circadian_heatmap_legend.pdf")
+shared.legends <- list(Figure_6 = "F6L_concordance_legend.pdf",
+                       Figure_2 = "F2L_phase_class_legend.pdf",
+                       Figure_4 = "F4L_parkinson_heatmap_legend.pdf",
+                       Figure_4_row = "F4L_parkinson_heatmap_legend.pdf")
 
 # Collect ---------------------------------------------------------------------
 
@@ -401,6 +402,10 @@ for (nm in names(figures)) {
   want <- file.path(sub.dir, figures[[nm]])
   have <- want[file.exists(want)]
   if (!length(have)) next
+  if (length(have) != length(want)) {
+    unassembled <- c(unassembled, nm)
+    next
+  }
   out <- file.path(fig.dir, paste0(nm, ".pdf"))
   down <- nm %in% stacked.figures
   legend <- file.path(sub.dir, shared.legends[[nm]])
@@ -413,6 +418,7 @@ for (nm in names(figures)) {
     mapply(function(l, c)
              sprintf("\\makebox[0pt][l]{%s}\\makebox[\\linewidth]{%s}", l, c),
            LETTERS[seq_along(have)], caps[seq_along(have)], USE.NAMES = FALSE)
+  if (nm == "Figure_2") lab <- LETTERS[3:5]
   merge_panels <- if (down)
     function(...) stacked(..., labels = lab, below = legend, title = title) else
     function(...) side_by_side(..., labels = lab, below = legend, title = title,

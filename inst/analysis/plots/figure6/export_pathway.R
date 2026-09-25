@@ -1,7 +1,7 @@
 # Posterior phase summaries for every measured member of the KEGG circadian
-# pathway drawn in Figure 2C: the circular mean peak, the 95% circular HDI and
+# pathway drawn in Figure 6C: the circular mean peak, the 95% circular HDI and
 # the resultant length of each tissue-gene cell called rhythmic. The table is
-# written beside the Figure 2 panels as pathway_phase_summary.csv, which
+# written beside the Figure 6 panels as pathway_phase_summary.csv, which
 # explore_phase_groups.R reads to draw panel D.
 suppressPackageStartupMessages(library(BayRC))
 
@@ -12,10 +12,10 @@ while (!file.exists(file.path(analysis.dir, "config.R")) &&
        dirname(analysis.dir) != analysis.dir) analysis.dir <- dirname(analysis.dir)
 source(file.path(analysis.dir, "config.R"))
 
-fig2.dir <- file.path(BAYRC_FIGURE_DIR, "figure2")
-membership <- file.path(fig2.dir, "Fig2C_circadian_membership.csv")
+fig6.dir <- file.path(BAYRC_FIGURE_DIR, "figure6")
+membership <- file.path(fig6.dir, "Fig6C_circadian_membership.csv")
 if (!file.exists(membership))
-  stop("no ", membership, "; run plots/figure2_panelC.R first")
+  stop("no ", membership, "; run plots/figure6_panelC.R first")
 cells <- read.csv(membership)
 
 message("Loading phase posterior")
@@ -36,6 +36,6 @@ for (i in seq_len(nrow(cells))) {
   cells$resultant[i] <- Mod(z)
 }
 
-out <- file.path(fig2.dir, "pathway_phase_summary.csv")
+out <- file.path(fig6.dir, "pathway_phase_summary.csv")
 write.csv(cells, out, row.names = FALSE)
 message("Exported ", nrow(cells), " cells, ", sum(cells$called), " rhythmic, to ", out)

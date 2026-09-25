@@ -1,11 +1,11 @@
-"""Assemble the Figure 3 demo and reflow the Figure 5 legend from vector PDF
+"""Assemble the Figure 2 demo and reflow the Figure 4 legend from vector PDF
 sources.
 
 Crops are located from the text on each page.
 
 Usage: python3 layout_figures.py [paper_dir]
 
-paper_dir holds figures/ with the assembler's output and demos/figure3/ with
+paper_dir holds figures/ with the assembler's output and demos/figure2/ with
 summary_panels.pdf. Requires PyMuPDF (pip install pymupdf).
 """
 from pathlib import Path
@@ -20,7 +20,8 @@ except ImportError:
 paper = Path(sys.argv[1]) if len(sys.argv) > 1 else \
     Path(__file__).resolve().parents[3] / "paper"
 figures = paper / "figures"
-archive = paper / "archive" / "before_legend_layout"
+from datetime import datetime
+archive = paper / "archive" / ("before_legend_layout_" + datetime.now().strftime("%Y%m%d_%H%M%S_%f"))
 archive.mkdir(parents=True, exist_ok=True)
 
 # the titles packLegend draws above each key, in the order they are packed
@@ -75,8 +76,8 @@ def content_bottom(page, groups):
     return min(g.y0 for g in groups) - 12
 
 
-# Figure 3: the scatter row and its phase-class key, then the summary panels.
-src = original("Figure_3.pdf")
+# Figure 2: summaries A/B above snapshots C/D/E in PUT–SUN, PUT–VIC, SCN–HIP order.
+src = original("Figure_2.pdf")
 page0 = src[0]
 W = page0.rect.width
 key = page0.search_for("Phase class")[0]
@@ -84,7 +85,7 @@ axis = max(r.y1 for r in page0.search_for("Peak Hour"))
 scatters = (0, 0, W, axis + 12)          # scatter row, trimmed to its axis titles
 legend = (0, key.y0 - 8, W, key.y1 + 8)  # the shared key, trimmed to itself
 
-summary = fitz.open(paper / "demos" / "figure3" / "summary_panels.pdf")
+summary = fitz.open(paper / "demos" / "figure2" / "summary_panels.pdf")
 scale = W / summary[0].rect.width
 gap = 10                                  # space between the row and its key
 demo = fitz.open()
@@ -92,15 +93,16 @@ h = (scatters[3] - scatters[1]) + gap + (legend[3] - legend[1]) + gap \
     + summary[0].rect.height * scale
 page = demo.new_page(width=W, height=h)
 y = 0
-place(page, src, scatters, 0, y);  y += scatters[3] - scatters[1] + gap
-place(page, src, legend, 0, y);    y += legend[3] - legend[1] + gap
 place(page, summary, summary[0].rect, 0, y, scale)
-demo.save(paper / "demos/figure3/Figure_3_demo.pdf", garbage=4, deflate=True)
-demo.save(figures / "Figure_3.pdf", garbage=4, deflate=True)
-page.get_pixmap(matrix=fitz.Matrix(1.5, 1.5)).save(paper / "demos/figure3/Figure_3_demo.png")
+y += summary[0].rect.height * scale + gap
+place(page, src, scatters, 0, y); y += scatters[3] - scatters[1] + gap
+place(page, src, legend, 0, y)
+demo.save(paper / "demos/figure2/Figure_2_demo.pdf", garbage=4, deflate=True)
+demo.save(figures / "Figure_2.pdf", garbage=4, deflate=True)
+page.get_pixmap(matrix=fitz.Matrix(1.5, 1.5)).save(paper / "demos/figure2/Figure_2_demo.png")
 
-# Figure 5 seats the shared legend below A, within B's vertical extent.
-src = original("Figure_5_row.pdf")
+# Figure 4 seats the shared legend below A, within B's vertical extent.
+src = original("Figure_4_row.pdf")
 page0 = src[0]
 groups = legend_groups(page0)
 strip = fitz.Rect(groups[0])
@@ -115,8 +117,9 @@ out = fitz.open()
 page = out.new_page(width=page0.rect.width, height=bottom + 9)
 place(page, src, (0, 0, page0.rect.width, bottom), 0, 0)
 place(page, src, strip, 27, a_bottom - 2, scale)
-out.save(figures / "Figure_5_row.pdf", garbage=4, deflate=True)
-page.get_pixmap(matrix=fitz.Matrix(1.5, 1.5)).save(paper / "demos/Figure_5_row_preview.png")
+out.save(figures / "Figure_4_row.pdf", garbage=4, deflate=True)
+out.save(figures / "Figure_4.pdf", garbage=4, deflate=True)
+page.get_pixmap(matrix=fitz.Matrix(1.5, 1.5)).save(paper / "demos/Figure_4_row_preview.png")
 
-# Figure 6 is laid out by plots/figure6/assemble_figure6.py and is not touched.
-print("Wrote Figure 3 demo and compact Figure 5 layout.")
+# Figure 5 is laid out by plots/figure5/assemble_figure5.py and is not touched.
+print("Wrote Figure 2 demo and compact Figure 4 layout.")

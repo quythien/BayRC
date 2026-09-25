@@ -1,5 +1,5 @@
 ## Screen every baboon tissue pair for a pathway that would make a readable
-## Figure 5 panel: enough maintained genes, split across both phase-shifted and
+## Figure 4 panel: enough maintained genes, split across both phase-shifted and
 ## phase-conserved. The panel metric is min(n_shift, n_cons) within a pathway.
 ##
 ## A pair also needs its phase differences to vary between pathways rather than

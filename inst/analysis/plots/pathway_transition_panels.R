@@ -1,10 +1,10 @@
-## Figure 4: the enrichment on shared pathway rows, and what each enriched
+## Figure 3: the enrichment on shared pathway rows, and what each enriched
 ## pathway is made of.
 ##
 ## Everything is read from stage2_significant.csv, which the application
 ## scripts write.
 ##
-## Writes the whole of Figure 4; assemble_figures.R does not touch it.
+## Writes the whole of Figure 3; assemble_figures.R does not touch it.
 ##
 ## Usage: Rscript pathway_transition_panels.R [outdir]
 
@@ -102,8 +102,8 @@ b <- ggplot(comp, aes(100 * frac, pathway, fill = status)) +
        x = "Percentage of expected rhythmic genes", y = NULL, tag = "B") + common
 
 fig <- a / b + plot_layout(heights = c(1, 1))
-ggsave(file.path(outdir, "Figure_4.pdf"), fig, width = 15, height = 12)
-ggsave(file.path(outdir, "Figure_4.png"), fig, width = 15, height = 12,
+ggsave(file.path(outdir, "Figure_3.pdf"), fig, width = 15, height = 12)
+ggsave(file.path(outdir, "Figure_3.png"), fig, width = 15, height = 12,
        dpi = 200, bg = "white")
 
 cat("\nenriched rows:", nrow(sig), "over", nlevels(droplevels(sig$pathway)),

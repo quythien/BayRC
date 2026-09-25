@@ -1,14 +1,14 @@
-"""Lay Figure 2 out as a column of panels beside the phase heatmap.
+"""Lay Figure 6 out as a column of panels beside the phase heatmap.
 
 A and B share the top of the left column with the concordance scale under them,
 the membership panel takes the width below, and the phase heatmap stands the
 full height of the page on the right. An alternative to the two-by-two layout
-of assemble_figure2_nature.py, built from the same panel directory.
+of assemble_figure6_nature.py, built from the same panel directory.
 
-Usage: python3 assemble_figure2_column.py [panel_dir] [out.pdf]
+Usage: python3 assemble_figure6_column.py [panel_dir] [out.pdf]
 
-panel_dir defaults to $BAYRC_FIGURE_DIR/figure2 and out.pdf to
-Figure_2_column.pdf in that directory. Requires PyMuPDF (pip install pymupdf).
+panel_dir defaults to $BAYRC_FIGURE_DIR/figure6 and out.pdf to
+Figure_6_column.pdf in that directory. Requires PyMuPDF (pip install pymupdf).
 """
 from pathlib import Path
 import os
@@ -21,16 +21,16 @@ except ImportError:
 if len(sys.argv) > 1:
     here = Path(sys.argv[1])
 elif os.environ.get("BAYRC_FIGURE_DIR"):
-    here = Path(os.environ["BAYRC_FIGURE_DIR"]) / "figure2"
+    here = Path(os.environ["BAYRC_FIGURE_DIR"]) / "figure6"
 else:
     raise SystemExit("give the panel directory, or set BAYRC_FIGURE_DIR")
-out = Path(sys.argv[2]) if len(sys.argv) > 2 else here / "Figure_2_column.pdf"
+out = Path(sys.argv[2]) if len(sys.argv) > 2 else here / "Figure_6_column.pdf"
 
 LEFT, RIGHT, MARGIN, GAP, LETTER = 675, 446, 10, 14, 19
 src = {n: fitz.open(here / f) for n, f in [
-    ("A", "Fig2A_genomewide.pdf"), ("B", "Fig2B_circadian.pdf"),
-    ("key", "Fig2_concordance_legend.pdf"),
-    ("C", "Fig2C_circadian_membership.pdf"),
+    ("A", "Fig6A_genomewide.pdf"), ("B", "Fig6B_circadian.pdf"),
+    ("key", "Fig6_concordance_legend.pdf"),
+    ("C", "Fig6C_circadian_membership.pdf"),
     ("D", "option8_balanced_global_long.pdf")]}
 box = {n: d[0].rect for n, d in src.items()}
 

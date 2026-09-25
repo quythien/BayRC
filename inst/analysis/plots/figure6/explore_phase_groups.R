@@ -1,4 +1,4 @@
-# Figure 2 panel D: peak timing of the KEGG circadian pathway across the 25
+# Figure 6 panel D: peak timing of the KEGG circadian pathway across the 25
 # tissues, with the genes grouped by phase. Reads pathway_phase_summary.csv from
 # export_pathway.R and writes option8_<mode>.pdf, option8_<mode>_nature.pdf and
 # option8_<mode>_long.pdf for three tissue bases, plus the clustering tables.
@@ -16,13 +16,13 @@ while (!file.exists(file.path(analysis.dir, "config.R")) &&
        dirname(analysis.dir) != analysis.dir) analysis.dir <- dirname(analysis.dir)
 source(file.path(analysis.dir, "config.R"))
 
-# the panel and its tables sit beside the other Figure 2 panels
-out <- Sys.getenv("FIG2_PHASE_DIR", unset = file.path(BAYRC_FIGURE_DIR, "figure2"))
+# the panel and its tables sit beside the other Figure 6 panels
+out <- Sys.getenv("FIG6_PHASE_DIR", unset = file.path(BAYRC_FIGURE_DIR, "figure6"))
 if (!file.exists(file.path(out, "pathway_phase_summary.csv")))
-  stop("no pathway_phase_summary.csv under ", out, "; run plots/figure2/export_pathway.R first")
-# setting FIG2_CAIRO draws the _nature panel with cairo_pdf, which embeds fonts
+  stop("no pathway_phase_summary.csv under ", out, "; run plots/figure6/export_pathway.R first")
+# setting FIG6_CAIRO draws the _nature panel with cairo_pdf, which embeds fonts
 # and the hyphen in the block names; base pdf() otherwise
-fig_device <- if (nzchar(Sys.getenv("FIG2_CAIRO"))) grDevices::cairo_pdf else grDevices::pdf
+fig_device <- if (nzchar(Sys.getenv("FIG6_CAIRO"))) grDevices::cairo_pdf else grDevices::pdf
 d <- read.csv(file.path(out,"pathway_phase_summary.csv"))
 genes<-unique(d$gene);tissues<-unique(d$tissue)
 blocks<-c("High-concordance cluster","Remaining tissues")

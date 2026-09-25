@@ -1,4 +1,4 @@
-## Figure 2C: when the core clock peaks in each tissue, with the tissues split
+## Figure 6C: when the core clock peaks in each tissue, with the tissues split
 ## by the two-cluster cut of panel B's dendrogram. Each ring is one clock gene
 ## and each point one tissue at its posterior peak time, with the 95% circular
 ## HDI drawn as an arc.
@@ -14,7 +14,7 @@ source(file.path(analysis.dir, "plots", "theme_bayrc.R"))
 suppressPackageStartupMessages({library(BayRC); library(ggplot2)})
 
 args   <- commandArgs(trailingOnly = TRUE)
-outdir <- if (length(args) >= 1) args[1] else file.path(BAYRC_FIGURE_DIR, "figure2")
+outdir <- if (length(args) >= 1) args[1] else file.path(BAYRC_FIGURE_DIR, "figure6")
 dir.create(outdir, recursive = TRUE, showWarnings = FALSE)
 
 bfdr_alpha <- 0.25
@@ -123,10 +123,10 @@ p <- ggplot() +
         panel.grid.major.x = element_line(colour = "grey88", linewidth = .3),
         legend.position = "bottom")
 
-cairo_pdf(file.path(outdir, "Fig2C_clock_phase_dial.pdf"), width = 7, height = 7)
+cairo_pdf(file.path(outdir, "Fig6C_clock_phase_dial.pdf"), width = 7, height = 7)
 print(p)
 dev.off()
-cat("Saving:", file.path(outdir, "Fig2C_clock_phase_dial.pdf"), "\n")
+cat("Saving:", file.path(outdir, "Fig6C_clock_phase_dial.pdf"), "\n")
 
 # circular sd of peak times across tissues, per gene and group
 spread <- do.call(rbind, lapply(levels(peaks$cluster), function(g) {
@@ -137,7 +137,7 @@ spread <- do.call(rbind, lapply(levels(peaks$cluster), function(g) {
                sd_hours = round(circ_sd(d), 2))
   }))
 }))
-write.csv(spread, file.path(outdir, "Fig2C_clock_phase_spread.csv"),
+write.csv(spread, file.path(outdir, "Fig6C_clock_phase_spread.csv"),
           row.names = FALSE)
 cat("\nspread of peak times across tissues, hours\n")
 print(reshape(spread[, c("gene", "cluster", "sd_hours")], idvar = "gene",

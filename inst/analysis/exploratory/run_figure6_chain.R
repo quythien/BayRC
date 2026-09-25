@@ -1,11 +1,11 @@
 ################################################################################
-# Drive the concordance heatmap scripts behind Figure 2.
+# Drive the concordance heatmap scripts behind Figure 6.
 #
 # The three scripts expect multi_conservation() and pheatmap() to be loaded.
 # This attaches the package and sources each script in its own process.
 #
 # Usage:
-#   Rscript run_figure2_chain.R [script]
+#   Rscript run_figure6_chain.R [script]
 #
 #   baboon     plots/heatmap_baboon.R           within-baboon, 325 pairs
 #   human      plots/heatmap_human.R            within-human, 325 pairs

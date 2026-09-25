@@ -1,5 +1,5 @@
 ################################################################################
-# Drive the case-study scripts that produce the Figure 3-6 panels.
+# Drive the case-study scripts that produce the Figure 2-6 panels.
 #
 # The companion plotting scripts read phase_inner, trans_outer, the
 # baboon_*/human_* objects and output.dir from their case study's workspace, so
@@ -8,11 +8,11 @@
 # Usage:
 #   Rscript run_figure_chain.R [group]
 #
-#   scn_hip    Baboon_SCN_HIP.R      -> Figure 3 panel A
+#   scn_hip    Baboon_SCN_HIP.R      -> Figure 2 panel E
 #              plots/Peak_new_conserved.R
-#   sun_put    Baboon_SUN_PUT.R      -> Figure 3 panel B, Figure 5
-#              plot_enrich_SUN_PUT.R -> Figure 4
-#   hb_lun     Baboon_Human_LUN.R    -> Figure 6
+#   sun_put    Baboon_SUN_PUT.R      -> Figure 2 panel C, Figure 4
+#              plot_enrich_SUN_PUT.R -> Figure 3
+#   hb_lun     Baboon_Human_LUN.R    -> Figure 5
 #              plots/heatmap_circadian_concordance.R
 #
 # With no argument every group runs, one process each.

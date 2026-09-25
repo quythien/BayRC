@@ -32,7 +32,7 @@ args  <- commandArgs(trailingOnly = TRUE)
 mode  <- if (length(args) >= 1) args[1] else "within_baboon"
 cores <- if (length(args) >= 2) as.integer(args[2]) else
   max(1L, parallel::detectCores() - 4L)
-# "infer" adds the permutation p-value and bootstrap CI; Figure 2 uses neither.
+# "infer" adds the permutation p-value and bootstrap CI; Figure 6 uses neither.
 infer <- length(args) >= 3 && args[3] == "infer"
 
 N_PERM <- 1000

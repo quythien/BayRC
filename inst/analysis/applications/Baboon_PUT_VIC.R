@@ -1,5 +1,5 @@
 # Baboon putamen versus visual cortex: rhythmic
-# transitions, phase inference, pathway enrichment and the Figure 3C, 4B and 5B
+# transitions, phase inference, pathway enrichment and the Figure 2D, 3 and 4B
 # panels. Putamen is condition A here and in Baboon_PUT_SUN.R.
 
 library(BayRC)
@@ -28,7 +28,7 @@ stage2_q       <- 0.05
 nperm          <- 10000
 min_measured   <- 15
 panel_pathways <- "KEGG Parkinson disease"
-# colour and size scales shared with Figure 4A in Baboon_PUT_SUN.R
+# colour and size scales shared with Figure 3A in Baboon_PUT_SUN.R
 q_limits       <- c(0.05, 0.0005)
 size_limits    <- c(0, 120)
 
@@ -77,7 +77,7 @@ clock_genes <- c("BHLHE40", "BHLHE41", "BMAL1", "BTRC", "CLOCK", "CREB1",
                  "FBXW11", "NFIL3", "NPAS2", "NR1D1", "NR1D2", "PER1", "PER2",
                  "PER3", "RORA", "RORB", "RORC")
 
-# Figure 3C, condition A on x as in the other two panels
+# Figure 2D, condition A on x as in the other two panels
 p <- peak_concordance_plot(
   peak_x = phase$peak1[maintained], peak_y = phase$peak2[maintained],
   phase_class = phase_class, label_genes = clock_genes,
@@ -139,7 +139,7 @@ if (replot) {
   sig <- stage2[stage2$q < stage2_q, ]
 }
 
-# Figure 4: a dot per pathway and transition that clears the stage-2 cut, sized
+# Figure 3: a dot per pathway and transition that clears the stage-2 cut, sized
 # by the expected gene count for that transition and shaded by -log10(q)
 wrap_label <- function(x, width = 26)
   vapply(x, function(s) paste(strwrap(s, width), collapse = "\n"), character(1),
@@ -160,7 +160,7 @@ best_q <- tapply(plot4$q, plot4$label, min)
 plot4$label <- factor(plot4$label, levels = names(sort(best_q, decreasing = TRUE)))
 
 q_breaks <- c(0.05, 0.01, 0.001)
-fig4 <- ggplot(plot4[plot4$q < stage2_q, ],
+fig3 <- ggplot(plot4[plot4$q < stage2_q, ],
                aes(x = direction, y = label, size = n_expected,
                    colour = -log10(q))) +
   geom_point() +
@@ -176,11 +176,11 @@ fig4 <- ggplot(plot4[plot4$q < stage2_q, ],
        x = "Transition", y = NULL) +
   theme_bayrc(base_size = 12) +
   theme(axis.text.y = element_text(size = 10))
-# Figure 4A and 4B share one legend, written here and placed beneath the pair
-bayrc_save(fig4 + theme(legend.position = "none"),
+# Figure 3A and 4B share one legend, written here and placed beneath the pair
+bayrc_save(fig3 + theme(legend.position = "none"),
            file.path(fig.dir, "PUT_VIC_transition_enrichment"),
            width = 5.4, height = 3.9)
-save_plot_legend(fig4, file.path(fig.dir, "transition_enrichment_legend"))
+save_plot_legend(fig3, file.path(fig.dir, "transition_enrichment_legend"))
 }
 
 selected <- unique(sig$pathway)
@@ -209,7 +209,7 @@ if (!replot) {
                    phase_class = phase_class)
 }
 
-# Figure 5B, and the legend both Figure 5 panels share
+# Figure 4B, and the legend both Figure 4 panels share
 for (pw in panel_pathways) {
   if (!pw %in% names(kegg)) stop("pathway not in the gene set list: ", pw)
   plot_heatmap(data1 = put, data2 = vic, pathway_genes = kegg[[pw]],
@@ -258,7 +258,7 @@ if (length(shifted))
 cat("pathways tested:", length(kegg), " stage 1 active:", length(active),
     " stage 2 significant:", length(selected), "\n")
 if (nrow(sig))
-  cat(sprintf("Figure 4 dot range: q %.4f to %.4f, expected genes %.1f to %.1f\n",
+  cat(sprintf("Figure 3 dot range: q %.4f to %.4f, expected genes %.1f to %.1f\n",
               min(sig$q), max(sig$q), min(plot4$n_expected[plot4$q < stage2_q]),
               max(plot4$n_expected[plot4$q < stage2_q])))
 cat("\n")

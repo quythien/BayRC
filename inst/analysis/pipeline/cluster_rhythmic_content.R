@@ -1,4 +1,4 @@
-## What separates the two tissue clusters in the Figure 2B concordance heatmap.
+## What separates the two tissue clusters in the Figure 6B concordance heatmap.
 ##
 ## The concordance score compares which genes are called rhythmic in a pair, so
 ## a cluster can be tight either because its tissues agree on timing or because

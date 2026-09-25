@@ -1,12 +1,12 @@
-"""Assemble Figure 6 from the two scatters and the three-species heatmap.
+"""Assemble Figure 5 from the two scatters and the three-species heatmap.
 
 Printed type follows the page width, so the two arrangements are written side
 by side and the type each one reaches is reported with them. The paper carries
-Figure_6_column.pdf.
+Figure_5_column.pdf.
 
-Usage: python3 assemble_figure6.py [panel_dir]
+Usage: python3 assemble_figure5.py [panel_dir]
 
-panel_dir defaults to $BAYRC_FIGURE_DIR/figure6, where make_figure6.R writes
+panel_dir defaults to $BAYRC_FIGURE_DIR/figure5, where make_figure5.R writes
 the panels. Requires PyMuPDF (pip install pymupdf).
 """
 from pathlib import Path
@@ -20,10 +20,10 @@ except ImportError:
 if len(sys.argv) > 1:
     here = Path(sys.argv[1])
 elif os.environ.get("BAYRC_FIGURE_DIR"):
-    here = Path(os.environ["BAYRC_FIGURE_DIR"]) / "figure6"
+    here = Path(os.environ["BAYRC_FIGURE_DIR"]) / "figure5"
 else:
     raise SystemExit("give the panel directory, or set BAYRC_FIGURE_DIR")
-PANELS = ["Fig6A_human_baboon.pdf", "Fig6B_human_mouse.pdf", "Fig6C_heatmap.pdf"]
+PANELS = ["Fig5A_human_baboon.pdf", "Fig5B_human_mouse.pdf", "Fig5C_heatmap.pdf"]
 GAP, MARGIN, GUTTER, LETTER = 16, 6, 18, 24
 TEXTWIDTH = 488.5
 
@@ -79,7 +79,7 @@ def column(out):
     return page.rect.width
 
 
-for name, fn in [("Figure_6_stacked.pdf", stacked), ("Figure_6_column.pdf", column)]:
+for name, fn in [("Figure_5_stacked.pdf", stacked), ("Figure_5_column.pdf", column)]:
     w = fn(here / name)
     p = fitz.open(here / name)[0]
     sz = [s["size"] * TEXTWIDTH / w for b in p.get_text("dict")["blocks"]

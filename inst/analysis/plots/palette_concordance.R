@@ -1,4 +1,4 @@
-## Palette and scale for the concordance heatmaps (Figure 2).
+## Palette and scale for the concordance heatmaps (Figure 6).
 ##
 ## A GnBu ramp, with the scale capped at 0.5 so the off-diagonal structure
 ## stays visible.
@@ -12,7 +12,7 @@ concordance_max    <- 0.5
 concordance_breaks <- seq(0, concordance_max, length.out = 201)
 concordance_legend <- seq(0, concordance_max, length.out = 6)
 
-## Ramp for the pathway transition dotplot (Figure 4), light at the stage-2 q
+## Ramp for the pathway transition dotplot (Figure 3), light at the stage-2 q
 ## cut and dark at the strongest enrichment; lightness falls from L* 83 to 41.
 enrichment_colors <- colorRampPalette(c(
   "#A8D8DC", "#7FC4A8", "#4FA89C", "#C97A4E", "#A03E5C"

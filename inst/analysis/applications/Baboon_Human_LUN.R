@@ -1,5 +1,5 @@
 # Baboon versus human lung: rhythmic transitions, phase inference, pathway
-# enrichment and the Figure 6 panels.
+# enrichment and the Figure 5 panels.
 
 library(BayRC)
 library(dplyr)
@@ -56,9 +56,9 @@ if (replot) {
   hum <- list(rho = mcmc_data_human[[tissue]], phi = mcmc_phi_human[[tissue]])
   measured <- rownames(bab$rho)
 
-  # the three-species panel of Figure 6 is drawn on the genes mouse also
+  # the three-species panel of Figure 5 is drawn on the genes mouse also
   # measures, so this comparison is cut to the same set when that summary is
-  # present; plots/figure6/make_figure6.R takes the intersection the same way
+  # present; plots/figure5/make_figure5.R takes the intersection the same way
   hm.file <- file.path(dirname(BAYRC_SUMMARY_DIR), "hm", "mcmc_rho_BF3.RData")
   if (file.exists(hm.file)) {
     hm.env <- new.env()
@@ -99,7 +99,7 @@ clock_genes <- c("BMAL1", "CLOCK", "NPAS2", "PER1", "PER2", "PER3", "CRY1",
                  "CRY2", "NR1D1", "NR1D2", "RORA", "RORB", "RORC", "DBP",
                  "TEF", "HLF", "NFIL3", "BHLHE40", "BHLHE41", "CIART")
 
-# Figure 6A
+# Figure 5A
 p <- peak_concordance_plot(
   peak_x = phase$peak1[maintained], peak_y = phase$peak2[maintained],
   phase_class = phase_class, label_genes = clock_genes,
@@ -180,7 +180,7 @@ if (!replot) {
                    phase_class = phase_class)
 }
 
-# Figure 6B
+# Figure 5B
 for (pw in panel_pathways) {
   if (!pw %in% names(kegg)) stop("pathway not in the gene set list: ", pw)
   plot_heatmap(data1 = bab, data2 = hum, pathway_genes = kegg[[pw]],

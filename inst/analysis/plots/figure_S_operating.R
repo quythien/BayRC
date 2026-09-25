@@ -4,7 +4,7 @@
 ## Reads the swept calibration runs that pipeline/bfdr_calibration.R writes as
 ## bfdr_calibration_A<A>_s1_n<n>_seed<s>.rds, regenerates each simulated data set
 ## from its seed to fit an ordinary least-squares cosinor alongside, and draws
-## four panels:
+## five panels:
 ##   A  AUC of the BayRC posterior and the cosinor F-test p-value, by A/sigma and n
 ##   B  BFDR power against A/sigma at each nominal level, one line per n
 ##   C  BFDR type I error against A/sigma, one line per n
@@ -12,19 +12,31 @@
 ##   E  the same for the cosinor F-test with Benjamini-Hochberg
 ## Realised FDR is the replicate mean of false calls over max(calls, 1), as FDR
 ## is defined; AUC, power and type I error are replicate means too. Every point
-## carries a 95% interval over the ten replicates, the mean plus and minus
+## carries a 95% interval over the available replicates, the mean plus and minus
 ## 1.96 standard errors. Also writes the pooled table beside the figure.
 
 this.file <- sub("^--file=", "", grep("^--file=", commandArgs(), value = TRUE)[1])
 analysis.dir <- if (is.na(this.file)) getwd() else dirname(normalizePath(this.file))
 while (!file.exists(file.path(analysis.dir, "config.R")) &&
        dirname(analysis.dir) != analysis.dir) analysis.dir <- dirname(analysis.dir)
-bayrc.needs.summary <- FALSE
-source(file.path(analysis.dir, "config.R"))
+# Saved-summary mode redraws the figure without fitting or rescoring simulations.
+# Usage: Rscript figure_S_operating.R --summaries <CSV directory> <figure directory>
+args <- commandArgs(trailingOnly = TRUE)
+summary_mode <- length(args) > 0 && args[1] == "--summaries"
+if (summary_mode) {
+  stopifnot(length(args) == 3)
+  cal.dir <- normalizePath(args[2])
+  BAYRC_FIGURE_DIR <- normalizePath(args[3])
+} else {
+  bayrc.needs.summary <- FALSE
+  source(file.path(analysis.dir, "config.R"))
+  cal.dir <- file.path(BAYRC_OUTPUT_DIR, "calibration")
+}
 source(file.path(analysis.dir, "plots", "theme_bayrc.R"))
-suppressPackageStartupMessages({ library(BayRC); library(ggplot2) })
+suppressPackageStartupMessages(library(ggplot2))
+if (!summary_mode) suppressPackageStartupMessages(library(BayRC))
 
-cal.dir <- file.path(BAYRC_OUTPUT_DIR, "calibration")
+if (!summary_mode) {
 fs <- list.files(cal.dir, "^bfdr_calibration_A[0-9.]+_s1_n[0-9]+_seed[0-9]+[.]rds$",
                  full.names = TRUE)
 if (!length(fs)) stop("no swept calibration runs under ", cal.dir)
@@ -110,6 +122,11 @@ names(auc_se)[3:4] <- c("BayRC_se", "Cosinor_se")
 auc_pooled <- merge(auc_pooled, auc_se, by = c("A", "n"))
 auc_pooled <- auc_pooled[order(auc_pooled$n, auc_pooled$A), ]
 write.csv(auc_pooled, file.path(cal.dir, "bayrc_cosinor_auc.csv"), row.names = FALSE)
+ } else {
+  pooled <- read.csv(file.path(cal.dir, "bfdr_operating_characteristics.csv"))
+  auc_pooled <- read.csv(file.path(cal.dir, "bayrc_cosinor_auc.csv"))
+  alphas <- sort(unique(pooled$alpha))
+}
 auc_long <- rbind(data.frame(auc_pooled[, c("A", "n")], method = "BayRC",
                              auc = auc_pooled$BayRC, se = auc_pooled$BayRC_se),
                   data.frame(auc_pooled[, c("A", "n")], method = "Cosinor",
@@ -150,7 +167,7 @@ pB <- ggplot(pooled, aes(A, power, colour = nlab)) +
   scale_y_continuous(limits = c(0, 1)) +
   scale_colour_manual(values = n_cols) +
   labs(x = "A/σ", y = "Power", colour = NULL, title = "B") +
-  theme_bayrc() + letter
+  theme_bayrc() + letter + theme(strip.text.x = element_text(size = 9))
 
 pC <- ggplot(pooled, aes(A, type1, colour = nlab)) +
   geom_hline(aes(yintercept = alpha), linetype = "dashed", colour = bayrc_ink) +
@@ -159,12 +176,13 @@ pC <- ggplot(pooled, aes(A, type1, colour = nlab)) +
   facet_wrap(~ alab, nrow = 1) +
   scale_colour_manual(values = n_cols) +
   labs(x = "A/σ", y = "Type I error", colour = NULL, title = "C") +
-  theme_bayrc() + letter
+  theme_bayrc() + letter + theme(strip.text.x = element_text(size = 9))
 
 ## the amplitude curves run close together at the larger sample sizes, so they
 ## are offset along the nominal level to keep them apart
 nudge_d <- position_dodge(width = 0.014)
-pD <- ggplot(pooled, aes(alpha, fdr, colour = snr)) +
+fdr_panel_data <- droplevels(pooled[pooled$A != 0.5, ])
+pD <- ggplot(fdr_panel_data, aes(alpha, fdr, colour = snr)) +
   geom_abline(slope = 1, intercept = 0, linetype = "dashed", colour = bayrc_ink) +
   geom_errorbar(aes(ymin = fdr - 1.96 * fdr_se, ymax = fdr + 1.96 * fdr_se), width = 0.006,
                 position = nudge_d) +
@@ -178,7 +196,7 @@ pD <- ggplot(pooled, aes(alpha, fdr, colour = snr)) +
   # the outer tick labels of neighbouring facets would otherwise touch
   theme(panel.spacing.x = grid::unit(5, "mm"))
 
-pE <- ggplot(pooled, aes(alpha, bh_fdr, colour = snr)) +
+pE <- ggplot(fdr_panel_data, aes(alpha, bh_fdr, colour = snr)) +
   geom_abline(slope = 1, intercept = 0, linetype = "dashed", colour = bayrc_ink) +
   geom_errorbar(aes(ymin = bh_fdr - 1.96 * bh_fdr_se, ymax = bh_fdr + 1.96 * bh_fdr_se),
                 width = 0.006, position = nudge_d) +
@@ -195,9 +213,13 @@ pE <- ggplot(pooled, aes(alpha, bh_fdr, colour = snr)) +
 stacked <- patchwork::wrap_plots(pA, pB, pC, pD, pE, ncol = 1)
 
 out <- file.path(BAYRC_FIGURE_DIR, "Figure_S_operating.pdf")
-cairo_pdf(out, width = 9.5, height = 15, family = bayrc_family)
+if (Sys.info()[["sysname"]] == "Darwin") {
+  quartz(type = "pdf", file = out, width = 9.5, height = 15, family = bayrc_family)
+} else {
+  cairo_pdf(out, width = 9.5, height = 15, family = bayrc_family)
+}
 print(stacked)
 invisible(dev.off())
-cat("wrote", out, "from", nrow(runs), "runs; regenerated truth matched in every one\n")
+cat("wrote", out, "with replicate counts", paste(sort(unique(pooled$replicates)), collapse = ", "), "per setting\n")
 print(format(auc_pooled, digits = 3), row.names = FALSE)
 print(format(pooled[, c("n", "A", "alpha", "fdr", "power", "type1")], digits = 3), row.names = FALSE)

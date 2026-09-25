@@ -465,7 +465,7 @@ genome-wide calibrated biomarker set for reporting.
 
 ## The BayRC Pathway Heatmap
 
-One of BayRC's main outputs is an integrated pathway heatmap (Figure 5 in
+One of BayRC's main outputs is an integrated pathway heatmap (Figure 4 in
 the manuscript) that is read **from left to right across six panels** for
 each gene in a pathway of interest:
 
@@ -649,7 +649,7 @@ real signal rather than uncertainty from weak rhythmicity.
 | Function | Purpose |
 |---|---|
 | `pathSelect()` | Test pathways for enrichment in a chosen transition direction; `ranking.method` specifies `"gain"`, `"loss"`, `"conserved"`, or `"union"` (combined rhythmic signal in either condition) |
-| `plot_heatmap()` | Generate the six-panel pathway heatmap described above (Figure 5 in the manuscript) |
+| `plot_heatmap()` | Generate the six-panel pathway heatmap described above (Figure 4 in the manuscript) |
 | `multi_conservation_pathway()` | Compute a pathway-level concordance score for a chosen gene set |
 | `multi_conservation_pathway_bootstrap()` | Compute pathway-level concordance with bootstrap confidence intervals |
 
@@ -761,3 +761,5 @@ along with a permutation p-value and bootstrap confidence interval.
 ## Citation
 
 Pham TQ, et al. *BayesRC: a comparative Bayesian multilevel framework for evaluating circadian synchrony across conditions.* (manuscript in preparation)
+
+The [manuscript figure guide](inst/analysis/FIGURES.md) lists the current panel order and reproduction scripts.

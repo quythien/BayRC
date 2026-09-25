@@ -1,13 +1,13 @@
-"""Lay Figure 2 out as a two-by-two block of panels.
+"""Lay Figure 6 out as a two-by-two block of panels.
 
 Printed type is set by each panel's native width, so this script only places
 the panels.
 
-Usage: python3 assemble_figure2_nature.py [panel_dir] [out.pdf]
+Usage: python3 assemble_figure6_nature.py [panel_dir] [out.pdf]
 
-panel_dir defaults to $BAYRC_FIGURE_DIR/figure2, where replot_figure2.R,
-figure2_panelC.R and explore_phase_groups.R write the panels; out.pdf defaults
-to Figure_2.pdf in that directory. Requires PyMuPDF (pip install pymupdf).
+panel_dir defaults to $BAYRC_FIGURE_DIR/figure6, where replot_figure6.R,
+figure6_panelC.R and explore_phase_groups.R write the panels; out.pdf defaults
+to Figure_6.pdf in that directory. Requires PyMuPDF (pip install pymupdf).
 """
 from pathlib import Path
 import os
@@ -20,19 +20,19 @@ except ImportError:
 if len(sys.argv) > 1:
     here = Path(sys.argv[1])
 elif os.environ.get("BAYRC_FIGURE_DIR"):
-    here = Path(os.environ["BAYRC_FIGURE_DIR"]) / "figure2"
+    here = Path(os.environ["BAYRC_FIGURE_DIR"]) / "figure6"
 else:
     raise SystemExit("give the panel directory, or set BAYRC_FIGURE_DIR")
-out = Path(sys.argv[2]) if len(sys.argv) > 2 else here / "Figure_2.pdf"
+out = Path(sys.argv[2]) if len(sys.argv) > 2 else here / "Figure_6.pdf"
 
-PANELS = ["Fig2A_genomewide_nature.pdf", "Fig2B_circadian_nature.pdf",
-          "Fig2C_circadian_membership_nature.pdf",
+PANELS = ["Fig6A_genomewide_nature.pdf", "Fig6B_circadian_nature.pdf",
+          "Fig6C_circadian_membership_nature.pdf",
           "option8_balanced_global_nature.pdf"]
 # slot width per row; the upper row is drawn narrower
 ROW_SLOT = [480, 520]
 SLOT, MARGIN, GUTTER, GAP_X, GAP_Y, LETTER = max(ROW_SLOT), 5, 15, 15, 62, 18
 # the top row's shared concordance scale, centred in the band between the rows
-SHARED, SHARED_SCALE = "Fig2_concordance_legend.pdf", 1.15
+SHARED, SHARED_SCALE = "Fig6_concordance_legend.pdf", 1.15
 # panel letters use an embedded font file where one is found, else Helvetica Bold
 LETTER_FONT = os.environ.get("BAYRC_LETTER_FONT",
                              "/System/Library/Fonts/Supplemental/Arial Bold.ttf")

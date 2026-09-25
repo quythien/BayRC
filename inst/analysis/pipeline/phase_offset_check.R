@@ -1,5 +1,5 @@
 ################################################################################
-# Signed phase offset for the Figure 3 panels, for the previous run and the
+# Signed phase offset for the Figure 2 panels, for the previous run and the
 # current run. The 3B caption reports an offset of about 3 h above the diagonal.
 #
 # Sign convention, as in the case-study scripts:

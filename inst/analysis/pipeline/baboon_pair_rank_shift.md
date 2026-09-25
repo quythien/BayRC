@@ -1,6 +1,6 @@
 # Stability of the Within-Baboon Pair Ranking
 
-Figure 2 ranks all `choose(26, 2) = 325` within-baboon tissue pairs by adjusted
+Figure 6 ranks all `choose(26, 2) = 325` within-baboon tissue pairs by adjusted
 concordance. Across two runs of the same pipeline that ranking is not stable,
 and the instability tracks a property of the metric rather than a change in the
 underlying data. This note records the numbers, the mechanism, and what it
@@ -85,7 +85,7 @@ that way under a much larger shift.
 
 ---
 
-## How Figure 2 Should Be Read
+## How Figure 6 Should Be Read
 
 The adjusted concordance values are reproducible: they correlate at 0.836
 across runs, and the median within-baboon value is essentially unchanged

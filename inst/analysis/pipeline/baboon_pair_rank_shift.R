@@ -1,7 +1,7 @@
 ################################################################################
 # How far do the within-baboon tissue pairs move between two runs?
 #
-# The genome-wide concordance heatmap (Figure 2) is built from the adjusted
+# The genome-wide concordance heatmap (Figure 6) is built from the adjusted
 # concordance of all choose(26, 2) = 325 within-baboon pairs. The most
 # concordant pairs reorder more between runs in baboon than they do in human,
 # so this writes out the reordering in full: the top 20 under each run with its

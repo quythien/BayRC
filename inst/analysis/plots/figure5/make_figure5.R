@@ -1,4 +1,4 @@
-# Figure 6: the circadian pathway in lung across three species.
+# Figure 5: the circadian pathway in lung across three species.
 #
 # Human is the reference group; baboon and mouse are comparator groups. Both
 # comparisons use the frozen parameters of the case study the paper reports.
@@ -20,7 +20,7 @@ source(file.path(analysis.dir, "plots", "theme_bayrc.R"))
 source(file.path(analysis.dir, "plots", "peak_concordance.R"))
 
 # the panels go beside the other figure panels
-here <- Sys.getenv("FIG6_DIR", unset = file.path(BAYRC_FIGURE_DIR, "figure6"))
+here <- Sys.getenv("FIG5_DIR", unset = file.path(BAYRC_FIGURE_DIR, "figure5"))
 dir.create(here, recursive = TRUE, showWarnings = FALSE)
 res  <- BAYRC_RESULT_DIR
 # the mouse summaries sit beside the human and baboon ones, under summary/hm
@@ -114,8 +114,8 @@ scatter <- function(res, cmp_name, file, show_key) {
   cat(sprintf("  %s: %d maintained; clock genes present: %s\n", cmp_name,
               length(keep), paste(intersect(clock, keep), collapse = " ")))
 }
-scatter(hb, "Baboon", "Fig6A_human_baboon.pdf", TRUE)
-scatter(hm, "Mouse",  "Fig6B_human_mouse.pdf", FALSE)
+scatter(hb, "Baboon", "Fig5A_human_baboon.pdf", TRUE)
+scatter(hm, "Mouse",  "Fig5B_human_mouse.pdf", FALSE)
 
 plot_heatmap(
   data1 = hum, data2 = bab, data3 = mou,
@@ -129,7 +129,7 @@ plot_heatmap(
   block_width = 3.2, delta_width = 5.6, font_scale = 1.15,
   show_legend = TRUE, legend_side = "bottom",
   versions = "full", save_path = file.path(here, "lung3"))
-# assemble_figure6.py reads the three panels under one naming scheme
+# assemble_figure5.py reads the three panels under one naming scheme
 file.copy(file.path(here, "lung3", "KEGG_Circadian_rhythm_integrated.pdf"),
-          file.path(here, "Fig6C_heatmap.pdf"), overwrite = TRUE)
+          file.path(here, "Fig5C_heatmap.pdf"), overwrite = TRUE)
 cat("done\n")
